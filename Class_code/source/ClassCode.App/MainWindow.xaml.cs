@@ -12,6 +12,7 @@ using System.Collections.Generic;
 
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.CodeCompletion;
+using ICSharpCode.AvalonEdit.Indentation.CSharp;
 
 namespace ClassCode.App
 {
@@ -24,12 +25,15 @@ namespace ClassCode.App
         public MainWindow()
         {
             InitializeComponent();
+            codeEditor.TextArea.IndentationStrategy = new CSharpIndentationStrategy(codeEditor.Options);
 
             // Python Code Editor 파이썬 구문 강조 적용
             codeEditor.SyntaxHighlighting = HighlightingManager.Instance.GetDefinition("Python");
             // [핵심] 글자 입력 시 발생하는 이벤트 연결
             codeEditor.TextArea.TextEntering += CodeEditor_TextEntering;
             codeEditor.TextArea.TextEntered += CodeEditor_TextEntered;
+
+
 
         }
 
@@ -49,6 +53,13 @@ namespace ClassCode.App
         // 글자가 입력된 직후
         private void CodeEditor_TextEntered(object sender, TextCompositionEventArgs e)
         {
+            // 스페이스, 콜론, 엔터 등이 입력되면 자동 완성 창을 띄우지 않음
+            if (e.Text == " " || e.Text == ":" || e.Text == "\n" || e.Text == "\r")
+            {
+                if (completionWindow != null) completionWindow.Close();
+                return;
+            }
+
             // 알파벳이나 숫자가 입력되었을 때만 자동 완성 창을 띄움
             if (completionWindow == null && char.IsLetterOrDigit(e.Text[0]))
             {
