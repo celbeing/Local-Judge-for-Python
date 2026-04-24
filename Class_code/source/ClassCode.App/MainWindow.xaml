@@ -1,6 +1,7 @@
 ﻿<Window x:Class="ClassCode.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
         Title="Class Code - Offline Judge" Height="720" Width="1280" 
         MinWidth="1000" MinHeight="600">
     <Grid>
@@ -70,12 +71,11 @@
                 </Grid.RowDefinitions>
 
                 <GroupBox Header="Python Code Editor" Grid.Row="0">
-                    <TextBox Text="print('Hello Class Code!')" 
-                             AcceptsReturn="True" 
-                             AcceptsTab="True"
-                             FontFamily="Consolas" 
-                             FontSize="14" 
-                             SpellCheck.IsEnabled="False"/>
+                    <avalonEdit:TextEditor Name="codeEditor"
+                               FontFamily="Consolas"
+                               FontSize="14"
+                               ShowLineNumbers="True"
+                               Background="#F5F5F5"/>
                 </GroupBox>
 
                 <GridSplitter Grid.Row="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Background="#EEE"/>
