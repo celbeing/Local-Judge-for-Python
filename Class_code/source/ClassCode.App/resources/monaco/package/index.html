@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <style>
+        html, body, #container {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <script src="https://app.assets/min/vs/loader.js"></script>
+    <script>
+        require.config({ paths: { 'vs': 'https://app.assets/min/vs' } });
+        var editor;
+        require(['vs/editor/editor.main'], function () {
+            editor = monaco.editor.create(document.getElementById('container'), {
+                value: "print('Hello, SharpJudge!')",
+                language: 'python',
+                theme: 'vs-dark',
+                automaticLayout: true // 창 크기 조절 시 에디터 크기 자동 맞춤
+            });
+        });
+
+        // C#에서 호출할 함수: 코드 가져오기
+        function getCode() {
+            return editor.getValue();
+        }
+
+        // C#에서 호출할 함수: 코드 설정하기
+        function setCode(code) {
+            editor.setValue(code);
+        }
+    </script>
+</body>
+</html>
