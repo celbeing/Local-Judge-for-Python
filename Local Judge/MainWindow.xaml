@@ -1,0 +1,318 @@
+﻿<Window x:Class="Local_Judge.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Local_Judge"
+        mc:Ignorable="d"
+        Title="Local Judge"
+        Height="800"
+        Width="1200"
+        MinHeight="650"
+        MinWidth="1000"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#D0D7DE" />
+        <SolidColorBrush x:Key="PanelHeaderBrush" Color="#F6F8FA" />
+        <SolidColorBrush x:Key="EditorBackgroundBrush" Color="#1E1E1E" />
+        <SolidColorBrush x:Key="EditorForegroundBrush" Color="#D4D4D4" />
+        <SolidColorBrush x:Key="TerminalBackgroundBrush" Color="#0C0C0C" />
+        <SolidColorBrush x:Key="TerminalForegroundBrush" Color="#EAEAEA" />
+
+        <Style x:Key="SectionTitleTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,18,0,8" />
+        </Style>
+
+        <Style x:Key="ReadOnlyProblemTextBoxStyle" TargetType="TextBox">
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Disabled" />
+        </Style>
+
+        <Style x:Key="SampleBoxStyle" TargetType="TextBox">
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="AcceptsTab" Value="True" />
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Background" Value="#F6F8FA" />
+            <Setter Property="BorderBrush" Value="#D0D7DE" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="MinHeight" Value="72" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- 상단 메뉴바 -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_파일">
+                <MenuItem Header="문제 불러오기..." Click="LoadProblemMenuItem_Click" />
+                <MenuItem Header="코드 저장" Click="SaveCodeMenuItem_Click" />
+                <Separator />
+                <MenuItem Header="종료" Click="ExitMenuItem_Click" />
+            </MenuItem>
+
+            <MenuItem Header="_실행">
+                <MenuItem Header="예제 실행" Click="RunSampleMenuItem_Click" />
+                <MenuItem Header="디버그 시작" Click="DebugMenuItem_Click" />
+            </MenuItem>
+
+            <MenuItem Header="_저지">
+                <MenuItem Header="예제 채점" Click="JudgeSampleMenuItem_Click" />
+                <MenuItem Header="제출" Click="SubmitMenuItem_Click" />
+            </MenuItem>
+
+            <MenuItem Header="_도구">
+                <MenuItem Header="Python 경로 설정" Click="PythonPathMenuItem_Click" />
+                <MenuItem Header="환경 설정" Click="SettingsMenuItem_Click" />
+            </MenuItem>
+
+            <MenuItem Header="_도움말">
+                <MenuItem Header="정보" Click="AboutMenuItem_Click" />
+            </MenuItem>
+        </Menu>
+
+        <!-- 최하단 상태 표시줄 -->
+        <StatusBar DockPanel.Dock="Bottom" Height="28">
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusIndicator"
+                             Width="9"
+                             Height="9"
+                             Fill="#2DA44E"
+                             Margin="0,0,8,0" />
+                    <TextBlock Text="상태: " FontWeight="SemiBold" />
+                    <TextBlock x:Name="StatusTextBlock" Text="대기 중" />
+                </StackPanel>
+            </StatusBarItem>
+
+            <Separator />
+
+            <StatusBarItem>
+                <TextBlock x:Name="CurrentProblemStatusTextBlock" Text="문제 미선택" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- 메인 영역: 좌측 문제 / 우측 에디터 + 터미널 -->
+        <Grid Background="#FFFFFF">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="420" MinWidth="300" />
+                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="*" MinWidth="450" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 왼쪽 문제 설명 패널 -->
+            <Border Grid.Column="0"
+                    BorderBrush="{StaticResource PanelBorderBrush}"
+                    BorderThickness="0,0,1,0"
+                    Background="#FFFFFF">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="44" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            BorderBrush="{StaticResource PanelBorderBrush}"
+                            BorderThickness="0,0,0,1"
+                            Background="{StaticResource PanelHeaderBrush}">
+                        <DockPanel Margin="12,0" LastChildFill="False">
+                            <TextBlock Text="문제"
+                                       FontWeight="SemiBold"
+                                       FontSize="15"
+                                       VerticalAlignment="Center" />
+                            <Button Content="불러오기"
+                                    DockPanel.Dock="Right"
+                                    Width="86"
+                                    Height="26"
+                                    Margin="8,0,0,0"
+                                    Click="LoadProblemMenuItem_Click" />
+                        </DockPanel>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="1"
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="18">
+                            <TextBlock x:Name="ProblemTitleTextBlock"
+                                       Text="문제를 불러와주세요"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       TextWrapping="Wrap" />
+
+                            <TextBlock x:Name="ProblemMetaTextBlock"
+                                       Text="시간 제한: - / 메모리 제한: -"
+                                       Margin="0,6,0,16"
+                                       Foreground="#57606A" />
+
+                            <TextBlock Text="문제 설명"
+                                       Style="{StaticResource SectionTitleTextStyle}" />
+                            <TextBox x:Name="ProblemDescriptionTextBox"
+                                     Style="{StaticResource ReadOnlyProblemTextBoxStyle}"
+                                     Text="문제 설명이 이곳에 표시됩니다." />
+
+                            <TextBlock Text="입력"
+                                       Style="{StaticResource SectionTitleTextStyle}" />
+                            <TextBox x:Name="InputDescriptionTextBox"
+                                     Style="{StaticResource ReadOnlyProblemTextBoxStyle}"
+                                     Text="입력 형식이 이곳에 표시됩니다." />
+
+                            <TextBlock Text="출력"
+                                       Style="{StaticResource SectionTitleTextStyle}" />
+                            <TextBox x:Name="OutputDescriptionTextBox"
+                                     Style="{StaticResource ReadOnlyProblemTextBoxStyle}"
+                                     Text="출력 형식이 이곳에 표시됩니다." />
+
+                            <TextBlock Text="입력 예시"
+                                       Style="{StaticResource SectionTitleTextStyle}" />
+                            <TextBox x:Name="SampleInputTextBox"
+                                     Style="{StaticResource SampleBoxStyle}"
+                                     Text="예시 입력이 이곳에 표시됩니다." />
+
+                            <TextBlock Text="출력 예시"
+                                       Style="{StaticResource SectionTitleTextStyle}" />
+                            <TextBox x:Name="SampleOutputTextBox"
+                                     Style="{StaticResource SampleBoxStyle}"
+                                     Text="예시 출력이 이곳에 표시됩니다." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- 좌우 크기 조절 스플리터 -->
+            <GridSplitter Grid.Column="1"
+                          Width="8"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="#EAECEF"
+                          Cursor="SizeWE"
+                          ShowsPreview="True"
+                          ToolTip="좌우 패널 크기 조정" />
+
+            <!-- 오른쪽 코드 편집기 + 터미널 패널 -->
+            <Grid Grid.Column="2" Background="#FFFFFF">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" MinHeight="260" />
+                    <RowDefinition Height="6" />
+                    <RowDefinition Height="210" MinHeight="120" />
+                </Grid.RowDefinitions>
+
+                <!-- 코드 편집기 -->
+                <Border Grid.Row="0"
+                        BorderBrush="{StaticResource PanelBorderBrush}"
+                        BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="44" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0"
+                                BorderBrush="{StaticResource PanelBorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Background="{StaticResource PanelHeaderBrush}">
+                            <DockPanel Margin="12,0" LastChildFill="False">
+                                <TextBlock Text="Python 코드 편집기"
+                                           FontWeight="SemiBold"
+                                           FontSize="15"
+                                           VerticalAlignment="Center" />
+
+                                <StackPanel DockPanel.Dock="Right"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <Button Content="실행"
+                                            Width="70"
+                                            Height="26"
+                                            Margin="0,0,6,0"
+                                            Click="RunSampleMenuItem_Click" />
+                                    <Button Content="제출"
+                                            Width="70"
+                                            Height="26"
+                                            Click="SubmitMenuItem_Click" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <TextBox x:Name="CodeEditorTextBox"
+                                 Grid.Row="1"
+                                 Text="# Python 코드를 작성하세요.&#x0D;&#x0A;import sys&#x0D;&#x0A;&#x0D;&#x0A;def main():&#x0D;&#x0A;    pass&#x0D;&#x0A;&#x0D;&#x0A;if __name__ == '__main__':&#x0D;&#x0A;    main()"
+                                 AcceptsReturn="True"
+                                 AcceptsTab="True"
+                                 FontFamily="Consolas"
+                                 FontSize="15"
+                                 Background="{StaticResource EditorBackgroundBrush}"
+                                 Foreground="{StaticResource EditorForegroundBrush}"
+                                 CaretBrush="{StaticResource EditorForegroundBrush}"
+                                 BorderThickness="0"
+                                 Padding="14"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 TextWrapping="NoWrap"
+                                 SpellCheck.IsEnabled="False" />
+                    </Grid>
+                </Border>
+
+                <!-- 상하 크기 조절 스플리터 -->
+                <GridSplitter Grid.Row="1"
+                              Height="6"
+                              HorizontalAlignment="Stretch"
+                              Background="#EAECEF"
+                              ShowsPreview="True" />
+
+                <!-- 터미널 / 채점 결과 -->
+                <Border Grid.Row="2"
+                        Background="{StaticResource TerminalBackgroundBrush}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="36" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <DockPanel Grid.Row="0"
+                                   LastChildFill="False"
+                                   Background="#161B22">
+                            <TextBlock Text="터미널 / 채점 결과"
+                                       Foreground="#FFFFFF"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0" />
+
+                            <Button Content="지우기"
+                                    DockPanel.Dock="Right"
+                                    Width="70"
+                                    Height="24"
+                                    Margin="0,0,10,0"
+                                    Click="ClearTerminalMenuItem_Click" />
+                        </DockPanel>
+
+                        <TextBox x:Name="TerminalTextBox"
+                                 Grid.Row="1"
+                                 Text="[System] Local Judge가 시작되었습니다."
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 FontFamily="Consolas"
+                                 FontSize="13"
+                                 Background="{StaticResource TerminalBackgroundBrush}"
+                                 Foreground="{StaticResource TerminalForegroundBrush}"
+                                 BorderThickness="0"
+                                 Padding="12"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 TextWrapping="NoWrap" />
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</Window>
