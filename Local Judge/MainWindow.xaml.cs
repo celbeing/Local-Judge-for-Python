@@ -1,4 +1,8 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
+using System.IO;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Media;
 
@@ -10,11 +14,23 @@ namespace Local_Judge
         private readonly Brush _workingBrush = new SolidColorBrush(Color.FromRgb(251, 188, 5));
         private readonly Brush _errorBrush = new SolidColorBrush(Color.FromRgb(218, 54, 51));
 
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true
+        };
+
+        private ProblemDocument? _currentProblem;
+        private string? _currentProblemFilePath;
+        private bool _isProblemDirty;
+
         public MainWindow()
         {
             InitializeComponent();
 
             SetStatus("대기 중");
+            ResetProblemView();
             AppendTerminal("[UI] 화면 구성이 완료되었습니다.");
         }
 
@@ -42,23 +58,264 @@ namespace Local_Judge
             TerminalTextBox.ScrollToEnd();
         }
 
+        private void ResetProblemView()
+        {
+            ProblemTitleTextBlock.Text = "문제를 불러와주세요";
+            ProblemMetaTextBlock.Text = "시간 제한: - / 메모리 제한: -";
+            ProblemDescriptionTextBox.Text = "문제 설명이 이곳에 표시됩니다.";
+            InputDescriptionTextBox.Text = "입력 형식이 이곳에 표시됩니다.";
+            OutputDescriptionTextBox.Text = "출력 형식이 이곳에 표시됩니다.";
+            SampleInputTextBox.Text = "예시 입력이 이곳에 표시됩니다.";
+            SampleOutputTextBox.Text = "예시 출력이 이곳에 표시됩니다.";
+            CurrentProblemStatusTextBlock.Text = "문제 미선택";
+        }
+
+        private void DisplayProblem(ProblemDocument problem)
+        {
+            string title = string.IsNullOrWhiteSpace(problem.Id)
+                ? problem.Title
+                : $"[{problem.Id}] {problem.Title}";
+
+            ProblemTitleTextBlock.Text = string.IsNullOrWhiteSpace(title) ? "제목 없는 문제" : title;
+            ProblemMetaTextBlock.Text = $"시간 제한: {problem.TimeLimitMs} ms / 메모리 제한: {problem.MemoryLimitMb} MB";
+            ProblemDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.Description)
+                ? "문제 설명이 비어 있습니다."
+                : problem.Description;
+            InputDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.InputFormat)
+                ? "입력 설명이 비어 있습니다."
+                : problem.InputFormat;
+            OutputDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.OutputFormat)
+                ? "출력 설명이 비어 있습니다."
+                : problem.OutputFormat;
+
+            SampleCaseDocument? firstSample = problem.Samples.Count > 0 ? problem.Samples[0] : null;
+            SampleInputTextBox.Text = firstSample?.Input ?? "예시 입력이 없습니다.";
+            SampleOutputTextBox.Text = firstSample?.Output ?? "예시 출력이 없습니다.";
+
+            UpdateCurrentProblemStatus();
+        }
+
+        private void UpdateCurrentProblemStatus()
+        {
+            if (_currentProblem is null)
+            {
+                CurrentProblemStatusTextBlock.Text = "문제 미선택";
+                return;
+            }
+
+            string title = string.IsNullOrWhiteSpace(_currentProblem.Id)
+                ? _currentProblem.Title
+                : $"[{_currentProblem.Id}] {_currentProblem.Title}";
+            string saveState = _isProblemDirty ? "저장 안 됨" : "저장됨";
+            string pathState = string.IsNullOrWhiteSpace(_currentProblemFilePath)
+                ? "새 문제"
+                : Path.GetFileName(_currentProblemFilePath);
+
+            CurrentProblemStatusTextBlock.Text = $"현재 문제: {title} | {saveState} | {pathState}";
+        }
+
+        private void NewProblemMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            SetStatus("문제 만드는 중", isWorking: true);
+
+            var editor = new ProblemEditorWindow
+            {
+                Owner = this
+            };
+
+            bool? result = editor.ShowDialog();
+            if (result != true)
+            {
+                SetStatus("대기 중");
+                AppendTerminal("[Problem] 새 문제 만들기를 취소했습니다.");
+                return;
+            }
+
+            _currentProblem = editor.Problem;
+            _currentProblemFilePath = null;
+            _isProblemDirty = true;
+
+            DisplayProblem(_currentProblem);
+            SetStatus("새 문제 작성 완료");
+            AppendTerminal($"[Problem] 새 문제를 만들었습니다: {_currentProblem.Title}");
+            AppendTerminal("[Problem] 파일 > 문제 저장 또는 다른 이름으로 문제 저장을 눌러 JSON으로 저장하세요.");
+        }
+
+        private void EditProblemMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentProblem is null)
+            {
+                SetStatus("수정할 문제가 없습니다", isError: true);
+                AppendTerminal("[Problem] 먼저 문제를 만들거나 불러오세요.");
+                return;
+            }
+
+            SetStatus("문제 수정 중", isWorking: true);
+
+            var editor = new ProblemEditorWindow(_currentProblem)
+            {
+                Owner = this
+            };
+
+            bool? result = editor.ShowDialog();
+            if (result != true)
+            {
+                SetStatus("대기 중");
+                AppendTerminal("[Problem] 문제 수정을 취소했습니다.");
+                return;
+            }
+
+            _currentProblem = editor.Problem;
+            _isProblemDirty = true;
+
+            DisplayProblem(_currentProblem);
+            SetStatus("문제 수정 완료");
+            AppendTerminal($"[Problem] 문제를 수정했습니다: {_currentProblem.Title}");
+        }
+
         private void LoadProblemMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            var dialog = new OpenFileDialog
+            {
+                Title = "문제 JSON 불러오기",
+                Filter = "JSON 문제 파일 (*.json)|*.json|모든 파일 (*.*)|*.*"
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                SetStatus("대기 중");
+                return;
+            }
+
             SetStatus("문제 불러오는 중", isWorking: true);
-            AppendTerminal("[Problem] 문제 불러오기를 시작합니다.");
+            AppendTerminal($"[Problem] 문제 파일을 불러옵니다: {dialog.FileName}");
 
-            // TODO: 이후 JSON 문제 로더와 연결
-            ProblemTitleTextBlock.Text = "예제 문제: A+B";
-            ProblemMetaTextBlock.Text = "시간 제한: 2초 / 메모리 제한: 128 MB";
-            ProblemDescriptionTextBox.Text = "두 정수 A와 B를 입력받은 다음, A+B를 출력하는 프로그램을 작성하시오.";
-            InputDescriptionTextBox.Text = "첫째 줄에 A와 B가 주어진다.";
-            OutputDescriptionTextBox.Text = "첫째 줄에 A+B를 출력한다.";
-            SampleInputTextBox.Text = "1 2";
-            SampleOutputTextBox.Text = "3";
-            CurrentProblemStatusTextBlock.Text = "현재 문제: 예제 문제 A+B";
+            try
+            {
+                string json = File.ReadAllText(dialog.FileName);
+                ProblemDocument? problem = JsonSerializer.Deserialize<ProblemDocument>(json, _jsonOptions);
 
-            SetStatus("문제 불러오기 완료");
-            AppendTerminal("[Problem] 문제 정보가 화면에 표시되었습니다.");
+                if (problem is null)
+                {
+                    throw new InvalidOperationException("문제 JSON을 읽었지만 내용이 비어 있습니다.");
+                }
+
+                problem.Samples ??= new();
+                problem.Version = problem.Version <= 0 ? 1 : problem.Version;
+                problem.TimeLimitMs = problem.TimeLimitMs <= 0 ? 2000 : problem.TimeLimitMs;
+                problem.MemoryLimitMb = problem.MemoryLimitMb <= 0 ? 128 : problem.MemoryLimitMb;
+
+                _currentProblem = problem;
+                _currentProblemFilePath = dialog.FileName;
+                _isProblemDirty = false;
+
+                DisplayProblem(problem);
+                SetStatus("문제 불러오기 완료");
+                AppendTerminal($"[Problem] 문제를 불러왔습니다: [{problem.Id}] {problem.Title}");
+            }
+            catch (JsonException ex)
+            {
+                SetStatus("문제 JSON 오류", isError: true);
+                AppendTerminal("[Problem] JSON 형식이 올바르지 않습니다.");
+                AppendTerminal(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                SetStatus("문제 불러오기 실패", isError: true);
+                AppendTerminal("[Problem] 문제 불러오기 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
+        }
+
+        private void SaveProblemMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentProblem is null)
+            {
+                SetStatus("저장할 문제가 없습니다", isError: true);
+                AppendTerminal("[Problem] 먼저 문제를 만들거나 불러오세요.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_currentProblemFilePath))
+            {
+                SaveProblemAsMenuItem_Click(sender, e);
+                return;
+            }
+
+            SaveCurrentProblemToFile(_currentProblemFilePath);
+        }
+
+        private void SaveProblemAsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentProblem is null)
+            {
+                SetStatus("저장할 문제가 없습니다", isError: true);
+                AppendTerminal("[Problem] 먼저 문제를 만들거나 불러오세요.");
+                return;
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                Title = "문제 JSON 저장",
+                Filter = "JSON 문제 파일 (*.json)|*.json|모든 파일 (*.*)|*.*",
+                FileName = CreateDefaultProblemFileName(_currentProblem)
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                SetStatus("대기 중");
+                return;
+            }
+
+            SaveCurrentProblemToFile(dialog.FileName);
+        }
+
+        private void SaveCurrentProblemToFile(string filePath)
+        {
+            if (_currentProblem is null)
+            {
+                return;
+            }
+
+            SetStatus("문제 저장 중", isWorking: true);
+            AppendTerminal($"[Problem] 문제 파일을 저장합니다: {filePath}");
+
+            try
+            {
+                string json = JsonSerializer.Serialize(_currentProblem, _jsonOptions);
+                File.WriteAllText(filePath, json);
+
+                _currentProblemFilePath = filePath;
+                _isProblemDirty = false;
+                UpdateCurrentProblemStatus();
+
+                SetStatus("문제 저장 완료");
+                AppendTerminal("[Problem] 문제 JSON 저장이 완료되었습니다.");
+            }
+            catch (Exception ex)
+            {
+                SetStatus("문제 저장 실패", isError: true);
+                AppendTerminal("[Problem] 문제 저장 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
+        }
+
+        private static string CreateDefaultProblemFileName(ProblemDocument problem)
+        {
+            string baseName = string.IsNullOrWhiteSpace(problem.Id)
+                ? problem.Title
+                : $"{problem.Id}_{problem.Title}";
+
+            baseName = Regex.Replace(baseName, "[\\/:*?\"<>|]+", "_").Trim();
+
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                baseName = "problem";
+            }
+
+            return baseName + ".json";
         }
 
         private void SaveCodeMenuItem_Click(object sender, RoutedEventArgs e)
@@ -68,11 +325,49 @@ namespace Local_Judge
             SetStatus("대기 중");
         }
 
+        private void RunCodeMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            SetStatus("실행 준비 중", isWorking: true);
+            AppendTerminal("[Run] 일반 실행 기능은 다음 단계에서 Python Runner와 연결합니다.");
+            SetStatus("대기 중");
+        }
+
         private void RunSampleMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            SetStatus("실행 중", isWorking: true);
-            AppendTerminal("[Run] 예제 실행 기능은 다음 단계에서 Python Runner와 연결합니다.");
-            SetStatus("실행 대기");
+            if (_currentProblem is null)
+            {
+                SetStatus("예제 실행할 문제가 없습니다", isError: true);
+                AppendTerminal("[Run] 먼저 문제를 만들거나 불러오세요.");
+                return;
+            }
+
+            SetStatus("예제 실행 준비 중", isWorking: true);
+
+            if (_currentProblem.Samples.Count == 0)
+            {
+                SetStatus("예제 입력이 없습니다", isError: true);
+                AppendTerminal("[Run] 현재 문제에는 예제 입력/출력이 없습니다.");
+                return;
+            }
+
+            AppendTerminal($"[Run] 현재 문제의 예제 {_currentProblem.Samples.Count}개를 확인했습니다.");
+            AppendTerminal("[Run] 실제 Python 실행/비교 기능은 다음 단계에서 Python Runner와 연결합니다.");
+            AppendTerminal("[Run] 예제 입력 1:");
+            AppendTerminal(IndentMultiline(_currentProblem.Samples[0].Input));
+            AppendTerminal("[Run] 예제 출력 1:");
+            AppendTerminal(IndentMultiline(_currentProblem.Samples[0].Output));
+
+            SetStatus("예제 실행 대기");
+        }
+
+        private static string IndentMultiline(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return "  <empty>";
+            }
+
+            return "  " + text.Replace("\r\n", "\n").Replace("\r", "\n").Replace("\n", Environment.NewLine + "  ");
         }
 
         private void DebugMenuItem_Click(object sender, RoutedEventArgs e)
@@ -80,20 +375,6 @@ namespace Local_Judge
             SetStatus("디버그 준비 중", isWorking: true);
             AppendTerminal("[Debug] 디버그 기능은 추후 debugpy와 연결합니다.");
             SetStatus("대기 중");
-        }
-
-        private void JudgeSampleMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            SetStatus("예제 채점 중", isWorking: true);
-            AppendTerminal("[Judge] 예제 채점 기능은 다음 단계에서 구현합니다.");
-            SetStatus("채점 대기");
-        }
-
-        private void JudgeAllMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            SetStatus("채점 중", isWorking: true);
-            AppendTerminal("[Judge] 전체 채점 기능은 다음 단계에서 구현합니다.");
-            SetStatus("채점 대기");
         }
 
         private void SubmitMenuItem_Click(object sender, RoutedEventArgs e)

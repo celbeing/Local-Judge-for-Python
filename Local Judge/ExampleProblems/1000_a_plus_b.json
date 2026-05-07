@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "1000",
+  "title": "A+B",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "description": "두 정수 A와 B를 입력받은 다음, A+B를 출력하는 프로그램을 작성하시오.",
+  "inputFormat": "첫째 줄에 A와 B가 주어진다.",
+  "outputFormat": "첫째 줄에 A+B를 출력한다.",
+  "samples": [
+    {
+      "input": "1 2\n",
+      "output": "3\n"
+    }
+  ]
+}

@@ -1,0 +1,143 @@
+﻿<Window x:Class="Local_Judge.ProblemEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="문제 편집기"
+        Width="760"
+        Height="820"
+        MinWidth="680"
+        MinHeight="700"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="#D0D7DE" />
+        <SolidColorBrush x:Key="PanelHeaderBrush" Color="#F6F8FA" />
+
+        <Style x:Key="LabelTextStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,14,0,6" />
+        </Style>
+
+        <Style x:Key="SingleLineInputStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="BorderBrush" Value="#D0D7DE" />
+        </Style>
+
+        <Style x:Key="MultilineInputStyle" TargetType="TextBox">
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="AcceptsTab" Value="True" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="BorderBrush" Value="#D0D7DE" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True" Background="#FFFFFF">
+        <Border DockPanel.Dock="Top"
+                Height="52"
+                BorderBrush="{StaticResource PanelBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Background="{StaticResource PanelHeaderBrush}">
+            <DockPanel Margin="18,0">
+                <TextBlock Text="문제 정보 입력"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="텍스트 기반 JSON 문제 파일을 생성합니다."
+                           DockPanel.Dock="Right"
+                           Foreground="#57606A"
+                           VerticalAlignment="Center" />
+            </DockPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom"
+                BorderBrush="{StaticResource PanelBorderBrush}"
+                BorderThickness="0,1,0,0"
+                Background="{StaticResource PanelHeaderBrush}"
+                Padding="12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="취소"
+                        Width="90"
+                        Height="30"
+                        Margin="0,0,8,0"
+                        IsCancel="True" />
+                <Button Content="적용"
+                        Width="90"
+                        Height="30"
+                        IsDefault="True"
+                        Click="ApplyButton_Click" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20">
+                <TextBlock Text="문제 번호 / ID" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="ProblemIdTextBox"
+                         Style="{StaticResource SingleLineInputStyle}"
+                         ToolTip="예: 1000, sample-a-plus-b" />
+
+                <TextBlock Text="문제 제목" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="TitleTextBox"
+                         Style="{StaticResource SingleLineInputStyle}"
+                         ToolTip="예: A+B" />
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="시간 제한(ms)" Style="{StaticResource LabelTextStyle}" />
+                        <TextBox x:Name="TimeLimitTextBox"
+                                 Style="{StaticResource SingleLineInputStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="메모리 제한(MB)" Style="{StaticResource LabelTextStyle}" />
+                        <TextBox x:Name="MemoryLimitTextBox"
+                                 Style="{StaticResource SingleLineInputStyle}" />
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="문제 설명" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="DescriptionTextBox"
+                         Style="{StaticResource MultilineInputStyle}"
+                         MinHeight="130" />
+
+                <TextBlock Text="입력 설명" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="InputDescriptionTextBox"
+                         Style="{StaticResource MultilineInputStyle}"
+                         MinHeight="90" />
+
+                <TextBlock Text="출력 설명" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="OutputDescriptionTextBox"
+                         Style="{StaticResource MultilineInputStyle}"
+                         MinHeight="90" />
+
+                <TextBlock Text="예제 입력 1" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="SampleInputTextBox"
+                         Style="{StaticResource MultilineInputStyle}"
+                         FontFamily="Consolas"
+                         TextWrapping="NoWrap"
+                         MinHeight="90" />
+
+                <TextBlock Text="예제 출력 1" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="SampleOutputTextBox"
+                         Style="{StaticResource MultilineInputStyle}"
+                         FontFamily="Consolas"
+                         TextWrapping="NoWrap"
+                         MinHeight="90" />
+
+                <TextBlock Text="※ 현재 버전은 예제 1개만 편집합니다. JSON 구조는 samples 배열로 저장되므로 나중에 여러 예제로 확장할 수 있습니다."
+                           Foreground="#57606A"
+                           TextWrapping="Wrap"
+                           Margin="0,14,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

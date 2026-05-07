@@ -57,19 +57,24 @@
         <!-- 상단 메뉴바 -->
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_파일">
+                <MenuItem Header="새 문제 만들기..." Click="NewProblemMenuItem_Click" />
+                <MenuItem Header="문제 수정..." Click="EditProblemMenuItem_Click" />
                 <MenuItem Header="문제 불러오기..." Click="LoadProblemMenuItem_Click" />
+                <MenuItem Header="문제 저장" Click="SaveProblemMenuItem_Click" />
+                <MenuItem Header="다른 이름으로 문제 저장..." Click="SaveProblemAsMenuItem_Click" />
+                <Separator />
                 <MenuItem Header="코드 저장" Click="SaveCodeMenuItem_Click" />
                 <Separator />
                 <MenuItem Header="종료" Click="ExitMenuItem_Click" />
             </MenuItem>
 
             <MenuItem Header="_실행">
+                <MenuItem Header="실행" Click="RunCodeMenuItem_Click" />
                 <MenuItem Header="예제 실행" Click="RunSampleMenuItem_Click" />
                 <MenuItem Header="디버그 시작" Click="DebugMenuItem_Click" />
             </MenuItem>
 
             <MenuItem Header="_저지">
-                <MenuItem Header="예제 채점" Click="JudgeSampleMenuItem_Click" />
                 <MenuItem Header="제출" Click="SubmitMenuItem_Click" />
             </MenuItem>
 
@@ -108,7 +113,7 @@
         <Grid Background="#FFFFFF">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="420" MinWidth="300" />
-                <ColumnDefinition Width="6" />
+                <ColumnDefinition Width="8" />
                 <ColumnDefinition Width="*" MinWidth="450" />
             </Grid.ColumnDefinitions>
 
@@ -132,12 +137,24 @@
                                        FontWeight="SemiBold"
                                        FontSize="15"
                                        VerticalAlignment="Center" />
-                            <Button Content="불러오기"
-                                    DockPanel.Dock="Right"
-                                    Width="86"
-                                    Height="26"
-                                    Margin="8,0,0,0"
-                                    Click="LoadProblemMenuItem_Click" />
+                            <StackPanel DockPanel.Dock="Right"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <Button Content="새 문제"
+                                        Width="70"
+                                        Height="26"
+                                        Margin="0,0,6,0"
+                                        Click="NewProblemMenuItem_Click" />
+                                <Button Content="수정"
+                                        Width="58"
+                                        Height="26"
+                                        Margin="0,0,6,0"
+                                        Click="EditProblemMenuItem_Click" />
+                                <Button Content="불러오기"
+                                        Width="78"
+                                        Height="26"
+                                        Click="LoadProblemMenuItem_Click" />
+                            </StackPanel>
                         </DockPanel>
                     </Border>
 
@@ -235,6 +252,11 @@
                                             Width="70"
                                             Height="26"
                                             Margin="0,0,6,0"
+                                            Click="RunCodeMenuItem_Click" />
+                                    <Button Content="예제 실행"
+                                            Width="86"
+                                            Height="26"
+                                            Margin="0,0,6,0"
                                             Click="RunSampleMenuItem_Click" />
                                     <Button Content="제출"
                                             Width="70"
@@ -268,6 +290,7 @@
                               Height="6"
                               HorizontalAlignment="Stretch"
                               Background="#EAECEF"
+                              Cursor="SizeNS"
                               ShowsPreview="True" />
 
                 <!-- 터미널 / 채점 결과 -->
