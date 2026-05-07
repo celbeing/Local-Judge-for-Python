@@ -1,8 +1,10 @@
 ﻿using Microsoft.Win32;
+using Microsoft.Web.WebView2.Core;
 using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 
@@ -10,6 +12,9 @@ namespace Local_Judge
 {
     public partial class MainWindow : Window
     {
+        private string _latestEditorCode = "";
+        private TaskCompletionSource<string>? _editorCodeRequest;
+
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
         private readonly Brush _workingBrush = new SolidColorBrush(Color.FromRgb(251, 188, 5));
         private readonly Brush _errorBrush = new SolidColorBrush(Color.FromRgb(218, 54, 51));
@@ -32,6 +37,141 @@ namespace Local_Judge
             SetStatus("대기 중");
             ResetProblemView();
             AppendTerminal("[UI] 화면 구성이 완료되었습니다.");
+
+            _ = InitializeCodeEditorAsync();
+        }
+
+        private async Task InitializeCodeEditorAsync()
+        {
+            try
+            {
+                SetStatus("코드 편집기 초기화 중", isWorking: true);
+
+                await CodeEditorWebView.EnsureCoreWebView2Async();
+
+                string editorFolderPath = Path.Combine(AppContext.BaseDirectory, "Editor");
+
+                if (!Directory.Exists(editorFolderPath))
+                {
+                    SetStatus("코드 편집기 초기화 실패", isError: true);
+                    AppendTerminal($"[Editor] Editor 폴더를 찾을 수 없습니다: {editorFolderPath}");
+                    return;
+                }
+
+                CodeEditorWebView.CoreWebView2.WebMessageReceived += CodeEditorWebView_WebMessageReceived;
+
+                CodeEditorWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    "localjudge.editor",
+                    editorFolderPath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+
+                CodeEditorWebView.Source = new Uri("https://localjudge.editor/index.html");
+
+                SetStatus("코드 편집기 준비 중", isWorking: true);
+            }
+            catch (Exception ex)
+            {
+                SetStatus("코드 편집기 초기화 실패", isError: true);
+                AppendTerminal("[Editor] WebView2 코드 편집기 초기화 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
+        }
+
+        private void CodeEditorWebView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                string json = e.WebMessageAsJson;
+
+                using JsonDocument document = JsonDocument.Parse(json);
+                JsonElement root = document.RootElement;
+
+                if (!root.TryGetProperty("type", out JsonElement typeElement))
+                {
+                    return;
+                }
+
+                string? type = typeElement.GetString();
+
+                switch (type)
+                {
+                    case "editorReady":
+                        SetStatus("코드 편집기 준비 완료");
+                        AppendTerminal("[Editor] Monaco Editor가 준비되었습니다.");
+                        break;
+
+                    case "codeChanged":
+                        if (root.TryGetProperty("code", out JsonElement codeElement))
+                        {
+                            _latestEditorCode = codeElement.GetString() ?? "";
+                        }
+                        break;
+
+                    case "currentCode":
+                        if (root.TryGetProperty("code", out JsonElement currentCodeElement))
+                        {
+                            string code = currentCodeElement.GetString() ?? "";
+
+                            _latestEditorCode = code;
+                            _editorCodeRequest?.TrySetResult(code);
+                            _editorCodeRequest = null;
+                        }
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Editor] WebView2 메시지 처리 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
+        }
+
+        private async Task<string> GetEditorCodeAsync()
+        {
+            if (CodeEditorWebView.CoreWebView2 == null)
+            {
+                return _latestEditorCode;
+            }
+
+            string requestId = Guid.NewGuid().ToString("N");
+            _editorCodeRequest = new TaskCompletionSource<string>();
+
+            string script = JsonSerializer.Serialize(new
+            {
+                type = "getCode",
+                requestId
+            });
+
+            CodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
+
+            Task completedTask = await Task.WhenAny(
+                _editorCodeRequest.Task,
+                Task.Delay(1500));
+
+            if (completedTask == _editorCodeRequest.Task)
+            {
+                return await _editorCodeRequest.Task;
+            }
+
+            return _latestEditorCode;
+        }
+
+        private void SetEditorCode(string code)
+        {
+            _latestEditorCode = code;
+
+            if (CodeEditorWebView.CoreWebView2 == null)
+            {
+                return;
+            }
+
+            string script = JsonSerializer.Serialize(new
+            {
+                type = "setCode",
+                code
+            });
+
+            CodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
         }
 
         private void SetStatus(string message, bool isWorking = false, bool isError = false)
@@ -318,10 +458,12 @@ namespace Local_Judge
             return baseName + ".json";
         }
 
-        private void SaveCodeMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void SaveCodeMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            string code = await GetEditorCodeAsync();
+
             SetStatus("코드 저장 중", isWorking: true);
-            AppendTerminal("[Code] 코드 저장 기능은 다음 단계에서 연결합니다.");
+            AppendTerminal($"[Code] 현재 코드 길이: {code.Length}자");
             SetStatus("대기 중");
         }
 
@@ -332,32 +474,21 @@ namespace Local_Judge
             SetStatus("대기 중");
         }
 
-        private void RunSampleMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void RunSampleMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (_currentProblem is null)
+            string code = await GetEditorCodeAsync();
+
+            if (string.IsNullOrWhiteSpace(code))
             {
-                SetStatus("예제 실행할 문제가 없습니다", isError: true);
-                AppendTerminal("[Run] 먼저 문제를 만들거나 불러오세요.");
+                SetStatus("실행할 코드가 없습니다", isError: true);
+                AppendTerminal("[Run] 실행할 Python 코드가 없습니다.");
                 return;
             }
 
-            SetStatus("예제 실행 준비 중", isWorking: true);
-
-            if (_currentProblem.Samples.Count == 0)
-            {
-                SetStatus("예제 입력이 없습니다", isError: true);
-                AppendTerminal("[Run] 현재 문제에는 예제 입력/출력이 없습니다.");
-                return;
-            }
-
-            AppendTerminal($"[Run] 현재 문제의 예제 {_currentProblem.Samples.Count}개를 확인했습니다.");
-            AppendTerminal("[Run] 실제 Python 실행/비교 기능은 다음 단계에서 Python Runner와 연결합니다.");
-            AppendTerminal("[Run] 예제 입력 1:");
-            AppendTerminal(IndentMultiline(_currentProblem.Samples[0].Input));
-            AppendTerminal("[Run] 예제 출력 1:");
-            AppendTerminal(IndentMultiline(_currentProblem.Samples[0].Output));
-
-            SetStatus("예제 실행 대기");
+            SetStatus("예제 실행 중", isWorking: true);
+            AppendTerminal("[Run] 예제 실행 기능은 다음 단계에서 Python Runner와 연결합니다.");
+            AppendTerminal($"[Run] 현재 코드 길이: {code.Length}자");
+            SetStatus("실행 대기");
         }
 
         private static string IndentMultiline(string text)
