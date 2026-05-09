@@ -2,8 +2,7 @@
 let isEditorReady = false;
 
 const defaultPythonCode =
-    `# Python 코드를 작성하세요.
-import sys
+    `import sys
 
 def main():
     pass
