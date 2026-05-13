@@ -14,106 +14,106 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="rescources\python\libcrypto-3.dll">
+    <None Update="resources\python\libcrypto-3.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\libffi-8.dll">
+    <None Update="resources\python\libffi-8.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\libssl-3.dll">
+    <None Update="resources\python\libssl-3.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\LICENSE.txt">
+    <None Update="resources\python\LICENSE.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\pyexpat.pyd">
+    <None Update="resources\python\pyexpat.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\python.cat">
+    <None Update="resources\python\python.cat">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\python.exe">
+    <None Update="resources\python\python.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\python3.dll">
+    <None Update="resources\python\python3.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\python313.dll">
+    <None Update="resources\python\python313.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\python313.zip">
+    <None Update="resources\python\python313.zip">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\python313._pth">
+    <None Update="resources\python\python313._pth">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\pythonw.exe">
+    <None Update="resources\python\pythonw.exe">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\select.pyd">
+    <None Update="resources\python\select.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\sqlite3.dll">
+    <None Update="resources\python\sqlite3.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\unicodedata.pyd">
+    <None Update="resources\python\unicodedata.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\vcruntime140.dll">
+    <None Update="resources\python\vcruntime140.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\vcruntime140_1.dll">
+    <None Update="resources\python\vcruntime140_1.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\winsound.pyd">
+    <None Update="resources\python\winsound.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_asyncio.pyd">
+    <None Update="resources\python\_asyncio.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_bz2.pyd">
+    <None Update="resources\python\_bz2.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_ctypes.pyd">
+    <None Update="resources\python\_ctypes.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_decimal.pyd">
+    <None Update="resources\python\_decimal.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_elementtree.pyd">
+    <None Update="resources\python\_elementtree.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_hashlib.pyd">
+    <None Update="resources\python\_hashlib.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_lzma.pyd">
+    <None Update="resources\python\_lzma.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_multiprocessing.pyd">
+    <None Update="resources\python\_multiprocessing.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_overlapped.pyd">
+    <None Update="resources\python\_overlapped.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_queue.pyd">
+    <None Update="resources\python\_queue.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_socket.pyd">
+    <None Update="resources\python\_socket.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_sqlite3.pyd">
+    <None Update="resources\python\_sqlite3.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_ssl.pyd">
+    <None Update="resources\python\_ssl.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_uuid.pyd">
+    <None Update="resources\python\_uuid.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_wmi.pyd">
+    <None Update="resources\python\_wmi.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="rescources\python\_zoneinfo.pyd">
+    <None Update="resources\python\_zoneinfo.pyd">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
