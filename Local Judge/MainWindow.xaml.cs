@@ -10,7 +10,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media;
 
 namespace Local_Judge
@@ -24,7 +23,6 @@ namespace Local_Judge
         private const string DefaultPythonCodeFileName = "main.py";
         private string _pythonExecutablePath = "python";
         private Process? _runningProcess;
-        private StreamWriter? _runningProcessInput;
         private string? _runningTempDirectory;
         private bool _isRunStopRequested;
 
@@ -266,26 +264,28 @@ namespace Local_Judge
             TerminalTextBox.ScrollToEnd();
         }
 
-        private void SetRunInputEnabled(bool isEnabled)
+        private void SetRunControlsEnabled(bool isRunning)
         {
             if (!Dispatcher.CheckAccess())
             {
-                Dispatcher.Invoke(() => SetRunInputEnabled(isEnabled));
+                Dispatcher.Invoke(() => SetRunControlsEnabled(isRunning));
                 return;
             }
 
-            TerminalInputTextBox.IsEnabled = isEnabled;
-            SendEofButton.IsEnabled = isEnabled;
-            StopRunButton.IsEnabled = _runningProcess is not null && !_runningProcess.HasExited;
+            StopRunButton.IsEnabled = isRunning
+                                      && _runningProcess is not null
+                                      && !_runningProcess.HasExited;
+        }
 
-            if (isEnabled)
+        private void SelectTerminalTab()
+        {
+            if (!Dispatcher.CheckAccess())
             {
-                TerminalInputTextBox.Focus();
+                Dispatcher.Invoke(SelectTerminalTab);
+                return;
             }
-            else
-            {
-                TerminalInputTextBox.Clear();
-            }
+
+            RunTabControl.SelectedItem = TerminalTabItem;
         }
 
         private void ResetProblemView()
@@ -297,6 +297,7 @@ namespace Local_Judge
             OutputDescriptionTextBox.Text = "출력 형식이 이곳에 표시됩니다.";
             SampleInputTextBox.Text = "예시 입력이 이곳에 표시됩니다.";
             SampleOutputTextBox.Text = "예시 출력이 이곳에 표시됩니다.";
+            ProgramInputTextBox.Text = string.Empty;
             CurrentProblemStatusTextBlock.Text = "문제 미선택";
         }
 
@@ -321,6 +322,7 @@ namespace Local_Judge
             SampleCaseDocument? firstSample = problem.Samples.Count > 0 ? problem.Samples[0] : null;
             SampleInputTextBox.Text = firstSample?.Input ?? "예시 입력이 없습니다.";
             SampleOutputTextBox.Text = firstSample?.Output ?? "예시 출력이 없습니다.";
+            ProgramInputTextBox.Text = firstSample?.Input ?? string.Empty;
 
             UpdateCurrentProblemStatus();
         }
@@ -571,8 +573,7 @@ namespace Local_Judge
             await RunPythonCodeAsync(
                 code,
                 runTitle: "일반 실행",
-                initialInput: null,
-                closeInputAfterInitialInput: false);
+                inputText: ProgramInputTextBox.Text ?? string.Empty);
         }
 
         private async void RunSampleMenuItem_Click(object sender, RoutedEventArgs e)
@@ -611,8 +612,7 @@ namespace Local_Judge
                 PythonExecutionResult? result = await RunPythonCodeAsync(
                     code,
                     runTitle: $"예제 {sampleNumber} 실행",
-                    initialInput: sample.Input,
-                    closeInputAfterInitialInput: true,
+                    inputText: sample.Input,
                     showStartBanner: false);
 
                 if (result is null)
@@ -670,8 +670,7 @@ namespace Local_Judge
         private async Task<PythonExecutionResult?> RunPythonCodeAsync(
             string code,
             string runTitle,
-            string? initialInput,
-            bool closeInputAfterInitialInput,
+            string inputText,
             bool showStartBanner = true)
         {
             if (_runningProcess is not null && !_runningProcess.HasExited)
@@ -730,28 +729,25 @@ namespace Local_Judge
                 process.Start();
 
                 _runningProcess = process;
-                _runningProcessInput = process.StandardInput;
                 _runningTempDirectory = tempDirectory;
                 _isRunStopRequested = false;
 
-                bool interactiveInputEnabled = !closeInputAfterInitialInput;
-                SetRunInputEnabled(interactiveInputEnabled);
+                SelectTerminalTab();
+                SetRunControlsEnabled(true);
 
                 Task stdoutTask = ReadProcessStreamAsync(process.StandardOutput, stdoutBuilder);
                 Task stderrTask = ReadProcessStreamAsync(process.StandardError, stderrBuilder);
 
-                if (!string.IsNullOrEmpty(initialInput))
+                if (showStartBanner)
                 {
-                    await process.StandardInput.WriteAsync(initialInput);
-                    await process.StandardInput.FlushAsync();
+                    AppendTerminal("[Input]");
+                    AppendTerminal(IndentMultiline(inputText));
+                    AppendTerminal("[Output]");
                 }
 
-                if (closeInputAfterInitialInput)
-                {
-                    process.StandardInput.Close();
-                    _runningProcessInput = null;
-                    SetRunInputEnabled(false);
-                }
+                await process.StandardInput.WriteAsync(inputText ?? string.Empty);
+                await process.StandardInput.FlushAsync();
+                process.StandardInput.Close();
 
                 await process.WaitForExitAsync();
                 await Task.WhenAll(stdoutTask, stderrTask);
@@ -811,10 +807,8 @@ namespace Local_Judge
             }
             finally
             {
-                SetRunInputEnabled(false);
+                SetRunControlsEnabled(false);
                 StopRunButton.IsEnabled = false;
-
-                _runningProcessInput = null;
 
                 if (_runningProcess == process)
                 {
@@ -858,38 +852,6 @@ namespace Local_Judge
             }
         }
 
-        private async void TerminalInputTextBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key != Key.Enter)
-            {
-                return;
-            }
-
-            e.Handled = true;
-
-            string inputLine = TerminalInputTextBox.Text;
-            TerminalInputTextBox.Clear();
-
-            if (_runningProcess is null || _runningProcess.HasExited || _runningProcessInput is null)
-            {
-                return;
-            }
-
-            AppendTerminalRaw(inputLine + Environment.NewLine);
-
-            try
-            {
-                await _runningProcessInput.WriteLineAsync(inputLine);
-                await _runningProcessInput.FlushAsync();
-            }
-            catch (Exception ex)
-            {
-                SetStatus("입력 전송 실패", isError: true);
-                AppendTerminal("[Run] 표준 입력 전송 중 오류가 발생했습니다.");
-                AppendTerminal(ex.Message);
-            }
-        }
-
         private void StopRunButton_Click(object sender, RoutedEventArgs e)
         {
             if (_runningProcess is null || _runningProcess.HasExited)
@@ -908,29 +870,6 @@ namespace Local_Judge
             {
                 SetStatus("실행 중지 실패", isError: true);
                 AppendTerminal("[Run] Python 프로세스를 중지하지 못했습니다.");
-                AppendTerminal(ex.Message);
-            }
-        }
-
-        private void SendEofButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_runningProcessInput is null)
-            {
-                AppendTerminal("[Run] 닫을 표준 입력이 없습니다.");
-                return;
-            }
-
-            try
-            {
-                _runningProcessInput.Close();
-                _runningProcessInput = null;
-                SetRunInputEnabled(false);
-                AppendTerminal("[Run] 표준 입력을 닫았습니다. (EOF)");
-            }
-            catch (Exception ex)
-            {
-                SetStatus("EOF 전송 실패", isError: true);
-                AppendTerminal("[Run] 표준 입력을 닫는 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
             }
         }
@@ -1066,7 +1005,6 @@ namespace Local_Judge
         {
             TerminalTextBox.Clear();
             TerminalTextBox.Text = "[System] 터미널을 비웠습니다.";
-            TerminalInputTextBox.Clear();
             SetStatus("대기 중");
         }
 

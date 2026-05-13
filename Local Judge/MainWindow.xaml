@@ -281,91 +281,102 @@
                               Cursor="SizeNS"
                               ShowsPreview="True" />
 
-                <!-- 터미널 / 채점 결과 -->
+                <!-- 실행 입력 / 터미널 탭 패널 -->
                 <Border Grid.Row="2"
-                        Background="{StaticResource TerminalBackgroundBrush}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="36" />
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="34" />
-                        </Grid.RowDefinitions>
+                        BorderBrush="{StaticResource PanelBorderBrush}"
+                        BorderThickness="0,1,0,0"
+                        Background="#FFFFFF">
+                    <TabControl x:Name="RunTabControl"
+                                Background="#FFFFFF"
+                                BorderThickness="0">
+                        <TabItem x:Name="InputTabItem" Header="입력">
+                            <Grid Background="#FFFFFF">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="36" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
 
-                        <DockPanel Grid.Row="0"
-                                   LastChildFill="False"
-                                   Background="#161B22">
-                            <TextBlock Text="터미널 / 채점 결과"
-                                       Foreground="#FFFFFF"
-                                       FontWeight="SemiBold"
-                                       VerticalAlignment="Center"
-                                       Margin="12,0" />
+                                <DockPanel Grid.Row="0"
+                                           LastChildFill="True"
+                                           Background="{StaticResource PanelHeaderBrush}">
+                                    <TextBlock Text="프로그램 입력"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0" />
+                                    <TextBlock Text="실행 전에 stdin으로 보낼 입력을 작성하세요."
+                                               Foreground="#57606A"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,12,0" />
+                                </DockPanel>
 
-                            <Button Content="지우기"
-                                    DockPanel.Dock="Right"
-                                    Width="70"
-                                    Height="24"
-                                    Margin="0,0,10,0"
-                                    Click="ClearTerminalMenuItem_Click" />
+                                <TextBox x:Name="ProgramInputTextBox"
+                                         Grid.Row="1"
+                                         AcceptsReturn="True"
+                                         AcceptsTab="True"
+                                         FontFamily="Consolas"
+                                         FontSize="13"
+                                         Background="#0D1117"
+                                         Foreground="#EAEAEA"
+                                         CaretBrush="#EAEAEA"
+                                         BorderThickness="0"
+                                         Padding="12"
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"
+                                         TextWrapping="NoWrap"
+                                         SpellCheck.IsEnabled="False" />
+                            </Grid>
+                        </TabItem>
 
-                            <Button x:Name="SendEofButton"
-                                    Content="EOF"
-                                    DockPanel.Dock="Right"
-                                    Width="58"
-                                    Height="24"
-                                    Margin="0,0,6,0"
-                                    IsEnabled="False"
-                                    Click="SendEofButton_Click" />
+                        <TabItem x:Name="TerminalTabItem" Header="터미널">
+                            <Grid Background="{StaticResource TerminalBackgroundBrush}">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="36" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
 
-                            <Button x:Name="StopRunButton"
-                                    Content="중지"
-                                    DockPanel.Dock="Right"
-                                    Width="58"
-                                    Height="24"
-                                    Margin="0,0,6,0"
-                                    IsEnabled="False"
-                                    Click="StopRunButton_Click" />
-                        </DockPanel>
+                                <DockPanel Grid.Row="0"
+                                           LastChildFill="False"
+                                           Background="#161B22">
+                                    <TextBlock Text="터미널 / 실행 결과"
+                                               Foreground="#FFFFFF"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0" />
 
-                        <TextBox x:Name="TerminalTextBox"
-                                 Grid.Row="1"
-                                 Text="[System] Local Judge가 시작되었습니다."
-                                 IsReadOnly="True"
-                                 AcceptsReturn="True"
-                                 FontFamily="Consolas"
-                                 FontSize="13"
-                                 Background="{StaticResource TerminalBackgroundBrush}"
-                                 Foreground="{StaticResource TerminalForegroundBrush}"
-                                 BorderThickness="0"
-                                 Padding="12"
-                                 VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 TextWrapping="NoWrap" />
+                                    <Button Content="지우기"
+                                            DockPanel.Dock="Right"
+                                            Width="70"
+                                            Height="24"
+                                            Margin="0,0,10,0"
+                                            Click="ClearTerminalMenuItem_Click" />
 
-                        <DockPanel Grid.Row="2"
-                                   LastChildFill="True"
-                                   Background="#111111">
-                            <TextBlock Text="stdin &gt;"
-                                       DockPanel.Dock="Left"
-                                       Foreground="#8B949E"
-                                       FontFamily="Consolas"
-                                       FontSize="13"
-                                       VerticalAlignment="Center"
-                                       Margin="12,0,8,0" />
+                                    <Button x:Name="StopRunButton"
+                                            Content="중지"
+                                            DockPanel.Dock="Right"
+                                            Width="58"
+                                            Height="24"
+                                            Margin="0,0,6,0"
+                                            IsEnabled="False"
+                                            Click="StopRunButton_Click" />
+                                </DockPanel>
 
-                            <TextBox x:Name="TerminalInputTextBox"
-                                     IsEnabled="False"
-                                     AcceptsReturn="False"
-                                     FontFamily="Consolas"
-                                     FontSize="13"
-                                     Background="#111111"
-                                     Foreground="{StaticResource TerminalForegroundBrush}"
-                                     CaretBrush="{StaticResource TerminalForegroundBrush}"
-                                     BorderThickness="0"
-                                     Padding="0,6,12,6"
-                                     VerticalContentAlignment="Center"
-                                     KeyDown="TerminalInputTextBox_KeyDown" />
-                        </DockPanel>
-                    </Grid>
+                                <TextBox x:Name="TerminalTextBox"
+                                         Grid.Row="1"
+                                         Text="[System] Local Judge가 시작되었습니다."
+                                         IsReadOnly="True"
+                                         AcceptsReturn="True"
+                                         FontFamily="Consolas"
+                                         FontSize="13"
+                                         Background="{StaticResource TerminalBackgroundBrush}"
+                                         Foreground="{StaticResource TerminalForegroundBrush}"
+                                         BorderThickness="0"
+                                         Padding="12"
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"
+                                         TextWrapping="NoWrap" />
+                            </Grid>
+                        </TabItem>
+                    </TabControl>
                 </Border>
             </Grid>
         </Grid>
