@@ -288,6 +288,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="36" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="34" />
                         </Grid.RowDefinitions>
 
                         <DockPanel Grid.Row="0"
@@ -305,6 +306,24 @@
                                     Height="24"
                                     Margin="0,0,10,0"
                                     Click="ClearTerminalMenuItem_Click" />
+
+                            <Button x:Name="SendEofButton"
+                                    Content="EOF"
+                                    DockPanel.Dock="Right"
+                                    Width="58"
+                                    Height="24"
+                                    Margin="0,0,6,0"
+                                    IsEnabled="False"
+                                    Click="SendEofButton_Click" />
+
+                            <Button x:Name="StopRunButton"
+                                    Content="중지"
+                                    DockPanel.Dock="Right"
+                                    Width="58"
+                                    Height="24"
+                                    Margin="0,0,6,0"
+                                    IsEnabled="False"
+                                    Click="StopRunButton_Click" />
                         </DockPanel>
 
                         <TextBox x:Name="TerminalTextBox"
@@ -321,6 +340,31 @@
                                  VerticalScrollBarVisibility="Auto"
                                  HorizontalScrollBarVisibility="Auto"
                                  TextWrapping="NoWrap" />
+
+                        <DockPanel Grid.Row="2"
+                                   LastChildFill="True"
+                                   Background="#111111">
+                            <TextBlock Text="stdin &gt;"
+                                       DockPanel.Dock="Left"
+                                       Foreground="#8B949E"
+                                       FontFamily="Consolas"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"
+                                       Margin="12,0,8,0" />
+
+                            <TextBox x:Name="TerminalInputTextBox"
+                                     IsEnabled="False"
+                                     AcceptsReturn="False"
+                                     FontFamily="Consolas"
+                                     FontSize="13"
+                                     Background="#111111"
+                                     Foreground="{StaticResource TerminalForegroundBrush}"
+                                     CaretBrush="{StaticResource TerminalForegroundBrush}"
+                                     BorderThickness="0"
+                                     Padding="0,6,12,6"
+                                     VerticalContentAlignment="Center"
+                                     KeyDown="TerminalInputTextBox_KeyDown" />
+                        </DockPanel>
                     </Grid>
                 </Border>
             </Grid>
