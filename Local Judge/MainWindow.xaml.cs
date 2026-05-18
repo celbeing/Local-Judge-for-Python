@@ -2,10 +2,8 @@
 using Microsoft.Web.WebView2.Core;
 using System;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -20,11 +18,8 @@ namespace Local_Judge
         private TaskCompletionSource<string>? _editorCodeRequest;
         private string? _editorCodeRequestId;
 
-        private const string DefaultPythonCodeFileName = "main.py";
-        private string _pythonExecutablePath = "python";
-        private Process? _runningProcess;
-        private string? _runningTempDirectory;
-        private bool _isRunStopRequested;
+        private readonly PythonRunner _pythonRunner = new();
+        private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
 
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
         private readonly Brush _workingBrush = new SolidColorBrush(Color.FromRgb(251, 188, 5));
@@ -129,11 +124,9 @@ namespace Local_Judge
                             _latestEditorCode = code;
 
                             TaskCompletionSource<string>? pendingRequest = _editorCodeRequest;
-                            bool isCurrentRequest = pendingRequest is not null
-                                                    && (string.IsNullOrEmpty(_editorCodeRequestId)
-                                                        || string.Equals(responseRequestId, _editorCodeRequestId, StringComparison.Ordinal));
-
-                            if (isCurrentRequest)
+                            if (pendingRequest is not null
+                                && (string.IsNullOrEmpty(_editorCodeRequestId)
+                                    || string.Equals(responseRequestId, _editorCodeRequestId, StringComparison.Ordinal)))
                             {
                                 _editorCodeRequest = null;
                                 _editorCodeRequestId = null;
@@ -273,8 +266,7 @@ namespace Local_Judge
             }
 
             StopRunButton.IsEnabled = isRunning
-                                      && _runningProcess is not null
-                                      && !_runningProcess.HasExited;
+                                      && _pythonRunner.IsRunning;
         }
 
         private void SelectTerminalTab()
@@ -308,7 +300,7 @@ namespace Local_Judge
                 : $"[{problem.Id}] {problem.Title}";
 
             ProblemTitleTextBlock.Text = string.IsNullOrWhiteSpace(title) ? "제목 없는 문제" : title;
-            ProblemMetaTextBlock.Text = $"시간 제한: {problem.TimeLimitMs} ms / 메모리 제한: {problem.MemoryLimitMb} MB";
+            ProblemMetaTextBlock.Text = $"시간 제한: {problem.TimeLimitMs} ms / 메모리 제한: {problem.MemoryLimitMb} MB / 예제: {problem.Samples.Count}개 / 채점 테스트: {problem.TestCases.Count}개";
             ProblemDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.Description)
                 ? "문제 설명이 비어 있습니다."
                 : problem.Description;
@@ -434,7 +426,8 @@ namespace Local_Judge
                 }
 
                 problem.Samples ??= new();
-                problem.Version = problem.Version <= 0 ? 1 : problem.Version;
+                problem.TestCases ??= new();
+                problem.Version = problem.Version <= 0 ? 2 : problem.Version;
                 problem.TimeLimitMs = problem.TimeLimitMs <= 0 ? 2000 : problem.TimeLimitMs;
                 problem.MemoryLimitMb = problem.MemoryLimitMb <= 0 ? 128 : problem.MemoryLimitMb;
 
@@ -573,7 +566,8 @@ namespace Local_Judge
             await RunPythonCodeAsync(
                 code,
                 runTitle: "일반 실행",
-                inputText: ProgramInputTextBox.Text ?? string.Empty);
+                inputText: ProgramInputTextBox.Text ?? string.Empty,
+                limits: CreateExecutionLimits());
         }
 
         private async void RunSampleMenuItem_Click(object sender, RoutedEventArgs e)
@@ -613,15 +607,15 @@ namespace Local_Judge
                     code,
                     runTitle: $"예제 {sampleNumber} 실행",
                     inputText: sample.Input,
-                    showStartBanner: false);
+                    showStartBanner: false,
+                    limits: CreateExecutionLimits(_currentProblem));
 
                 if (result is null)
                 {
                     break;
                 }
 
-                bool passed = !result.Stopped
-                              && result.ExitCode == 0
+                bool passed = result.Succeeded
                               && CompareOutput(result.StandardOutput, sample.Output);
 
                 if (passed)
@@ -631,27 +625,17 @@ namespace Local_Judge
 
                 AppendTerminal($"[Sample {sampleNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms");
 
-                if (result.Stopped)
-                {
-                    AppendTerminal("Result: Stopped");
-                }
-                else if (result.ExitCode != 0)
-                {
-                    AppendTerminal($"Result: Runtime Error (ExitCode: {result.ExitCode})");
-                }
-                else if (!passed)
-                {
-                    AppendTerminal("Result: Wrong Answer");
-                }
-                else
-                {
-                    AppendTerminal("Result: Accepted");
-                }
+                AppendExecutionResult(result, passed);
 
                 AppendTerminal("Expected:");
                 AppendTerminal(IndentMultiline(sample.Output));
                 AppendTerminal("Actual:");
                 AppendTerminal(IndentMultiline(result.StandardOutput));
+
+                if (ShouldStopBatch(result))
+                {
+                    break;
+                }
             }
 
             AppendTerminal("----------------------------------------");
@@ -671,49 +655,15 @@ namespace Local_Judge
             string code,
             string runTitle,
             string inputText,
-            bool showStartBanner = true)
+            bool showStartBanner = true,
+            PythonExecutionLimits? limits = null)
         {
-            if (_runningProcess is not null && !_runningProcess.HasExited)
+            if (_pythonRunner.IsRunning)
             {
                 SetStatus("이미 실행 중", isError: true);
                 AppendTerminal("[Run] 이미 실행 중인 Python 프로세스가 있습니다. 중지 후 다시 실행하세요.");
                 return null;
             }
-
-            string tempDirectory = Path.Combine(Path.GetTempPath(), "LocalJudge", Guid.NewGuid().ToString("N"));
-            string scriptPath = Path.Combine(tempDirectory, DefaultPythonCodeFileName);
-            Directory.CreateDirectory(tempDirectory);
-
-            await File.WriteAllTextAsync(scriptPath, code, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-
-            var stdoutBuilder = new StringBuilder();
-            var stderrBuilder = new StringBuilder();
-            var stopwatch = Stopwatch.StartNew();
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = _pythonExecutablePath,
-                UseShellExecute = false,
-                RedirectStandardInput = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                WorkingDirectory = tempDirectory,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-
-            startInfo.ArgumentList.Add("-B");
-            startInfo.ArgumentList.Add("-u");
-            startInfo.ArgumentList.Add(scriptPath);
-            startInfo.Environment["PYTHONIOENCODING"] = "utf-8";
-            startInfo.Environment["PYTHONUNBUFFERED"] = "1";
-
-            var process = new Process
-            {
-                StartInfo = startInfo,
-                EnableRaisingEvents = true
-            };
 
             try
             {
@@ -723,20 +673,8 @@ namespace Local_Judge
                 {
                     AppendTerminal("----------------------------------------");
                     AppendTerminal($"[Run] {runTitle} 시작");
-                    AppendTerminal($"[Run] Python: {_pythonExecutablePath}");
+                    AppendTerminal($"[Run] Python: {_pythonRunner.PythonExecutablePath}");
                 }
-
-                process.Start();
-
-                _runningProcess = process;
-                _runningTempDirectory = tempDirectory;
-                _isRunStopRequested = false;
-
-                SelectTerminalTab();
-                SetRunControlsEnabled(true);
-
-                Task stdoutTask = ReadProcessStreamAsync(process.StandardOutput, stdoutBuilder);
-                Task stderrTask = ReadProcessStreamAsync(process.StandardError, stderrBuilder);
 
                 if (showStartBanner)
                 {
@@ -745,31 +683,48 @@ namespace Local_Judge
                     AppendTerminal("[Output]");
                 }
 
-                await process.StandardInput.WriteAsync(inputText ?? string.Empty);
-                await process.StandardInput.FlushAsync();
-                process.StandardInput.Close();
+                PythonExecutionLimits executionLimits = limits ?? CreateExecutionLimits();
 
-                await process.WaitForExitAsync();
-                await Task.WhenAll(stdoutTask, stderrTask);
-
-                stopwatch.Stop();
-
-                int exitCode = process.ExitCode;
-                bool stopped = _isRunStopRequested;
+                PythonExecutionResult result = await _pythonRunner.RunAsync(
+                    code,
+                    inputText,
+                    executionLimits,
+                    AppendTerminalRaw,
+                    () =>
+                    {
+                        SelectTerminalTab();
+                        SetRunControlsEnabled(true);
+                    });
 
                 if (showStartBanner)
                 {
                     AppendTerminal(string.Empty);
                     AppendTerminal("[Run] 프로세스 종료");
-                    AppendTerminal($"[Run] ExitCode: {exitCode}");
-                    AppendTerminal($"[Run] 실행 시간: {stopwatch.Elapsed.TotalMilliseconds:0} ms");
+                    AppendTerminal($"[Run] ExitCode: {result.ExitCode}");
+                    AppendTerminal($"[Run] 실행 시간: {result.Elapsed.TotalMilliseconds:0} ms");
+                    AppendTerminal($"[Run] 제한: {FormatExecutionLimits(result.Limits)}");
 
-                    if (stopped)
+                    if (result.Status == PythonExecutionStatus.Stopped)
                     {
                         SetStatus("실행 중지됨", isError: true);
                         AppendTerminal("[Run] 사용자가 실행을 중지했습니다.");
                     }
-                    else if (exitCode != 0)
+                    else if (result.Status == PythonExecutionStatus.TimeLimitExceeded)
+                    {
+                        SetStatus("Time Limit Exceeded", isError: true);
+                        AppendTerminal("[Run] 시간 제한을 초과했습니다.");
+                    }
+                    else if (result.Status == PythonExecutionStatus.MemoryLimitExceeded)
+                    {
+                        SetStatus("Memory Limit Exceeded", isError: true);
+                        AppendTerminal("[Run] 메모리 제한을 초과했습니다.");
+                    }
+                    else if (result.Status == PythonExecutionStatus.OutputLimitExceeded)
+                    {
+                        SetStatus("Output Limit Exceeded", isError: true);
+                        AppendTerminal("[Run] 출력 제한을 초과했습니다.");
+                    }
+                    else if (result.ExitCode != 0)
                     {
                         SetStatus("Runtime Error", isError: true);
                         AppendTerminal("[Run] Runtime Error가 발생했습니다.");
@@ -781,25 +736,18 @@ namespace Local_Judge
                     }
                 }
 
-                return new PythonExecutionResult(
-                    exitCode,
-                    stopped,
-                    stopwatch.Elapsed,
-                    stdoutBuilder.ToString(),
-                    stderrBuilder.ToString());
+                return result;
             }
             catch (Win32Exception)
             {
-                stopwatch.Stop();
                 SetStatus("Python 실행 실패", isError: true);
                 AppendTerminal("[Run] Python을 실행하지 못했습니다.");
                 AppendTerminal("[Run] Python이 설치되어 있고 PATH에 등록되어 있는지 확인하세요.");
-                AppendTerminal($"[Run] 현재 Python 실행 파일 설정: {_pythonExecutablePath}");
+                AppendTerminal($"[Run] 현재 Python 실행 파일 설정: {_pythonRunner.PythonExecutablePath}");
                 return null;
             }
             catch (Exception ex)
             {
-                stopwatch.Stop();
                 SetStatus("실행 실패", isError: true);
                 AppendTerminal("[Run] 실행 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
@@ -809,52 +757,87 @@ namespace Local_Judge
             {
                 SetRunControlsEnabled(false);
                 StopRunButton.IsEnabled = false;
-
-                if (_runningProcess == process)
-                {
-                    _runningProcess = null;
-                }
-
-                process.Dispose();
-
-                try
-                {
-                    if (Directory.Exists(tempDirectory))
-                    {
-                        Directory.Delete(tempDirectory, recursive: true);
-                    }
-                }
-                catch
-                {
-                    // 임시 폴더 삭제 실패는 실행 실패로 처리하지 않음
-                }
-
-                _runningTempDirectory = null;
             }
         }
 
-        private async Task ReadProcessStreamAsync(StreamReader reader, StringBuilder captureBuilder)
+        private PythonExecutionLimits CreateExecutionLimits(ProblemDocument? problem = null)
         {
-            char[] buffer = new char[1024];
+            problem ??= _currentProblem;
 
-            while (true)
+            int timeLimitMs = problem?.TimeLimitMs > 0
+                ? problem.TimeLimitMs
+                : 2000;
+            int memoryLimitMb = problem?.MemoryLimitMb > 0
+                ? problem.MemoryLimitMb
+                : 128;
+
+            return new PythonExecutionLimits(
+                TimeSpan.FromMilliseconds(timeLimitMs),
+                memoryLimitMb * 1024L * 1024L,
+                OutputLimitBytes);
+        }
+
+        private static string FormatExecutionLimits(PythonExecutionLimits limits)
+        {
+            string timeLimit = limits.TimeLimit is null
+                ? "-"
+                : $"{limits.TimeLimit.Value.TotalMilliseconds:0} ms";
+            string memoryLimit = limits.MemoryLimitBytes is null
+                ? "-"
+                : $"{limits.MemoryLimitBytes.Value / 1024 / 1024} MB";
+            string outputLimit = limits.OutputLimitBytes is null
+                ? "-"
+                : $"{limits.OutputLimitBytes.Value / 1024} KB";
+
+            return $"시간 {timeLimit} / 메모리 {memoryLimit} / 출력 {outputLimit}";
+        }
+
+        private void AppendExecutionResult(PythonExecutionResult result, bool accepted)
+        {
+            switch (result.Status)
             {
-                int readCount = await reader.ReadAsync(buffer, 0, buffer.Length);
+                case PythonExecutionStatus.Stopped:
+                    AppendTerminal("Result: Stopped");
+                    return;
 
-                if (readCount <= 0)
-                {
-                    break;
-                }
+                case PythonExecutionStatus.TimeLimitExceeded:
+                    AppendTerminal("Result: Time Limit Exceeded");
+                    return;
 
-                string text = new string(buffer, 0, readCount);
-                captureBuilder.Append(text);
-                AppendTerminalRaw(text);
+                case PythonExecutionStatus.MemoryLimitExceeded:
+                    AppendTerminal("Result: Memory Limit Exceeded");
+                    return;
+
+                case PythonExecutionStatus.OutputLimitExceeded:
+                    AppendTerminal("Result: Output Limit Exceeded");
+                    return;
             }
+
+            if (result.ExitCode != 0)
+            {
+                AppendTerminal($"Result: Runtime Error (ExitCode: {result.ExitCode})");
+            }
+            else if (!accepted)
+            {
+                AppendTerminal("Result: Wrong Answer");
+            }
+            else
+            {
+                AppendTerminal("Result: Accepted");
+            }
+        }
+
+        private static bool ShouldStopBatch(PythonExecutionResult result)
+        {
+            return result.Status is PythonExecutionStatus.Stopped
+                or PythonExecutionStatus.TimeLimitExceeded
+                or PythonExecutionStatus.MemoryLimitExceeded
+                or PythonExecutionStatus.OutputLimitExceeded;
         }
 
         private void StopRunButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_runningProcess is null || _runningProcess.HasExited)
+            if (!_pythonRunner.IsRunning)
             {
                 AppendTerminal("[Run] 실행 중인 Python 프로세스가 없습니다.");
                 return;
@@ -862,9 +845,8 @@ namespace Local_Judge
 
             try
             {
-                _isRunStopRequested = true;
                 AppendTerminal("[Run] 실행 중지 요청");
-                _runningProcess.Kill(entireProcessTree: true);
+                _pythonRunner.Stop();
             }
             catch (Exception ex)
             {
@@ -890,13 +872,6 @@ namespace Local_Judge
                 .TrimEnd();
         }
 
-        private sealed record PythonExecutionResult(
-            int ExitCode,
-            bool Stopped,
-            TimeSpan Elapsed,
-            string StandardOutput,
-            string StandardError);
-
         private static string IndentMultiline(string text)
         {
             if (string.IsNullOrEmpty(text))
@@ -914,11 +889,84 @@ namespace Local_Judge
             SetStatus("대기 중");
         }
 
-        private void SubmitMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void SubmitMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            SetStatus("제출 처리 중", isWorking: true);
-            AppendTerminal("[Submit] 제출 이력 저장 기능은 추후 구현합니다.");
-            SetStatus("대기 중");
+            string code = await GetEditorCodeAsync();
+
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                SetStatus("제출할 코드가 없습니다", isError: true);
+                AppendTerminal("[Submit] 제출할 Python 코드가 없습니다.");
+                return;
+            }
+
+            if (_currentProblem is null)
+            {
+                SetStatus("채점할 문제가 없습니다", isError: true);
+                AppendTerminal("[Submit] 먼저 문제를 만들거나 불러오세요.");
+                return;
+            }
+
+            if (_currentProblem.TestCases.Count == 0)
+            {
+                SetStatus("채점 테스트가 없습니다", isError: true);
+                AppendTerminal("[Submit] 현재 문제에 등록된 채점 테스트케이스가 없습니다.");
+                return;
+            }
+
+            int passedCount = 0;
+            int totalCount = _currentProblem.TestCases.Count;
+
+            SetStatus("채점 중", isWorking: true);
+            AppendTerminal("----------------------------------------");
+            AppendTerminal($"[Submit] 채점 시작 - 총 {totalCount}개");
+
+            for (int i = 0; i < totalCount; i++)
+            {
+                TestCaseDocument testCase = _currentProblem.TestCases[i];
+                int testCaseNumber = i + 1;
+
+                PythonExecutionResult? result = await RunPythonCodeAsync(
+                    code,
+                    runTitle: $"테스트 {testCaseNumber} 채점",
+                    inputText: testCase.Input,
+                    showStartBanner: false,
+                    limits: CreateExecutionLimits(_currentProblem));
+
+                if (result is null)
+                {
+                    break;
+                }
+
+                bool passed = result.Succeeded
+                              && CompareOutput(result.StandardOutput, testCase.Output);
+
+                if (passed)
+                {
+                    passedCount++;
+                }
+
+                AppendTerminal($"[Test {testCaseNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms");
+
+                AppendExecutionResult(result, passed);
+
+                if (ShouldStopBatch(result))
+                {
+                    break;
+                }
+            }
+
+            AppendTerminal("----------------------------------------");
+            AppendTerminal($"[Submit] 채점 완료: {passedCount}/{totalCount} 통과");
+
+            if (passedCount == totalCount)
+            {
+                SetStatus($"채점 완료: {passedCount}/{totalCount} 통과");
+            }
+            else
+            {
+                SetStatus($"채점 완료: {passedCount}/{totalCount} 통과", isError: true);
+            }
         }
 
         private async void PythonPathMenuItem_Click(object sender, RoutedEventArgs e)
@@ -936,9 +984,9 @@ namespace Local_Judge
                 return;
             }
 
-            _pythonExecutablePath = dialog.FileName;
+            _pythonRunner.PythonExecutablePath = dialog.FileName;
             SetStatus("Python 경로 설정 완료");
-            AppendTerminal($"[Settings] Python 경로를 설정했습니다: {_pythonExecutablePath}");
+            AppendTerminal($"[Settings] Python 경로를 설정했습니다: {_pythonRunner.PythonExecutablePath}");
 
             string versionText = await GetPythonVersionTextAsync();
             if (!string.IsNullOrWhiteSpace(versionText))
@@ -951,31 +999,7 @@ namespace Local_Judge
         {
             try
             {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = _pythonExecutablePath,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.UTF8,
-                    StandardErrorEncoding = Encoding.UTF8
-                };
-
-                startInfo.ArgumentList.Add("--version");
-
-                using Process? process = Process.Start(startInfo);
-                if (process is null)
-                {
-                    return string.Empty;
-                }
-
-                string stdout = await process.StandardOutput.ReadToEndAsync();
-                string stderr = await process.StandardError.ReadToEndAsync();
-                await process.WaitForExitAsync();
-
-                string versionText = string.IsNullOrWhiteSpace(stdout) ? stderr : stdout;
-                return versionText.Trim();
+                return await _pythonRunner.GetVersionTextAsync();
             }
             catch (Exception ex)
             {
@@ -1012,10 +1036,9 @@ namespace Local_Judge
         {
             try
             {
-                if (_runningProcess is not null && !_runningProcess.HasExited)
+                if (_pythonRunner.IsRunning)
                 {
-                    _isRunStopRequested = true;
-                    _runningProcess.Kill(entireProcessTree: true);
+                    _pythonRunner.Stop();
                 }
             }
             catch

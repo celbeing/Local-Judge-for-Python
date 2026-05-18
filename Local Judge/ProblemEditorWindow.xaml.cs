@@ -19,10 +19,11 @@ namespace Local_Judge
         {
             return new ProblemDocument
             {
-                Version = 1,
+                Version = 2,
                 TimeLimitMs = 2000,
                 MemoryLimitMb = 128,
-                Samples = new()
+                Samples = new(),
+                TestCases = new()
             };
         }
 
@@ -30,7 +31,7 @@ namespace Local_Judge
         {
             return new ProblemDocument
             {
-                Version = source.Version <= 0 ? 1 : source.Version,
+                Version = source.Version <= 0 ? 2 : source.Version,
                 Id = source.Id,
                 Title = source.Title,
                 TimeLimitMs = source.TimeLimitMs <= 0 ? 2000 : source.TimeLimitMs,
@@ -38,11 +39,18 @@ namespace Local_Judge
                 Description = source.Description,
                 InputFormat = source.InputFormat,
                 OutputFormat = source.OutputFormat,
-                Samples = source.Samples
+                Samples = (source.Samples ?? new System.Collections.Generic.List<SampleCaseDocument>())
                     .Select(sample => new SampleCaseDocument
                     {
                         Input = sample.Input,
                         Output = sample.Output
+                    })
+                    .ToList(),
+                TestCases = (source.TestCases ?? new System.Collections.Generic.List<TestCaseDocument>())
+                    .Select(testCase => new TestCaseDocument
+                    {
+                        Input = testCase.Input,
+                        Output = testCase.Output
                     })
                     .ToList()
             };
@@ -61,6 +69,10 @@ namespace Local_Judge
             SampleCaseDocument? firstSample = problem.Samples.FirstOrDefault();
             SampleInputTextBox.Text = firstSample?.Input ?? string.Empty;
             SampleOutputTextBox.Text = firstSample?.Output ?? string.Empty;
+
+            TestCaseDocument? firstTestCase = problem.TestCases.FirstOrDefault();
+            TestCaseInputTextBox.Text = firstTestCase?.Input ?? string.Empty;
+            TestCaseOutputTextBox.Text = firstTestCase?.Output ?? string.Empty;
         }
 
         private void ApplyButton_Click(object sender, RoutedEventArgs e)
@@ -98,6 +110,8 @@ namespace Local_Judge
 
             bool hasSampleInput = !string.IsNullOrWhiteSpace(SampleInputTextBox.Text);
             bool hasSampleOutput = !string.IsNullOrWhiteSpace(SampleOutputTextBox.Text);
+            bool hasTestCaseInput = !string.IsNullOrWhiteSpace(TestCaseInputTextBox.Text);
+            bool hasTestCaseOutput = !string.IsNullOrWhiteSpace(TestCaseOutputTextBox.Text);
 
             if (hasSampleInput != hasSampleOutput)
             {
@@ -105,9 +119,33 @@ namespace Local_Judge
                 return;
             }
 
+            if (hasTestCaseInput != hasTestCaseOutput)
+            {
+                MessageBox.Show("채점 테스트 입력과 출력은 함께 입력하거나 둘 다 비워두세요.", "입력 확인", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var remainingSamples = Problem.Samples
+                .Skip(1)
+                .Select(sample => new SampleCaseDocument
+                {
+                    Input = sample.Input,
+                    Output = sample.Output
+                })
+                .ToList();
+
+            var remainingTestCases = Problem.TestCases
+                .Skip(1)
+                .Select(testCase => new TestCaseDocument
+                {
+                    Input = testCase.Input,
+                    Output = testCase.Output
+                })
+                .ToList();
+
             Problem = new ProblemDocument
             {
-                Version = 1,
+                Version = 2,
                 Id = id,
                 Title = title,
                 TimeLimitMs = timeLimitMs,
@@ -115,7 +153,8 @@ namespace Local_Judge
                 Description = DescriptionTextBox.Text,
                 InputFormat = InputDescriptionTextBox.Text,
                 OutputFormat = OutputDescriptionTextBox.Text,
-                Samples = new()
+                Samples = new(),
+                TestCases = new()
             };
 
             if (hasSampleInput && hasSampleOutput)
@@ -125,6 +164,25 @@ namespace Local_Judge
                     Input = SampleInputTextBox.Text,
                     Output = SampleOutputTextBox.Text
                 });
+            }
+
+            foreach (SampleCaseDocument sample in remainingSamples)
+            {
+                Problem.Samples.Add(sample);
+            }
+
+            if (hasTestCaseInput && hasTestCaseOutput)
+            {
+                Problem.TestCases.Add(new TestCaseDocument
+                {
+                    Input = TestCaseInputTextBox.Text,
+                    Output = TestCaseOutputTextBox.Text
+                });
+            }
+
+            foreach (TestCaseDocument testCase in remainingTestCases)
+            {
+                Problem.TestCases.Add(testCase);
             }
 
             DialogResult = true;
