@@ -119,38 +119,29 @@
                          Style="{StaticResource MultilineInputStyle}"
                          MinHeight="90" />
 
-                <TextBlock Text="예제 입력 1" Style="{StaticResource LabelTextStyle}" />
-                <TextBox x:Name="SampleInputTextBox"
-                         Style="{StaticResource MultilineInputStyle}"
-                         FontFamily="Consolas"
-                         TextWrapping="NoWrap"
-                         MinHeight="90" />
+                <TextBlock Text="예제" Style="{StaticResource LabelTextStyle}" />
+                <StackPanel x:Name="SamplesPanel" />
 
-                <TextBlock Text="예제 출력 1" Style="{StaticResource LabelTextStyle}" />
-                <TextBox x:Name="SampleOutputTextBox"
-                         Style="{StaticResource MultilineInputStyle}"
-                         FontFamily="Consolas"
-                         TextWrapping="NoWrap"
-                         MinHeight="90" />
+                <Button Content="예제 추가"
+                        Width="90"
+                        Height="30"
+                        Margin="0,10,0,0"
+                        HorizontalAlignment="Left"
+                        Click="AddSampleButton_Click" />
 
-                <TextBlock Text="채점 테스트 입력 1" Style="{StaticResource LabelTextStyle}" />
-                <TextBox x:Name="TestCaseInputTextBox"
-                         Style="{StaticResource MultilineInputStyle}"
-                         FontFamily="Consolas"
-                         TextWrapping="NoWrap"
-                         MinHeight="90" />
-
-                <TextBlock Text="채점 테스트 출력 1" Style="{StaticResource LabelTextStyle}" />
-                <TextBox x:Name="TestCaseOutputTextBox"
-                         Style="{StaticResource MultilineInputStyle}"
-                         FontFamily="Consolas"
-                         TextWrapping="NoWrap"
-                         MinHeight="90" />
-
-                <TextBlock Text="※ 현재 UI는 예제와 채점 테스트의 첫 번째 항목만 편집하고, JSON에 있는 나머지 항목은 보존합니다."
-                           Foreground="#57606A"
-                           TextWrapping="Wrap"
-                           Margin="0,14,0,0" />
+                <TextBlock Text="채점 테스트" Style="{StaticResource LabelTextStyle}" />
+                <DockPanel LastChildFill="True" Margin="0,0,0,8">
+                    <Button Content="ZIP 불러오기..."
+                            Width="120"
+                            Height="30"
+                            Margin="0,0,10,0"
+                            DockPanel.Dock="Left"
+                            Click="LoadTestCasesZipButton_Click" />
+                    <TextBlock x:Name="TestCaseSummaryTextBlock"
+                               Text="채점 테스트 0개"
+                               Foreground="#57606A"
+                               VerticalAlignment="Center" />
+                </DockPanel>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>
