@@ -84,6 +84,22 @@
                          Style="{StaticResource SingleLineInputStyle}"
                          ToolTip="예: A+B" />
 
+                <TextBlock Text="문항 제작자" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="AuthorNameTextBox"
+                         Style="{StaticResource SingleLineInputStyle}"
+                         ToolTip="예: 홍길동, 기관명" />
+
+                <TextBlock Text="출처" Style="{StaticResource LabelTextStyle}" />
+                <TextBox x:Name="SourceTextBox"
+                         Style="{StaticResource SingleLineInputStyle}"
+                         ToolTip="예: 직접 제작, URL, 교재명" />
+
+                <TextBlock x:Name="AttributionNoticeTextBlock"
+                           Text="문항 제작자 및 출처는 이후 변경할 수 없습니다."
+                           Foreground="#57606A"
+                           TextWrapping="Wrap"
+                           Margin="0,8,0,0" />
+
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

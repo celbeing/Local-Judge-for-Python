@@ -4,9 +4,11 @@ namespace Local_Judge
 {
     public sealed class ProblemDocument
     {
-        public int Version { get; set; } = 2;
+        public int Version { get; set; } = 3;
         public string Id { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
+        public string AuthorName { get; set; } = string.Empty;
+        public string Source { get; set; } = string.Empty;
         public int TimeLimitMs { get; set; } = 2000;
         public int MemoryLimitMb { get; set; } = 128;
         public string Description { get; set; } = string.Empty;

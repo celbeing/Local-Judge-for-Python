@@ -300,7 +300,9 @@ namespace Local_Judge
                 : $"[{problem.Id}] {problem.Title}";
 
             ProblemTitleTextBlock.Text = string.IsNullOrWhiteSpace(title) ? "제목 없는 문제" : title;
-            ProblemMetaTextBlock.Text = $"시간 제한: {problem.TimeLimitMs} ms / 메모리 제한: {problem.MemoryLimitMb} MB / 예제: {problem.Samples.Count}개 / 채점 테스트: {problem.TestCases.Count}개";
+            string authorName = string.IsNullOrWhiteSpace(problem.AuthorName) ? "-" : problem.AuthorName;
+            string source = string.IsNullOrWhiteSpace(problem.Source) ? "-" : problem.Source;
+            ProblemMetaTextBlock.Text = $"시간 제한: {problem.TimeLimitMs} ms / 메모리 제한: {problem.MemoryLimitMb} MB / 예제: {problem.Samples.Count}개 / 채점 테스트: {problem.TestCases.Count}개 / 제작자: {authorName} / 출처: {source}";
             ProblemDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.Description)
                 ? "문제 설명이 비어 있습니다."
                 : problem.Description;
@@ -360,9 +362,16 @@ namespace Local_Judge
             _isProblemDirty = true;
 
             DisplayProblem(_currentProblem);
-            SetStatus("새 문제 작성 완료");
             AppendTerminal($"[Problem] 새 문제를 만들었습니다: {_currentProblem.Title}");
-            AppendTerminal("[Problem] 파일 > 문제 저장 또는 다른 이름으로 문제 저장을 눌러 JSON으로 저장하세요.");
+
+            if (SaveCurrentProblemWithDialogIfNeeded())
+            {
+                SetStatus("새 문제 저장 완료");
+            }
+            else
+            {
+                SetStatus("새 문제 저장 필요", isError: true);
+            }
         }
 
         private void EditProblemMenuItem_Click(object sender, RoutedEventArgs e)
@@ -393,8 +402,16 @@ namespace Local_Judge
             _isProblemDirty = true;
 
             DisplayProblem(_currentProblem);
-            SetStatus("문제 수정 완료");
             AppendTerminal($"[Problem] 문제를 수정했습니다: {_currentProblem.Title}");
+
+            if (SaveCurrentProblemWithDialogIfNeeded())
+            {
+                SetStatus("문제 수정 저장 완료");
+            }
+            else
+            {
+                SetStatus("문제 수정 저장 필요", isError: true);
+            }
         }
 
         private void LoadProblemMenuItem_Click(object sender, RoutedEventArgs e)
@@ -427,7 +444,9 @@ namespace Local_Judge
 
                 problem.Samples ??= new();
                 problem.TestCases ??= new();
-                problem.Version = problem.Version <= 0 ? 2 : problem.Version;
+                problem.AuthorName ??= string.Empty;
+                problem.Source ??= string.Empty;
+                problem.Version = problem.Version <= 0 ? 3 : Math.Max(problem.Version, 3);
                 problem.TimeLimitMs = problem.TimeLimitMs <= 0 ? 2000 : problem.TimeLimitMs;
                 problem.MemoryLimitMb = problem.MemoryLimitMb <= 0 ? 128 : problem.MemoryLimitMb;
 
@@ -497,11 +516,40 @@ namespace Local_Judge
             SaveCurrentProblemToFile(dialog.FileName);
         }
 
-        private void SaveCurrentProblemToFile(string filePath)
+        private bool SaveCurrentProblemWithDialogIfNeeded()
         {
             if (_currentProblem is null)
             {
-                return;
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_currentProblemFilePath))
+            {
+                return SaveCurrentProblemToFile(_currentProblemFilePath);
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                Title = "문제 JSON 저장",
+                Filter = "JSON 문제 파일 (*.json)|*.json|모든 파일 (*.*)|*.*",
+                FileName = CreateDefaultProblemFileName(_currentProblem)
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                AppendTerminal("[Problem] 문제 JSON 저장을 취소했습니다.");
+                return false;
+            }
+
+            return SaveCurrentProblemToFile(dialog.FileName);
+        }
+
+        private bool SaveCurrentProblemToFile(string filePath)
+        {
+            if (_currentProblem is null)
+            {
+                return false;
             }
 
             SetStatus("문제 저장 중", isWorking: true);
@@ -518,12 +566,14 @@ namespace Local_Judge
 
                 SetStatus("문제 저장 완료");
                 AppendTerminal("[Problem] 문제 JSON 저장이 완료되었습니다.");
+                return true;
             }
             catch (Exception ex)
             {
                 SetStatus("문제 저장 실패", isError: true);
                 AppendTerminal("[Problem] 문제 저장 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
+                return false;
             }
         }
 

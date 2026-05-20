@@ -14,6 +14,7 @@ namespace Local_Judge
     public partial class ProblemEditorWindow : Window
     {
         private readonly List<SampleEditorControls> _sampleEditors = new();
+        private readonly bool _isNewProblem;
         private List<TestCaseDocument> _testCases = new();
 
         public ProblemDocument Problem { get; private set; }
@@ -22,15 +23,17 @@ namespace Local_Judge
         {
             InitializeComponent();
 
+            _isNewProblem = problem is null;
             Problem = CloneProblem(problem ?? CreateDefaultProblem());
             LoadProblemToForm(Problem);
+            ConfigureAttributionFields();
         }
 
         private static ProblemDocument CreateDefaultProblem()
         {
             return new ProblemDocument
             {
-                Version = 2,
+                Version = 3,
                 TimeLimitMs = 2000,
                 MemoryLimitMb = 128,
                 Samples = new(),
@@ -42,9 +45,11 @@ namespace Local_Judge
         {
             return new ProblemDocument
             {
-                Version = source.Version <= 0 ? 2 : source.Version,
+                Version = source.Version <= 0 ? 3 : Math.Max(source.Version, 3),
                 Id = source.Id,
                 Title = source.Title,
+                AuthorName = source.AuthorName ?? string.Empty,
+                Source = source.Source ?? string.Empty,
                 TimeLimitMs = source.TimeLimitMs <= 0 ? 2000 : source.TimeLimitMs,
                 MemoryLimitMb = source.MemoryLimitMb <= 0 ? 128 : source.MemoryLimitMb,
                 Description = source.Description,
@@ -59,6 +64,8 @@ namespace Local_Judge
         {
             ProblemIdTextBox.Text = problem.Id;
             TitleTextBox.Text = problem.Title;
+            AuthorNameTextBox.Text = problem.AuthorName;
+            SourceTextBox.Text = problem.Source;
             TimeLimitTextBox.Text = problem.TimeLimitMs.ToString();
             MemoryLimitTextBox.Text = problem.MemoryLimitMb.ToString();
             DescriptionTextBox.Text = problem.Description;
@@ -83,6 +90,24 @@ namespace Local_Judge
 
             _testCases = CloneTestCases(problem.TestCases);
             UpdateTestCaseSummary();
+        }
+
+        private void ConfigureAttributionFields()
+        {
+            bool isReadOnly = !_isNewProblem;
+            AuthorNameTextBox.IsReadOnly = isReadOnly;
+            SourceTextBox.IsReadOnly = isReadOnly;
+
+            if (isReadOnly)
+            {
+                AuthorNameTextBox.Background = (Brush)FindResource("PanelHeaderBrush");
+                SourceTextBox.Background = (Brush)FindResource("PanelHeaderBrush");
+                AttributionNoticeTextBlock.Text = "불러온 문항의 제작자 및 출처는 수정할 수 없습니다.";
+            }
+            else
+            {
+                AttributionNoticeTextBlock.Text = "문항 제작자 및 출처는 이후 변경할 수 없습니다.";
+            }
         }
 
         private void AddSampleButton_Click(object sender, RoutedEventArgs e)
@@ -331,6 +356,8 @@ namespace Local_Judge
         {
             string id = ProblemIdTextBox.Text.Trim();
             string title = TitleTextBox.Text.Trim();
+            string authorName = _isNewProblem ? AuthorNameTextBox.Text.Trim() : Problem.AuthorName;
+            string source = _isNewProblem ? SourceTextBox.Text.Trim() : Problem.Source;
 
             if (string.IsNullOrWhiteSpace(id))
             {
@@ -343,6 +370,20 @@ namespace Local_Judge
             {
                 MessageBox.Show("문제 제목을 입력하세요.", "입력 확인", MessageBoxButton.OK, MessageBoxImage.Warning);
                 TitleTextBox.Focus();
+                return;
+            }
+
+            if (_isNewProblem && string.IsNullOrWhiteSpace(authorName))
+            {
+                MessageBox.Show("문항 제작자를 입력하세요.", "입력 확인", MessageBoxButton.OK, MessageBoxImage.Warning);
+                AuthorNameTextBox.Focus();
+                return;
+            }
+
+            if (_isNewProblem && string.IsNullOrWhiteSpace(source))
+            {
+                MessageBox.Show("문항 출처를 입력하세요.", "입력 확인", MessageBoxButton.OK, MessageBoxImage.Warning);
+                SourceTextBox.Focus();
                 return;
             }
 
@@ -368,9 +409,11 @@ namespace Local_Judge
 
             Problem = new ProblemDocument
             {
-                Version = 2,
+                Version = 3,
                 Id = id,
                 Title = title,
+                AuthorName = authorName,
+                Source = source,
                 TimeLimitMs = timeLimitMs,
                 MemoryLimitMb = memoryLimitMb,
                 Description = DescriptionTextBox.Text,

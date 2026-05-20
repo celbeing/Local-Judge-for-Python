@@ -1,7 +1,9 @@
 {
-  "version": 2,
+  "version": 3,
   "id": "1000",
   "title": "A+B",
+  "authorName": "Baekjoon Online Judge",
+  "source": "https://www.acmicpc.net/problem/1000",
   "timeLimitMs": 2000,
   "memoryLimitMb": 128,
   "description": "두 정수 A와 B를 입력받은 다음, A+B를 출력하는 프로그램을 작성하시오.",
