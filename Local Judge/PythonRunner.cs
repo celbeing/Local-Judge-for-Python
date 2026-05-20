@@ -43,6 +43,7 @@ namespace Local_Judge
             var stopwatch = new Stopwatch();
             var statusLock = new object();
             PythonExecutionStatus executionStatus = PythonExecutionStatus.Completed;
+            long peakWorkingSetBytes = 0;
             limits ??= PythonExecutionLimits.Default;
 
             bool TrySetStatus(PythonExecutionStatus status)
@@ -134,6 +135,13 @@ namespace Local_Judge
                 Task memoryLimitTask = StartMemoryLimitMonitorAsync(
                     process,
                     limits.MemoryLimitBytes,
+                    workingSetBytes =>
+                    {
+                        if (workingSetBytes > peakWorkingSetBytes)
+                        {
+                            peakWorkingSetBytes = workingSetBytes;
+                        }
+                    },
                     () =>
                     {
                         if (TrySetStatus(PythonExecutionStatus.MemoryLimitExceeded))
@@ -166,6 +174,7 @@ namespace Local_Judge
                     stopwatch.Elapsed,
                     stdoutBuilder.ToString(),
                     stderrBuilder.ToString(),
+                    peakWorkingSetBytes,
                     limits);
             }
             finally
@@ -316,14 +325,10 @@ namespace Local_Judge
         private static async Task StartMemoryLimitMonitorAsync(
             Process process,
             long? memoryLimitBytes,
+            Action<long> workingSetObserved,
             Action limitExceeded,
             CancellationToken cancellationToken)
         {
-            if (memoryLimitBytes is null || memoryLimitBytes <= 0)
-            {
-                return;
-            }
-
             try
             {
                 while (!cancellationToken.IsCancellationRequested)
@@ -334,8 +339,10 @@ namespace Local_Judge
                     }
 
                     process.Refresh();
+                    long workingSetBytes = process.WorkingSet64;
+                    workingSetObserved(workingSetBytes);
 
-                    if (process.WorkingSet64 > memoryLimitBytes.Value)
+                    if (memoryLimitBytes is > 0 && workingSetBytes > memoryLimitBytes.Value)
                     {
                         limitExceeded();
                         return;
@@ -458,6 +465,7 @@ namespace Local_Judge
         TimeSpan Elapsed,
         string StandardOutput,
         string StandardError,
+        long PeakWorkingSetBytes,
         PythonExecutionLimits Limits)
     {
         public bool Stopped => Status == PythonExecutionStatus.Stopped;

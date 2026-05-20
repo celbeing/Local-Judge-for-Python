@@ -72,7 +72,9 @@
             </MenuItem>
 
             <MenuItem Header="_실행">
-                <MenuItem Header="실행" Click="RunCodeMenuItem_Click" />
+                <MenuItem x:Name="RunCodeMenuItem"
+                          Header="실행"
+                          Click="RunCodeMenuItem_Click" />
                 <MenuItem x:Name="RunSampleMenuItem"
                           Header="예제 실행"
                           Click="RunSampleMenuItem_Click" />
@@ -87,6 +89,9 @@
 
             <MenuItem Header="_도구">
                 <MenuItem Header="Python 경로 설정" Click="PythonPathMenuItem_Click" />
+                <MenuItem x:Name="BenchmarkMenuItem"
+                          Header="채점 환경 벤치마크 다시 실행"
+                          Click="BenchmarkMenuItem_Click" />
                 <MenuItem Header="환경 설정" Click="SettingsMenuItem_Click" />
             </MenuItem>
 
@@ -105,7 +110,7 @@
                              Fill="#2DA44E"
                              Margin="0,0,8,0" />
                     <TextBlock Text="상태: " FontWeight="SemiBold" />
-                    <TextBlock x:Name="StatusTextBlock" Text="대기 중" />
+                    <TextBlock x:Name="StatusTextBlock" Text="채점 대기" />
                 </StackPanel>
             </StatusBarItem>
 
@@ -256,7 +261,8 @@
                                 <StackPanel DockPanel.Dock="Right"
                                             Orientation="Horizontal"
                                             VerticalAlignment="Center">
-                                    <Button Content="실행"
+                                    <Button x:Name="RunCodeButton"
+                                            Content="실행"
                                             Width="70"
                                             Height="26"
                                             Margin="0,0,6,0"

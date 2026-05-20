@@ -19,6 +19,7 @@ namespace Local_Judge
         private string? _editorCodeRequestId;
 
         private readonly PythonRunner _pythonRunner = new();
+        private readonly JudgeEnvironmentBenchmark _environmentBenchmark;
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
 
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
@@ -35,31 +36,33 @@ namespace Local_Judge
         private ProblemDocument? _currentProblem;
         private string? _currentProblemFilePath;
         private bool _isProblemDirty;
+        private JudgeEnvironmentBenchmarkResult? _benchmarkResult;
+        private bool _isBenchmarkRunning;
 
         public MainWindow()
         {
+            _environmentBenchmark = new JudgeEnvironmentBenchmark(_pythonRunner);
+
             InitializeComponent();
 
-            SetStatus("대기 중");
+            SetStatus("채점 대기");
             ResetProblemView();
             AppendTerminal("[UI] 화면 구성이 완료되었습니다.");
 
             _ = InitializeCodeEditorAsync();
+            _ = StartEnvironmentBenchmarkAsync(isManual: false);
         }
 
         private async Task InitializeCodeEditorAsync()
         {
             try
             {
-                SetStatus("코드 편집기 초기화 중", isWorking: true);
-
                 await CodeEditorWebView.EnsureCoreWebView2Async();
 
                 string editorFolderPath = Path.Combine(AppContext.BaseDirectory, "Editor");
 
                 if (!Directory.Exists(editorFolderPath))
                 {
-                    SetStatus("코드 편집기 초기화 실패", isError: true);
                     AppendTerminal($"[Editor] Editor 폴더를 찾을 수 없습니다: {editorFolderPath}");
                     return;
                 }
@@ -72,12 +75,9 @@ namespace Local_Judge
                     CoreWebView2HostResourceAccessKind.Allow);
 
                 CodeEditorWebView.Source = new Uri("https://localjudge.editor/index.html");
-
-                SetStatus("코드 편집기 준비 중", isWorking: true);
             }
             catch (Exception ex)
             {
-                SetStatus("코드 편집기 초기화 실패", isError: true);
                 AppendTerminal("[Editor] WebView2 코드 편집기 초기화 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
             }
@@ -102,7 +102,6 @@ namespace Local_Judge
                 switch (type)
                 {
                     case "editorReady":
-                        SetStatus("코드 편집기 준비 완료");
                         AppendTerminal("[Editor] Monaco Editor가 준비되었습니다.");
                         break;
 
@@ -267,6 +266,7 @@ namespace Local_Judge
 
             StopRunButton.IsEnabled = isRunning
                                       && _pythonRunner.IsRunning;
+            UpdateProblemCommandState();
         }
 
         private void SelectTerminalTab()
@@ -301,9 +301,7 @@ namespace Local_Judge
                 : $"[{problem.Id}] {problem.Title}";
 
             ProblemTitleTextBlock.Text = string.IsNullOrWhiteSpace(title) ? "제목 없는 문제" : title;
-            string authorName = string.IsNullOrWhiteSpace(problem.AuthorName) ? "-" : problem.AuthorName;
-            string source = string.IsNullOrWhiteSpace(problem.Source) ? "-" : problem.Source;
-            ProblemMetaTextBlock.Text = $"시간 제한: {problem.TimeLimitMs} ms / 메모리 제한: {problem.MemoryLimitMb} MB / 예제: {problem.Samples.Count}개 / 채점 테스트: {problem.TestCases.Count}개 / 제작자: {authorName} / 출처: {source}";
+            ProblemMetaTextBlock.Text = FormatProblemMetaText(problem);
             ProblemDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.Description)
                 ? "문제 설명이 비어 있습니다."
                 : problem.Description;
@@ -321,6 +319,26 @@ namespace Local_Judge
 
             UpdateCurrentProblemStatus();
             UpdateProblemCommandState();
+        }
+
+        private string FormatProblemMetaText(ProblemDocument problem)
+        {
+            string authorName = string.IsNullOrWhiteSpace(problem.AuthorName) ? "-" : problem.AuthorName;
+            string source = string.IsNullOrWhiteSpace(problem.Source) ? "-" : problem.Source;
+
+            string limitText;
+            if (_benchmarkResult is null)
+            {
+                limitText = $"시간 제한: {problem.TimeLimitMs} ms / 메모리 제한: {problem.MemoryLimitMb} MB / 로컬 적용 제한: 벤치마크 전";
+            }
+            else
+            {
+                int adjustedTimeLimitMs = _benchmarkResult.ApplyTimeLimitMs(problem.TimeLimitMs);
+                int adjustedMemoryLimitMb = _benchmarkResult.ApplyMemoryLimitMb(problem.MemoryLimitMb);
+                limitText = $"시간 제한: {problem.TimeLimitMs} ms -> 로컬 적용 {adjustedTimeLimitMs} ms / 메모리 제한: {problem.MemoryLimitMb} MB -> 로컬 적용 {adjustedMemoryLimitMb} MB";
+            }
+
+            return $"{limitText} / 예제: {problem.Samples.Count}개 / 채점 테스트: {problem.TestCases.Count}개 / 제작자: {authorName} / 출처: {source}";
         }
 
         private void UpdateCurrentProblemStatus()
@@ -345,19 +363,159 @@ namespace Local_Judge
         private void UpdateProblemCommandState()
         {
             bool hasProblem = _currentProblem is not null;
+            bool canRunWithLimits = _benchmarkResult is not null
+                                    && !_isBenchmarkRunning
+                                    && !_pythonRunner.IsRunning;
 
+            RunCodeMenuItem.IsEnabled = canRunWithLimits;
+            RunCodeButton.IsEnabled = canRunWithLimits;
             EditProblemMenuItem.IsEnabled = hasProblem;
             EditProblemButton.IsEnabled = hasProblem;
-            RunSampleMenuItem.IsEnabled = hasProblem;
-            RunSampleButton.IsEnabled = hasProblem;
-            SubmitMenuItem.IsEnabled = hasProblem;
-            SubmitButton.IsEnabled = hasProblem;
+            RunSampleMenuItem.IsEnabled = hasProblem && canRunWithLimits;
+            RunSampleButton.IsEnabled = hasProblem && canRunWithLimits;
+            SubmitMenuItem.IsEnabled = hasProblem && canRunWithLimits;
+            SubmitButton.IsEnabled = hasProblem && canRunWithLimits;
+            BenchmarkMenuItem.IsEnabled = !_isBenchmarkRunning && !_pythonRunner.IsRunning;
+        }
+
+        private async Task StartEnvironmentBenchmarkAsync(bool isManual)
+        {
+            if (_isBenchmarkRunning)
+            {
+                AppendTerminal("[Benchmark] 이미 채점 환경 벤치마크가 실행 중입니다.");
+                return;
+            }
+
+            if (_pythonRunner.IsRunning)
+            {
+                SetStatus("채점 환경 점검 불가", isError: true);
+                AppendTerminal("[Benchmark] 실행 중인 Python 프로세스가 있어 벤치마크를 시작할 수 없습니다.");
+                return;
+            }
+
+            JudgeEnvironmentBenchmarkResult? previousResult = _benchmarkResult;
+            _isBenchmarkRunning = true;
+            UpdateProblemCommandState();
+            SelectTerminalTab();
+
+            SetStatus("채점 환경 점검 중", isWorking: true);
+            AppendTerminal("----------------------------------------");
+            AppendTerminal(isManual
+                ? "[Benchmark] 채점 환경 벤치마크를 다시 실행합니다."
+                : "[Benchmark] 프로그램 시작 필수 채점 환경 벤치마크를 실행합니다.");
+            AppendTerminal($"[Benchmark] Python: {_pythonRunner.PythonExecutablePath}");
+
+            try
+            {
+                JudgeEnvironmentBenchmarkResult result = await _environmentBenchmark.RunAsync();
+                bool keptPreviousResult = !result.Succeeded && previousResult is not null;
+
+                if (!keptPreviousResult)
+                {
+                    _benchmarkResult = result;
+                }
+
+                if (result.Succeeded)
+                {
+                    SetStatus("채점 환경 준비 완료");
+                    AppendBenchmarkSummary(result);
+                }
+                else
+                {
+                    SetStatus("채점 환경 점검 실패", isError: true);
+                    AppendTerminal($"[Benchmark] 실패: {result.ErrorMessage}");
+
+                    if (keptPreviousResult)
+                    {
+                        AppendTerminal("[Benchmark] 이전 보정값을 유지합니다.");
+                        AppendBenchmarkSummary(previousResult!);
+                    }
+                    else
+                    {
+                        AppendTerminal("[Benchmark] 안전 기본 보정값을 적용합니다.");
+                        AppendBenchmarkSummary(result);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SetStatus("채점 환경 점검 실패", isError: true);
+                AppendTerminal("[Benchmark] 벤치마크 실행 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+
+                if (previousResult is not null)
+                {
+                    _benchmarkResult = previousResult;
+                    AppendTerminal("[Benchmark] 이전 보정값을 유지합니다.");
+                    AppendBenchmarkSummary(previousResult);
+                }
+                else
+                {
+                    _benchmarkResult = JudgeEnvironmentBenchmarkResult.CreateFallback(ex.Message);
+                    AppendTerminal("[Benchmark] 안전 기본 보정값을 적용합니다.");
+                    AppendBenchmarkSummary(_benchmarkResult);
+                }
+            }
+            finally
+            {
+                _isBenchmarkRunning = false;
+
+                if (_currentProblem is not null)
+                {
+                    DisplayProblem(_currentProblem);
+                }
+                else
+                {
+                    UpdateProblemCommandState();
+                }
+            }
+        }
+
+        private void AppendBenchmarkSummary(JudgeEnvironmentBenchmarkResult result)
+        {
+            if (result.EmptyPythonStartupMs > 0)
+            {
+                AppendTerminal($"[Benchmark] Python 시작 오버헤드: {result.EmptyPythonStartupMs:0} ms");
+            }
+
+            foreach (JudgeBenchmarkSampleResult sample in result.Samples)
+            {
+                if (sample.IsMemorySample)
+                {
+                    AppendTerminal($"[Benchmark] {sample.Complexity} {sample.Name}: {sample.ActualElapsedMs:0} ms / peak {FormatMemoryBytes(sample.PeakWorkingSetBytes)}");
+                }
+                else
+                {
+                    AppendTerminal($"[Benchmark] {sample.Complexity} {sample.Name}: 기준 {sample.ReferenceElapsedMs:0} ms / 실측 {sample.ActualElapsedMs:0} ms / 배율 {sample.Slowdown:0.00}x");
+                }
+            }
+
+            AppendTerminal($"[Benchmark] 최종 시간 배율: {result.TimeMultiplier:0.00}x");
+            AppendTerminal($"[Benchmark] 추가 시간: {result.ExtraTimeMs} ms");
+            AppendTerminal($"[Benchmark] 추가 메모리: {result.ExtraMemoryMb} MB");
+        }
+
+        private bool EnsureBenchmarkReadyForRun()
+        {
+            if (_isBenchmarkRunning)
+            {
+                SetStatus("채점 환경 점검 중", isError: true);
+                AppendTerminal("[Benchmark] 채점 환경 벤치마크가 끝난 뒤 실행할 수 있습니다.");
+                return false;
+            }
+
+            if (_benchmarkResult is null)
+            {
+                SetStatus("채점 환경 미준비", isError: true);
+                AppendTerminal("[Benchmark] 채점 환경 벤치마크가 아직 완료되지 않았습니다.");
+                return false;
+            }
+
+            return true;
         }
 
         private void NewProblemMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            SetStatus("문제 만드는 중", isWorking: true);
-
             var editor = new ProblemEditorWindow
             {
                 Owner = this
@@ -366,13 +524,11 @@ namespace Local_Judge
             bool? result = editor.ShowDialog();
             if (result != true)
             {
-                SetStatus("대기 중");
                 AppendTerminal("[Problem] 새 문제 만들기를 취소했습니다.");
                 UpdateProblemCommandState();
                 return;
             }
 
-            SetStatus("새 문제 저장 완료");
             AppendTerminal($"[Problem] 새 문제를 저장했습니다: {editor.Problem.Title}");
             AppendTerminal($"[Problem] 저장 위치: {editor.SavedFilePath ?? "경로 알 수 없음"}");
             UpdateProblemCommandState();
@@ -382,12 +538,9 @@ namespace Local_Judge
         {
             if (_currentProblem is null)
             {
-                SetStatus("수정할 문제가 없습니다", isError: true);
                 AppendTerminal("[Problem] 먼저 문제를 만들거나 불러오세요.");
                 return;
             }
-
-            SetStatus("문제 수정 중", isWorking: true);
 
             var editor = new ProblemEditorWindow(_currentProblem)
             {
@@ -397,7 +550,6 @@ namespace Local_Judge
             bool? result = editor.ShowDialog();
             if (result != true)
             {
-                SetStatus("대기 중");
                 AppendTerminal("[Problem] 문제 수정을 취소했습니다.");
                 return;
             }
@@ -408,14 +560,7 @@ namespace Local_Judge
             DisplayProblem(_currentProblem);
             AppendTerminal($"[Problem] 문제를 수정했습니다: {_currentProblem.Title}");
 
-            if (SaveCurrentProblemWithDialogIfNeeded())
-            {
-                SetStatus("문제 수정 저장 완료");
-            }
-            else
-            {
-                SetStatus("문제 수정 저장 필요", isError: true);
-            }
+            SaveCurrentProblemWithDialogIfNeeded();
         }
 
         private void LoadProblemMenuItem_Click(object sender, RoutedEventArgs e)
@@ -429,11 +574,9 @@ namespace Local_Judge
             bool? result = dialog.ShowDialog(this);
             if (result != true)
             {
-                SetStatus("대기 중");
                 return;
             }
 
-            SetStatus("문제 불러오는 중", isWorking: true);
             AppendTerminal($"[Problem] 문제 파일을 불러옵니다: {dialog.FileName}");
 
             try
@@ -459,18 +602,15 @@ namespace Local_Judge
                 _isProblemDirty = false;
 
                 DisplayProblem(problem);
-                SetStatus("문제 불러오기 완료");
                 AppendTerminal($"[Problem] 문제를 불러왔습니다: [{problem.Id}] {problem.Title}");
             }
             catch (JsonException ex)
             {
-                SetStatus("문제 JSON 오류", isError: true);
                 AppendTerminal("[Problem] JSON 형식이 올바르지 않습니다.");
                 AppendTerminal(ex.Message);
             }
             catch (Exception ex)
             {
-                SetStatus("문제 불러오기 실패", isError: true);
                 AppendTerminal("[Problem] 문제 불러오기 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
             }
@@ -480,7 +620,6 @@ namespace Local_Judge
         {
             if (_currentProblem is null)
             {
-                SetStatus("저장할 문제가 없습니다", isError: true);
                 AppendTerminal("[Problem] 먼저 문제를 만들거나 불러오세요.");
                 return;
             }
@@ -498,7 +637,6 @@ namespace Local_Judge
         {
             if (_currentProblem is null)
             {
-                SetStatus("저장할 문제가 없습니다", isError: true);
                 AppendTerminal("[Problem] 먼저 문제를 만들거나 불러오세요.");
                 return;
             }
@@ -513,7 +651,6 @@ namespace Local_Judge
             bool? result = dialog.ShowDialog(this);
             if (result != true)
             {
-                SetStatus("대기 중");
                 return;
             }
 
@@ -556,7 +693,6 @@ namespace Local_Judge
                 return false;
             }
 
-            SetStatus("문제 저장 중", isWorking: true);
             AppendTerminal($"[Problem] 문제 파일을 저장합니다: {filePath}");
 
             try
@@ -568,13 +704,11 @@ namespace Local_Judge
                 _isProblemDirty = false;
                 UpdateCurrentProblemStatus();
 
-                SetStatus("문제 저장 완료");
                 AppendTerminal("[Problem] 문제 JSON 저장이 완료되었습니다.");
                 return true;
             }
             catch (Exception ex)
             {
-                SetStatus("문제 저장 실패", isError: true);
                 AppendTerminal("[Problem] 문제 저장 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
                 return false;
@@ -601,13 +735,16 @@ namespace Local_Judge
         {
             string code = await GetEditorCodeAsync();
 
-            SetStatus("코드 저장 중", isWorking: true);
             AppendTerminal($"[Code] 현재 코드 길이: {code.Length}자");
-            SetStatus("대기 중");
         }
 
         private async void RunCodeMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (!EnsureBenchmarkReadyForRun())
+            {
+                return;
+            }
+
             string code = await GetEditorCodeAsync();
 
             if (string.IsNullOrWhiteSpace(code))
@@ -626,6 +763,11 @@ namespace Local_Judge
 
         private async void RunSampleMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (!EnsureBenchmarkReadyForRun())
+            {
+                return;
+            }
+
             string code = await GetEditorCodeAsync();
 
             if (string.IsNullOrWhiteSpace(code))
@@ -677,7 +819,7 @@ namespace Local_Judge
                     passedCount++;
                 }
 
-                AppendTerminal($"[Sample {sampleNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms");
+                AppendTerminal($"[Sample {sampleNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
 
                 AppendExecutionResult(result, passed);
 
@@ -756,6 +898,7 @@ namespace Local_Judge
                     AppendTerminal("[Run] 프로세스 종료");
                     AppendTerminal($"[Run] ExitCode: {result.ExitCode}");
                     AppendTerminal($"[Run] 실행 시간: {result.Elapsed.TotalMilliseconds:0} ms");
+                    AppendTerminal($"[Run] 최대 메모리: {FormatMemoryBytes(result.PeakWorkingSetBytes)}");
                     AppendTerminal($"[Run] 제한: {FormatExecutionLimits(result.Limits)}");
 
                     if (result.Status == PythonExecutionStatus.Stopped)
@@ -824,10 +967,15 @@ namespace Local_Judge
             int memoryLimitMb = problem?.MemoryLimitMb > 0
                 ? problem.MemoryLimitMb
                 : 128;
+            JudgeEnvironmentBenchmarkResult calibration = _benchmarkResult
+                ?? JudgeEnvironmentBenchmarkResult.DefaultFallback;
+
+            int adjustedTimeLimitMs = calibration.ApplyTimeLimitMs(timeLimitMs);
+            int adjustedMemoryLimitMb = calibration.ApplyMemoryLimitMb(memoryLimitMb);
 
             return new PythonExecutionLimits(
-                TimeSpan.FromMilliseconds(timeLimitMs),
-                memoryLimitMb * 1024L * 1024L,
+                TimeSpan.FromMilliseconds(adjustedTimeLimitMs),
+                adjustedMemoryLimitMb * 1024L * 1024L,
                 OutputLimitBytes);
         }
 
@@ -844,6 +992,16 @@ namespace Local_Judge
                 : $"{limits.OutputLimitBytes.Value / 1024} KB";
 
             return $"시간 {timeLimit} / 메모리 {memoryLimit} / 출력 {outputLimit}";
+        }
+
+        private static string FormatMemoryBytes(long bytes)
+        {
+            if (bytes <= 0)
+            {
+                return "-";
+            }
+
+            return $"{bytes / 1024d / 1024d:0.#} MB";
         }
 
         private void AppendExecutionResult(PythonExecutionResult result, bool accepted)
@@ -938,13 +1096,16 @@ namespace Local_Judge
 
         private void DebugMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            SetStatus("디버그 준비 중", isWorking: true);
             AppendTerminal("[Debug] 디버그 기능은 추후 debugpy와 연결합니다.");
-            SetStatus("대기 중");
         }
 
         private async void SubmitMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (!EnsureBenchmarkReadyForRun())
+            {
+                return;
+            }
+
             string code = await GetEditorCodeAsync();
 
             if (string.IsNullOrWhiteSpace(code))
@@ -1000,7 +1161,7 @@ namespace Local_Judge
                     passedCount++;
                 }
 
-                AppendTerminal($"[Test {testCaseNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms");
+                AppendTerminal($"[Test {testCaseNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
 
                 AppendExecutionResult(result, passed);
 
@@ -1034,12 +1195,10 @@ namespace Local_Judge
             bool? result = dialog.ShowDialog(this);
             if (result != true)
             {
-                SetStatus("대기 중");
                 return;
             }
 
             _pythonRunner.PythonExecutablePath = dialog.FileName;
-            SetStatus("Python 경로 설정 완료");
             AppendTerminal($"[Settings] Python 경로를 설정했습니다: {_pythonRunner.PythonExecutablePath}");
 
             string versionText = await GetPythonVersionTextAsync();
@@ -1047,6 +1206,14 @@ namespace Local_Judge
             {
                 AppendTerminal($"[Settings] {versionText}");
             }
+
+            AppendTerminal("[Benchmark] Python 경로가 변경되어 채점 환경 벤치마크를 다시 실행합니다.");
+            await StartEnvironmentBenchmarkAsync(isManual: true);
+        }
+
+        private async void BenchmarkMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            await StartEnvironmentBenchmarkAsync(isManual: true);
         }
 
         private async Task<string> GetPythonVersionTextAsync()
@@ -1057,7 +1224,6 @@ namespace Local_Judge
             }
             catch (Exception ex)
             {
-                SetStatus("Python 확인 실패", isError: true);
                 AppendTerminal("[Settings] Python 버전 확인 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
                 return string.Empty;
@@ -1066,8 +1232,6 @@ namespace Local_Judge
 
         private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            SetStatus("환경 설정");
-            AppendTerminal("[Settings] 환경 설정 UI는 추후 구현합니다.");
         }
 
         private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1083,7 +1247,6 @@ namespace Local_Judge
         {
             TerminalTextBox.Clear();
             TerminalTextBox.Text = "[System] 터미널을 비웠습니다.";
-            SetStatus("대기 중");
         }
 
         private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
