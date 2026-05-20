@@ -64,11 +64,12 @@
                         Height="30"
                         Margin="0,0,8,0"
                         IsCancel="True" />
-                <Button Content="적용"
+                <Button x:Name="SaveButton"
+                        Content="저장"
                         Width="90"
                         Height="30"
                         IsDefault="True"
-                        Click="ApplyButton_Click" />
+                        Click="SaveButton_Click" />
             </StackPanel>
         </Border>
 

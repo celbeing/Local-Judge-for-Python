@@ -59,7 +59,9 @@
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_파일">
                 <MenuItem Header="새 문제 만들기..." Click="NewProblemMenuItem_Click" />
-                <MenuItem Header="문제 수정..." Click="EditProblemMenuItem_Click" />
+                <MenuItem x:Name="EditProblemMenuItem"
+                          Header="문제 수정..."
+                          Click="EditProblemMenuItem_Click" />
                 <MenuItem Header="문제 불러오기..." Click="LoadProblemMenuItem_Click" />
                 <MenuItem Header="문제 저장" Click="SaveProblemMenuItem_Click" />
                 <MenuItem Header="다른 이름으로 문제 저장..." Click="SaveProblemAsMenuItem_Click" />
@@ -71,12 +73,16 @@
 
             <MenuItem Header="_실행">
                 <MenuItem Header="실행" Click="RunCodeMenuItem_Click" />
-                <MenuItem Header="예제 실행" Click="RunSampleMenuItem_Click" />
+                <MenuItem x:Name="RunSampleMenuItem"
+                          Header="예제 실행"
+                          Click="RunSampleMenuItem_Click" />
                 <MenuItem Header="디버그 시작" Click="DebugMenuItem_Click" />
             </MenuItem>
 
             <MenuItem Header="_저지">
-                <MenuItem Header="제출" Click="SubmitMenuItem_Click" />
+                <MenuItem x:Name="SubmitMenuItem"
+                          Header="제출"
+                          Click="SubmitMenuItem_Click" />
             </MenuItem>
 
             <MenuItem Header="_도구">
@@ -146,7 +152,8 @@
                                         Height="26"
                                         Margin="0,0,6,0"
                                         Click="NewProblemMenuItem_Click" />
-                                <Button Content="수정"
+                                <Button x:Name="EditProblemButton"
+                                        Content="수정"
                                         Width="58"
                                         Height="26"
                                         Margin="0,0,6,0"
@@ -254,12 +261,14 @@
                                             Height="26"
                                             Margin="0,0,6,0"
                                             Click="RunCodeMenuItem_Click" />
-                                    <Button Content="예제 실행"
+                                    <Button x:Name="RunSampleButton"
+                                            Content="예제 실행"
                                             Width="86"
                                             Height="26"
                                             Margin="0,0,6,0"
                                             Click="RunSampleMenuItem_Click" />
-                                    <Button Content="제출"
+                                    <Button x:Name="SubmitButton"
+                                            Content="제출"
                                             Width="70"
                                             Height="26"
                                             Click="SubmitMenuItem_Click" />

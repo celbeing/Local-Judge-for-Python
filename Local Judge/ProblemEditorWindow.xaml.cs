@@ -5,6 +5,8 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -16,8 +18,15 @@ namespace Local_Judge
         private readonly List<SampleEditorControls> _sampleEditors = new();
         private readonly bool _isNewProblem;
         private List<TestCaseDocument> _testCases = new();
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true
+        };
 
         public ProblemDocument Problem { get; private set; }
+        public string? SavedFilePath { get; private set; }
 
         public ProblemEditorWindow(ProblemDocument? problem = null)
         {
@@ -352,7 +361,7 @@ namespace Local_Judge
             TestCaseSummaryTextBlock.Text = $"채점 테스트 {_testCases.Count}개{sourceText}";
         }
 
-        private void ApplyButton_Click(object sender, RoutedEventArgs e)
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             string id = ProblemIdTextBox.Text.Trim();
             string title = TitleTextBox.Text.Trim();
@@ -423,7 +432,61 @@ namespace Local_Judge
                 TestCases = CloneTestCases(_testCases)
             };
 
+            if (_isNewProblem && !SaveNewProblemWithDialog())
+            {
+                return;
+            }
+
             DialogResult = true;
+        }
+
+        private bool SaveNewProblemWithDialog()
+        {
+            var dialog = new SaveFileDialog
+            {
+                Title = "문제 JSON 저장",
+                Filter = "JSON 문제 파일 (*.json)|*.json|모든 파일 (*.*)|*.*",
+                FileName = CreateDefaultProblemFileName(Problem)
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                return false;
+            }
+
+            try
+            {
+                string json = JsonSerializer.Serialize(Problem, _jsonOptions);
+                File.WriteAllText(dialog.FileName, json);
+                SavedFilePath = dialog.FileName;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"문제 JSON 저장 중 오류가 발생했습니다.\n\n{ex.Message}",
+                    "저장 실패",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return false;
+            }
+        }
+
+        private static string CreateDefaultProblemFileName(ProblemDocument problem)
+        {
+            string baseName = string.IsNullOrWhiteSpace(problem.Id)
+                ? problem.Title
+                : $"{problem.Id}_{problem.Title}";
+
+            baseName = Regex.Replace(baseName, @"[\\/:*?""<>|]+", "_").Trim();
+
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                baseName = "problem";
+            }
+
+            return baseName + ".json";
         }
 
         private List<SampleCaseDocument>? TryCollectSamplesFromForm()

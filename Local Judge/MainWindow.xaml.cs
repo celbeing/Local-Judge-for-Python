@@ -291,6 +291,7 @@ namespace Local_Judge
             SampleOutputTextBox.Text = "예시 출력이 이곳에 표시됩니다.";
             ProgramInputTextBox.Text = string.Empty;
             CurrentProblemStatusTextBlock.Text = "문제 미선택";
+            UpdateProblemCommandState();
         }
 
         private void DisplayProblem(ProblemDocument problem)
@@ -319,6 +320,7 @@ namespace Local_Judge
             ProgramInputTextBox.Text = firstSample?.Input ?? string.Empty;
 
             UpdateCurrentProblemStatus();
+            UpdateProblemCommandState();
         }
 
         private void UpdateCurrentProblemStatus()
@@ -340,6 +342,18 @@ namespace Local_Judge
             CurrentProblemStatusTextBlock.Text = $"현재 문제: {title} | {saveState} | {pathState}";
         }
 
+        private void UpdateProblemCommandState()
+        {
+            bool hasProblem = _currentProblem is not null;
+
+            EditProblemMenuItem.IsEnabled = hasProblem;
+            EditProblemButton.IsEnabled = hasProblem;
+            RunSampleMenuItem.IsEnabled = hasProblem;
+            RunSampleButton.IsEnabled = hasProblem;
+            SubmitMenuItem.IsEnabled = hasProblem;
+            SubmitButton.IsEnabled = hasProblem;
+        }
+
         private void NewProblemMenuItem_Click(object sender, RoutedEventArgs e)
         {
             SetStatus("문제 만드는 중", isWorking: true);
@@ -354,24 +368,14 @@ namespace Local_Judge
             {
                 SetStatus("대기 중");
                 AppendTerminal("[Problem] 새 문제 만들기를 취소했습니다.");
+                UpdateProblemCommandState();
                 return;
             }
 
-            _currentProblem = editor.Problem;
-            _currentProblemFilePath = null;
-            _isProblemDirty = true;
-
-            DisplayProblem(_currentProblem);
-            AppendTerminal($"[Problem] 새 문제를 만들었습니다: {_currentProblem.Title}");
-
-            if (SaveCurrentProblemWithDialogIfNeeded())
-            {
-                SetStatus("새 문제 저장 완료");
-            }
-            else
-            {
-                SetStatus("새 문제 저장 필요", isError: true);
-            }
+            SetStatus("새 문제 저장 완료");
+            AppendTerminal($"[Problem] 새 문제를 저장했습니다: {editor.Problem.Title}");
+            AppendTerminal($"[Problem] 저장 위치: {editor.SavedFilePath ?? "경로 알 수 없음"}");
+            UpdateProblemCommandState();
         }
 
         private void EditProblemMenuItem_Click(object sender, RoutedEventArgs e)
