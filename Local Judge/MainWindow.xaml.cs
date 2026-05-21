@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Documents;
 using System.Windows.Media;
 
 namespace Local_Judge
@@ -25,6 +26,14 @@ namespace Local_Judge
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
         private readonly Brush _workingBrush = new SolidColorBrush(Color.FromRgb(251, 188, 5));
         private readonly Brush _errorBrush = new SolidColorBrush(Color.FromRgb(218, 54, 51));
+        private readonly Brush _terminalSuccessBrush = new SolidColorBrush(Color.FromRgb(63, 185, 80));
+        private readonly Brush _terminalFailBrush = new SolidColorBrush(Color.FromRgb(248, 81, 73));
+        private readonly Brush _terminalWrongAnswerBrush = new SolidColorBrush(Color.FromRgb(210, 153, 34));
+        private readonly Brush _terminalTimeLimitBrush = new SolidColorBrush(Color.FromRgb(163, 113, 247));
+        private readonly Brush _terminalMemoryLimitBrush = new SolidColorBrush(Color.FromRgb(88, 166, 255));
+        private readonly Brush _terminalRuntimeErrorBrush = new SolidColorBrush(Color.FromRgb(255, 123, 114));
+        private readonly Brush _terminalOutputLimitBrush = new SolidColorBrush(Color.FromRgb(240, 136, 62));
+        private static readonly Regex TerminalResultTokenRegex = new(@"\b(PASS|FAIL|AC|WA|TLE|MLE|RE|OLE)\b", RegexOptions.Compiled);
 
         private readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -38,6 +47,7 @@ namespace Local_Judge
         private bool _isProblemDirty;
         private JudgeEnvironmentBenchmarkResult? _benchmarkResult;
         private bool _isBenchmarkRunning;
+        private bool _terminalEndsWithLineBreak = true;
 
         public MainWindow()
         {
@@ -225,12 +235,12 @@ namespace Local_Judge
                 return;
             }
 
-            if (TerminalTextBox.Text.Length > 0 && !TerminalTextBox.Text.EndsWith(Environment.NewLine))
+            if (!_terminalEndsWithLineBreak)
             {
-                TerminalTextBox.AppendText(Environment.NewLine);
+                AppendTerminalText("\n", colorizeResultTokens: false);
             }
 
-            TerminalTextBox.AppendText(message + Environment.NewLine);
+            AppendTerminalText((message ?? string.Empty) + "\n", colorizeResultTokens: true);
             TerminalTextBox.ScrollToEnd();
         }
 
@@ -247,13 +257,110 @@ namespace Local_Judge
                 return;
             }
 
+            AppendTerminalText(text, colorizeResultTokens: false);
+            TerminalTextBox.ScrollToEnd();
+        }
+
+        private void AppendTerminalText(string text, bool colorizeResultTokens)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+
+            Paragraph paragraph = EnsureTerminalParagraph();
             string normalizedText = text
                 .Replace("\r\n", "\n")
-                .Replace("\r", "\n")
-                .Replace("\n", Environment.NewLine);
+                .Replace("\r", "\n");
+            _terminalEndsWithLineBreak = normalizedText.EndsWith('\n');
 
-            TerminalTextBox.AppendText(normalizedText);
-            TerminalTextBox.ScrollToEnd();
+            int startIndex = 0;
+            while (startIndex < normalizedText.Length)
+            {
+                int lineBreakIndex = normalizedText.IndexOf('\n', startIndex);
+                int endIndex = lineBreakIndex >= 0 ? lineBreakIndex : normalizedText.Length;
+                string segment = normalizedText[startIndex..endIndex];
+
+                AppendTerminalRuns(paragraph, segment, colorizeResultTokens);
+
+                if (lineBreakIndex < 0)
+                {
+                    break;
+                }
+
+                paragraph.Inlines.Add(new LineBreak());
+                startIndex = lineBreakIndex + 1;
+            }
+        }
+
+        private Paragraph EnsureTerminalParagraph()
+        {
+            if (TerminalTextBox.Document.Blocks.LastBlock is Paragraph paragraph)
+            {
+                paragraph.Margin = new Thickness(0);
+                return paragraph;
+            }
+
+            paragraph = new Paragraph
+            {
+                Margin = new Thickness(0)
+            };
+            TerminalTextBox.Document.Blocks.Add(paragraph);
+            return paragraph;
+        }
+
+        private void AppendTerminalRuns(Paragraph paragraph, string text, bool colorizeResultTokens)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+
+            if (!colorizeResultTokens)
+            {
+                paragraph.Inlines.Add(new Run(text));
+                return;
+            }
+
+            int currentIndex = 0;
+            foreach (Match match in TerminalResultTokenRegex.Matches(text))
+            {
+                if (match.Index > currentIndex)
+                {
+                    paragraph.Inlines.Add(new Run(text[currentIndex..match.Index]));
+                }
+
+                Brush? tokenBrush = GetTerminalResultBrush(match.Value);
+                var tokenRun = new Run(match.Value);
+                if (tokenBrush is not null)
+                {
+                    tokenRun.Foreground = tokenBrush;
+                    tokenRun.FontWeight = FontWeights.Bold;
+                }
+
+                paragraph.Inlines.Add(tokenRun);
+                currentIndex = match.Index + match.Length;
+            }
+
+            if (currentIndex < text.Length)
+            {
+                paragraph.Inlines.Add(new Run(text[currentIndex..]));
+            }
+        }
+
+        private Brush? GetTerminalResultBrush(string token)
+        {
+            return token switch
+            {
+                "PASS" or "AC" => _terminalSuccessBrush,
+                "FAIL" => _terminalFailBrush,
+                "WA" => _terminalWrongAnswerBrush,
+                "TLE" => _terminalTimeLimitBrush,
+                "MLE" => _terminalMemoryLimitBrush,
+                "RE" => _terminalRuntimeErrorBrush,
+                "OLE" => _terminalOutputLimitBrush,
+                _ => null
+            };
         }
 
         private void SetRunControlsEnabled(bool isRunning)
@@ -1013,29 +1120,29 @@ namespace Local_Judge
                     return;
 
                 case PythonExecutionStatus.TimeLimitExceeded:
-                    AppendTerminal("Result: Time Limit Exceeded");
+                    AppendTerminal("Result: TLE (Time Limit Exceeded)");
                     return;
 
                 case PythonExecutionStatus.MemoryLimitExceeded:
-                    AppendTerminal("Result: Memory Limit Exceeded");
+                    AppendTerminal("Result: MLE (Memory Limit Exceeded)");
                     return;
 
                 case PythonExecutionStatus.OutputLimitExceeded:
-                    AppendTerminal("Result: Output Limit Exceeded");
+                    AppendTerminal("Result: OLE (Output Limit Exceeded)");
                     return;
             }
 
             if (result.ExitCode != 0)
             {
-                AppendTerminal($"Result: Runtime Error (ExitCode: {result.ExitCode})");
+                AppendTerminal($"Result: RE (Runtime Error, ExitCode: {result.ExitCode})");
             }
             else if (!accepted)
             {
-                AppendTerminal("Result: Wrong Answer");
+                AppendTerminal("Result: WA (Wrong Answer)");
             }
             else
             {
-                AppendTerminal("Result: Accepted");
+                AppendTerminal("Result: AC (Accepted)");
             }
         }
 
@@ -1245,8 +1352,9 @@ namespace Local_Judge
 
         private void ClearTerminalMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            TerminalTextBox.Clear();
-            TerminalTextBox.Text = "[System] 터미널을 비웠습니다.";
+            TerminalTextBox.Document.Blocks.Clear();
+            _terminalEndsWithLineBreak = true;
+            AppendTerminal("[System] 터미널을 비웠습니다.");
         }
 
         private void ExitMenuItem_Click(object sender, RoutedEventArgs e)

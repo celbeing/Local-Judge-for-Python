@@ -375,20 +375,24 @@
                                             Click="StopRunButton_Click" />
                                 </DockPanel>
 
-                                <TextBox x:Name="TerminalTextBox"
-                                         Grid.Row="1"
-                                         Text="[System] Local Judge가 시작되었습니다."
-                                         IsReadOnly="True"
-                                         AcceptsReturn="True"
-                                         FontFamily="Consolas"
-                                         FontSize="13"
-                                         Background="{StaticResource TerminalBackgroundBrush}"
-                                         Foreground="{StaticResource TerminalForegroundBrush}"
-                                         BorderThickness="0"
-                                         Padding="12"
-                                         VerticalScrollBarVisibility="Auto"
-                                         HorizontalScrollBarVisibility="Auto"
-                                         TextWrapping="NoWrap" />
+                                <RichTextBox x:Name="TerminalTextBox"
+                                             Grid.Row="1"
+                                             IsReadOnly="True"
+                                             FontFamily="Consolas"
+                                             FontSize="13"
+                                             Background="{StaticResource TerminalBackgroundBrush}"
+                                             Foreground="{StaticResource TerminalForegroundBrush}"
+                                             BorderThickness="0"
+                                             Padding="12"
+                                             VerticalScrollBarVisibility="Auto"
+                                             HorizontalScrollBarVisibility="Auto">
+                                    <FlowDocument PagePadding="0">
+                                        <Paragraph Margin="0">
+                                            <Run Text="[System] Local Judge가 시작되었습니다." />
+                                            <LineBreak />
+                                        </Paragraph>
+                                    </FlowDocument>
+                                </RichTextBox>
                             </Grid>
                         </TabItem>
                     </TabControl>
