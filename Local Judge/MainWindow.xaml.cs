@@ -1,6 +1,7 @@
 ﻿using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -21,6 +22,7 @@ namespace Local_Judge
 
         private readonly PythonRunner _pythonRunner = new();
         private readonly JudgeEnvironmentBenchmark _environmentBenchmark;
+        private readonly SubmissionHistoryStore _submissionHistoryStore;
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
 
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
@@ -52,6 +54,7 @@ namespace Local_Judge
         public MainWindow()
         {
             _environmentBenchmark = new JudgeEnvironmentBenchmark(_pythonRunner);
+            _submissionHistoryStore = new SubmissionHistoryStore(_jsonOptions);
 
             InitializeComponent();
 
@@ -1113,37 +1116,52 @@ namespace Local_Judge
 
         private void AppendExecutionResult(PythonExecutionResult result, bool accepted)
         {
-            switch (result.Status)
+            string verdict = GetSubmissionVerdict(result, accepted);
+
+            switch (verdict)
             {
-                case PythonExecutionStatus.Stopped:
+                case "Stopped":
                     AppendTerminal("Result: Stopped");
                     return;
 
-                case PythonExecutionStatus.TimeLimitExceeded:
+                case "TLE":
                     AppendTerminal("Result: TLE (Time Limit Exceeded)");
                     return;
 
-                case PythonExecutionStatus.MemoryLimitExceeded:
+                case "MLE":
                     AppendTerminal("Result: MLE (Memory Limit Exceeded)");
                     return;
 
-                case PythonExecutionStatus.OutputLimitExceeded:
+                case "OLE":
                     AppendTerminal("Result: OLE (Output Limit Exceeded)");
                     return;
-            }
 
-            if (result.ExitCode != 0)
-            {
-                AppendTerminal($"Result: RE (Runtime Error, ExitCode: {result.ExitCode})");
+                case "RE":
+                    AppendTerminal($"Result: RE (Runtime Error, ExitCode: {result.ExitCode})");
+                    return;
+
+                case "WA":
+                    AppendTerminal("Result: WA (Wrong Answer)");
+                    return;
+
+                default:
+                    AppendTerminal("Result: AC (Accepted)");
+                    return;
             }
-            else if (!accepted)
+        }
+
+        private static string GetSubmissionVerdict(PythonExecutionResult result, bool accepted)
+        {
+            return result.Status switch
             {
-                AppendTerminal("Result: WA (Wrong Answer)");
-            }
-            else
-            {
-                AppendTerminal("Result: AC (Accepted)");
-            }
+                PythonExecutionStatus.Stopped => "Stopped",
+                PythonExecutionStatus.TimeLimitExceeded => "TLE",
+                PythonExecutionStatus.MemoryLimitExceeded => "MLE",
+                PythonExecutionStatus.OutputLimitExceeded => "OLE",
+                _ when result.ExitCode != 0 => "RE",
+                _ when !accepted => "WA",
+                _ => "AC"
+            };
         }
 
         private static bool ShouldStopBatch(PythonExecutionResult result)
@@ -1152,6 +1170,121 @@ namespace Local_Judge
                 or PythonExecutionStatus.TimeLimitExceeded
                 or PythonExecutionStatus.MemoryLimitExceeded
                 or PythonExecutionStatus.OutputLimitExceeded;
+        }
+
+        private static string DetermineSubmissionVerdict(
+            IReadOnlyList<SubmissionTestResultDocument> testResults,
+            bool judgingError,
+            int passedCount,
+            int totalCount)
+        {
+            if (judgingError)
+            {
+                return "JudgingError";
+            }
+
+            if (passedCount == totalCount && testResults.Count == totalCount)
+            {
+                return "AC";
+            }
+
+            SubmissionTestResultDocument? firstFailedResult = testResults
+                .FirstOrDefault(result => !string.Equals(result.Verdict, "AC", StringComparison.Ordinal));
+
+            return firstFailedResult?.Verdict ?? "JudgingError";
+        }
+
+        private static SubmissionTestResultDocument CreateSubmissionTestResult(
+            int testNumber,
+            PythonExecutionResult result,
+            string verdict)
+        {
+            string standardOutput = SubmissionHistoryStore.TruncateCapturedOutput(
+                result.StandardOutput,
+                out bool standardOutputTruncated);
+            string standardError = SubmissionHistoryStore.TruncateCapturedOutput(
+                result.StandardError,
+                out bool standardErrorTruncated);
+
+            return new SubmissionTestResultDocument
+            {
+                TestNumber = testNumber,
+                Verdict = verdict,
+                ExitCode = result.ExitCode,
+                ElapsedMs = result.Elapsed.TotalMilliseconds,
+                PeakMemoryBytes = result.PeakWorkingSetBytes,
+                StandardOutput = standardOutput,
+                StandardOutputTruncated = standardOutputTruncated,
+                StandardError = standardError,
+                StandardErrorTruncated = standardErrorTruncated
+            };
+        }
+
+        private SubmissionAttemptDocument CreateSubmissionAttempt(
+            ProblemDocument problem,
+            string? problemFilePath,
+            string code,
+            string verdict,
+            int passedCount,
+            int totalCount,
+            PythonExecutionLimits limits,
+            List<SubmissionTestResultDocument> testResults)
+        {
+            DateTimeOffset submittedAt = DateTimeOffset.Now;
+            JudgeEnvironmentBenchmarkResult benchmark = _benchmarkResult
+                ?? JudgeEnvironmentBenchmarkResult.DefaultFallback;
+
+            return new SubmissionAttemptDocument
+            {
+                AttemptId = SubmissionHistoryStore.CreateAttemptId(submittedAt),
+                SubmittedAt = submittedAt,
+                Problem = new SubmissionProblemDocument
+                {
+                    Id = problem.Id,
+                    Title = problem.Title,
+                    AuthorName = problem.AuthorName,
+                    Source = problem.Source
+                },
+                ProblemFilePath = problemFilePath ?? string.Empty,
+                Verdict = verdict,
+                PassedCount = passedCount,
+                TotalCount = totalCount,
+                Code = code,
+                Limits = new SubmissionLimitDocument
+                {
+                    IdealTimeLimitMs = problem.TimeLimitMs,
+                    IdealMemoryLimitMb = problem.MemoryLimitMb,
+                    AppliedTimeLimitMs = limits.TimeLimit is null
+                        ? 0
+                        : (int)Math.Ceiling(limits.TimeLimit.Value.TotalMilliseconds),
+                    AppliedMemoryLimitMb = limits.MemoryLimitBytes is null
+                        ? 0
+                        : (int)(limits.MemoryLimitBytes.Value / 1024 / 1024),
+                    OutputLimitBytes = limits.OutputLimitBytes ?? 0
+                },
+                Benchmark = new SubmissionBenchmarkDocument
+                {
+                    IsFallback = benchmark.IsFallback,
+                    TimeMultiplier = benchmark.TimeMultiplier,
+                    ExtraTimeMs = benchmark.ExtraTimeMs,
+                    ExtraMemoryMb = benchmark.ExtraMemoryMb
+                },
+                TestResults = testResults
+            };
+        }
+
+        private void SaveSubmissionAttempt(SubmissionAttemptDocument attempt)
+        {
+            try
+            {
+                string filePath = _submissionHistoryStore.SaveAttempt(attempt);
+                AppendTerminal($"[Submit] 제출 이력을 저장했습니다: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Submit] 제출 이력 저장 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
         }
 
         private void StopRunButton_Click(object sender, RoutedEventArgs e)
@@ -1229,7 +1362,10 @@ namespace Local_Judge
                 return;
             }
 
-            if (_currentProblem.TestCases.Count == 0)
+            ProblemDocument problem = _currentProblem;
+            string? problemFilePath = _currentProblemFilePath;
+
+            if (problem.TestCases.Count == 0)
             {
                 SetStatus("채점 테스트가 없습니다", isError: true);
                 AppendTerminal("[Submit] 현재 문제에 등록된 채점 테스트케이스가 없습니다.");
@@ -1237,7 +1373,10 @@ namespace Local_Judge
             }
 
             int passedCount = 0;
-            int totalCount = _currentProblem.TestCases.Count;
+            int totalCount = problem.TestCases.Count;
+            var testResults = new List<SubmissionTestResultDocument>();
+            bool judgingError = false;
+            PythonExecutionLimits submissionLimits = CreateExecutionLimits(problem);
 
             SetStatus("채점 중", isWorking: true);
             AppendTerminal("----------------------------------------");
@@ -1245,7 +1384,7 @@ namespace Local_Judge
 
             for (int i = 0; i < totalCount; i++)
             {
-                TestCaseDocument testCase = _currentProblem.TestCases[i];
+                TestCaseDocument testCase = problem.TestCases[i];
                 int testCaseNumber = i + 1;
 
                 PythonExecutionResult? result = await RunPythonCodeAsync(
@@ -1253,15 +1392,17 @@ namespace Local_Judge
                     runTitle: $"테스트 {testCaseNumber} 채점",
                     inputText: testCase.Input,
                     showStartBanner: false,
-                    limits: CreateExecutionLimits(_currentProblem));
+                    limits: submissionLimits);
 
                 if (result is null)
                 {
+                    judgingError = true;
                     break;
                 }
 
                 bool passed = result.Succeeded
                               && CompareOutput(result.StandardOutput, testCase.Output);
+                string testVerdict = GetSubmissionVerdict(result, passed);
 
                 if (passed)
                 {
@@ -1271,6 +1412,7 @@ namespace Local_Judge
                 AppendTerminal($"[Test {testCaseNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
 
                 AppendExecutionResult(result, passed);
+                testResults.Add(CreateSubmissionTestResult(testCaseNumber, result, testVerdict));
 
                 if (ShouldStopBatch(result))
                 {
@@ -1289,6 +1431,17 @@ namespace Local_Judge
             {
                 SetStatus($"채점 완료: {passedCount}/{totalCount} 통과", isError: true);
             }
+
+            string finalVerdict = DetermineSubmissionVerdict(testResults, judgingError, passedCount, totalCount);
+            SaveSubmissionAttempt(CreateSubmissionAttempt(
+                problem,
+                problemFilePath,
+                code,
+                finalVerdict,
+                passedCount,
+                totalCount,
+                submissionLimits,
+                testResults));
         }
 
         private async void PythonPathMenuItem_Click(object sender, RoutedEventArgs e)
