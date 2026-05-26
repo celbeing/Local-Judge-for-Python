@@ -68,6 +68,7 @@ namespace Local_Judge
 
             builder.AppendLine($"AttemptId: {attempt.AttemptId}");
             builder.AppendLine($"SubmittedAt: {attempt.SubmittedAt.LocalDateTime:yyyy-MM-dd HH:mm:ss.fff}");
+            builder.AppendLine($"Language: {GetLanguage(attempt)}");
             builder.AppendLine($"Verdict: {attempt.Verdict}");
             builder.AppendLine($"Passed: {attempt.PassedCount}/{attempt.TotalCount}");
             builder.AppendLine($"HistoryFile: {row.FilePath}");
@@ -112,6 +113,11 @@ namespace Local_Judge
             return $"{bytes / 1024d / 1024d:0.#} MB";
         }
 
+        private static string GetLanguage(SubmissionAttemptDocument attempt)
+        {
+            return string.IsNullOrWhiteSpace(attempt.Language) ? "Python" : attempt.Language;
+        }
+
         private static string PreviewText(string text, bool truncated)
         {
             if (string.IsNullOrEmpty(text))
@@ -143,6 +149,7 @@ namespace Local_Judge
             public string FilePath { get; }
             public SubmissionAttemptDocument Attempt { get; }
             public string SubmittedAtText => Attempt.SubmittedAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm:ss");
+            public string Language => GetLanguage(Attempt);
             public string Verdict => Attempt.Verdict;
             public string PassedText => $"{Attempt.PassedCount}/{Attempt.TotalCount}";
             public string MaxElapsedText => Attempt.TestResults.Count == 0

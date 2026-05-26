@@ -49,6 +49,7 @@
                       SelectionChanged="AttemptsDataGrid_SelectionChanged">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="제출 시각" Binding="{Binding SubmittedAtText}" Width="170" />
+                    <DataGridTextColumn Header="언어" Binding="{Binding Language}" Width="80" />
                     <DataGridTextColumn Header="결과" Binding="{Binding Verdict}" Width="80" />
                     <DataGridTextColumn Header="통과" Binding="{Binding PassedText}" Width="90" />
                     <DataGridTextColumn Header="최대 시간" Binding="{Binding MaxElapsedText}" Width="100" />

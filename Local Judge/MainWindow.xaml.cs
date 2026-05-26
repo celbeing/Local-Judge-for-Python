@@ -24,6 +24,7 @@ namespace Local_Judge
         private readonly JudgeEnvironmentBenchmark _environmentBenchmark;
         private readonly SubmissionHistoryStore _submissionHistoryStore;
         private readonly SubmissionHistoryExporter _submissionHistoryExporter;
+        private readonly SubmissionHistoryImportReader _submissionHistoryImportReader;
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
 
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
@@ -57,6 +58,7 @@ namespace Local_Judge
             _environmentBenchmark = new JudgeEnvironmentBenchmark(_pythonRunner);
             _submissionHistoryStore = new SubmissionHistoryStore(_jsonOptions);
             _submissionHistoryExporter = new SubmissionHistoryExporter(_submissionHistoryStore, _jsonOptions);
+            _submissionHistoryImportReader = new SubmissionHistoryImportReader(_jsonOptions);
 
             InitializeComponent();
 
@@ -1263,6 +1265,7 @@ namespace Local_Judge
                 Verdict = verdict,
                 PassedCount = passedCount,
                 TotalCount = totalCount,
+                Language = "Python",
                 Code = code,
                 Limits = new SubmissionLimitDocument
                 {
@@ -1563,6 +1566,41 @@ namespace Local_Judge
             {
                 AppendTerminal("[Submit] 제출 이력 내보내기 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
+            }
+        }
+
+        private void InspectSubmissionHistoryFileMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "제출 이력 파일 확인",
+                Filter = "ZIP 제출 이력 파일 (*.zip)|*.zip|모든 파일 (*.*)|*.*"
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                return;
+            }
+
+            try
+            {
+                SubmissionHistoryInspectionDocument document = _submissionHistoryImportReader.ReadZip(dialog.FileName);
+                var window = new SubmissionHistoryFileWindow(document)
+                {
+                    Owner = this
+                };
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Submit] 제출 이력 파일을 확인하는 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+                MessageBox.Show(
+                    "제출 이력 파일을 읽을 수 없습니다.\n\n" + ex.Message,
+                    "제출 이력 파일 확인",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 

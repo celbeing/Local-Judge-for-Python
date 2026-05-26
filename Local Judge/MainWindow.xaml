@@ -91,6 +91,8 @@
                 <MenuItem x:Name="ExportSubmissionHistoryMenuItem"
                           Header="제출 이력 내보내기..."
                           Click="ExportSubmissionHistoryMenuItem_Click" />
+                <MenuItem Header="제출 이력 파일 확인하기..."
+                          Click="InspectSubmissionHistoryFileMenuItem_Click" />
             </MenuItem>
 
             <MenuItem Header="_도구">

@@ -45,6 +45,10 @@ namespace Local_Judge
                 string problemKey = SubmissionHistoryStore.GetProblemKey(problem.Problem);
                 IReadOnlyList<SubmissionAttemptHistoryItem> attempts = _historyStore.LoadAttemptsForProblem(problem.Problem);
                 var files = new List<string>();
+                SubmissionAttemptDocument? firstAttempt = attempts
+                    .OrderBy(attempt => attempt.Attempt.SubmittedAt)
+                    .Select(attempt => attempt.Attempt)
+                    .FirstOrDefault();
 
                 foreach (SubmissionAttemptHistoryItem attempt in attempts)
                 {
@@ -60,6 +64,9 @@ namespace Local_Judge
                     DisplayName = problem.DisplayName,
                     Problem = problem.Problem,
                     ProblemFilePath = problem.ProblemFilePath,
+                    IdealTimeLimitMs = firstAttempt?.Limits.IdealTimeLimitMs ?? 0,
+                    IdealMemoryLimitMb = firstAttempt?.Limits.IdealMemoryLimitMb ?? 0,
+                    Score = problem.Score,
                     AttemptCount = attempts.Count,
                     Files = files
                 });
@@ -71,6 +78,7 @@ namespace Local_Judge
                 ExportedAt = DateTimeOffset.Now,
                 ExportKind = request.ExportKind,
                 ExportName = request.ExportName,
+                ContestSettings = request.ContestSettings,
                 ProblemCount = manifestProblems.Count,
                 AttemptCount = totalAttemptCount,
                 Problems = manifestProblems
@@ -109,6 +117,7 @@ namespace Local_Judge
         public string DestinationFilePath { get; set; } = string.Empty;
         public string ExportKind { get; set; } = "Problem";
         public string ExportName { get; set; } = string.Empty;
+        public SubmissionHistoryContestSettings? ContestSettings { get; set; }
         public List<SubmissionHistoryExportProblem> Problems { get; set; } = new();
     }
 
@@ -117,6 +126,7 @@ namespace Local_Judge
         public string DisplayName { get; set; } = string.Empty;
         public SubmissionProblemDocument Problem { get; set; } = new();
         public string ProblemFilePath { get; set; } = string.Empty;
+        public int Score { get; set; } = 1;
     }
 
     public sealed record SubmissionHistoryExportResult(
@@ -130,6 +140,7 @@ namespace Local_Judge
         public DateTimeOffset ExportedAt { get; set; }
         public string ExportKind { get; set; } = string.Empty;
         public string ExportName { get; set; } = string.Empty;
+        public SubmissionHistoryContestSettings? ContestSettings { get; set; }
         public int ProblemCount { get; set; }
         public int AttemptCount { get; set; }
         public List<SubmissionHistoryExportProblemManifest> Problems { get; set; } = new();
@@ -141,7 +152,18 @@ namespace Local_Judge
         public string DisplayName { get; set; } = string.Empty;
         public SubmissionProblemDocument Problem { get; set; } = new();
         public string ProblemFilePath { get; set; } = string.Empty;
+        public int IdealTimeLimitMs { get; set; }
+        public int IdealMemoryLimitMb { get; set; }
+        public int Score { get; set; } = 1;
         public int AttemptCount { get; set; }
         public List<string> Files { get; set; } = new();
+    }
+
+    public sealed class SubmissionHistoryContestSettings
+    {
+        public string PenaltyMode { get; set; } = "ICPC";
+        public int WrongSubmissionPenaltyMinutes { get; set; } = 20;
+        public bool CountWrongBeforeAcceptedOnly { get; set; } = true;
+        public DateTimeOffset? ContestStartedAt { get; set; }
     }
 }

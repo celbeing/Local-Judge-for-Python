@@ -179,6 +179,7 @@ namespace Local_Judge
         public string Verdict { get; set; } = "JudgingError";
         public int PassedCount { get; set; }
         public int TotalCount { get; set; }
+        public string Language { get; set; } = "Python";
         public string Code { get; set; } = string.Empty;
         public SubmissionLimitDocument Limits { get; set; } = new();
         public SubmissionBenchmarkDocument Benchmark { get; set; } = new();
