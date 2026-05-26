@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using Microsoft.Web.WebView2.Core;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,14 +11,25 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Local_Judge
 {
     public partial class ProblemEditorWindow : Window
     {
+        private const string ProblemViewerHostName = "localjudge.problem-viewer";
+        private const string ProblemAssetsHostName = "localjudge.problem-assets";
+
         private readonly List<SampleEditorControls> _sampleEditors = new();
+        private readonly List<ProblemAssetDocument> _assets = new();
         private readonly bool _isNewProblem;
+        private readonly string? _sourceProblemFilePath;
+        private readonly string _assetWorkspacePath;
+        private readonly DispatcherTimer _previewRefreshTimer;
         private List<TestCaseDocument> _testCases = new();
+        private TextBox? _lastStatementTextBox;
+        private bool _isPreviewReady;
+
         private readonly JsonSerializerOptions _jsonOptions = new()
         {
             WriteIndented = true,
@@ -27,24 +39,51 @@ namespace Local_Judge
 
         public ProblemDocument Problem { get; private set; }
         public string? SavedFilePath { get; private set; }
+        public string AssetWorkspacePath => _assetWorkspacePath;
 
-        public ProblemEditorWindow(ProblemDocument? problem = null)
+        public ProblemEditorWindow(ProblemDocument? problem = null, string? problemFilePath = null)
         {
+            _isNewProblem = problem is null;
+            _sourceProblemFilePath = problemFilePath;
+            _assetWorkspacePath = Path.Combine(
+                Path.GetTempPath(),
+                "LocalJudge",
+                "ProblemEditorAssets",
+                Guid.NewGuid().ToString("N"));
+            _previewRefreshTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(300)
+            };
+            _previewRefreshTimer.Tick += (_, _) =>
+            {
+                _previewRefreshTimer.Stop();
+                RefreshPreview();
+            };
+
             InitializeComponent();
 
-            _isNewProblem = problem is null;
+            Directory.CreateDirectory(_assetWorkspacePath);
+
             Problem = CloneProblem(problem ?? CreateDefaultProblem());
+            _assets.AddRange(ProblemAssetUtilities.CloneAssets(Problem.Assets));
+            CopyExistingAssetsToWorkspace();
+
             LoadProblemToForm(Problem);
             ConfigureAttributionFields();
+            WirePreviewRefreshEvents();
+
+            Loaded += async (_, _) => await InitializePreviewAsync();
         }
 
         private static ProblemDocument CreateDefaultProblem()
         {
             return new ProblemDocument
             {
-                Version = 3,
+                Version = ProblemAssetUtilities.CurrentProblemVersion,
+                StatementFormat = ProblemStatementFormats.MarkdownLatex,
                 TimeLimitMs = 2000,
                 MemoryLimitMb = 128,
+                Assets = new(),
                 Samples = new(),
                 TestCases = new()
             };
@@ -52,21 +91,98 @@ namespace Local_Judge
 
         private static ProblemDocument CloneProblem(ProblemDocument source)
         {
+            bool defaultToMarkdownLatex = source.Version >= ProblemAssetUtilities.CurrentProblemVersion;
+            string statementFormat = ProblemAssetUtilities.NormalizeStatementFormat(
+                source.StatementFormat,
+                defaultToMarkdownLatex);
+
             return new ProblemDocument
             {
                 Version = source.Version <= 0 ? 3 : Math.Max(source.Version, 3),
-                Id = source.Id,
-                Title = source.Title,
+                Id = source.Id ?? string.Empty,
+                Title = source.Title ?? string.Empty,
                 AuthorName = source.AuthorName ?? string.Empty,
                 Source = source.Source ?? string.Empty,
                 TimeLimitMs = source.TimeLimitMs <= 0 ? 2000 : source.TimeLimitMs,
                 MemoryLimitMb = source.MemoryLimitMb <= 0 ? 128 : source.MemoryLimitMb,
-                Description = source.Description,
-                InputFormat = source.InputFormat,
-                OutputFormat = source.OutputFormat,
+                StatementFormat = statementFormat,
+                Description = source.Description ?? string.Empty,
+                InputFormat = source.InputFormat ?? string.Empty,
+                OutputFormat = source.OutputFormat ?? string.Empty,
+                Assets = ProblemAssetUtilities.CloneAssets(source.Assets),
                 Samples = CloneSamples(source.Samples),
                 TestCases = CloneTestCases(source.TestCases)
             };
+        }
+
+        private void CopyExistingAssetsToWorkspace()
+        {
+            if (string.IsNullOrWhiteSpace(_sourceProblemFilePath))
+            {
+                return;
+            }
+
+            string sourceAssetFolderPath = ProblemAssetUtilities.GetAssetFolderPath(_sourceProblemFilePath);
+            ProblemAssetUtilities.CopyAssetFolder(sourceAssetFolderPath, _assetWorkspacePath);
+        }
+
+        private async System.Threading.Tasks.Task InitializePreviewAsync()
+        {
+            try
+            {
+                await ProblemPreviewWebView.EnsureCoreWebView2Async();
+
+                string viewerFolderPath = Path.Combine(AppContext.BaseDirectory, "ProblemViewer");
+                if (!Directory.Exists(viewerFolderPath))
+                {
+                    MessageBox.Show(
+                        $"문제 미리보기 리소스를 찾을 수 없습니다.\n\n{viewerFolderPath}",
+                        "미리보기 초기화 실패",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                ProblemPreviewWebView.CoreWebView2.WebMessageReceived += ProblemPreviewWebView_WebMessageReceived;
+                ProblemPreviewWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    ProblemViewerHostName,
+                    viewerFolderPath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+                ProblemPreviewWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    ProblemAssetsHostName,
+                    _assetWorkspacePath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+
+                ProblemPreviewWebView.Source = new Uri($"https://{ProblemViewerHostName}/index.html");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"문제 미리보기 초기화 중 오류가 발생했습니다.\n\n{ex.Message}",
+                    "미리보기 초기화 실패",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        private void ProblemPreviewWebView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(e.WebMessageAsJson);
+                JsonElement root = document.RootElement;
+
+                if (root.TryGetProperty("type", out JsonElement typeElement)
+                    && string.Equals(typeElement.GetString(), "viewerReady", StringComparison.Ordinal))
+                {
+                    _isPreviewReady = true;
+                    RefreshPreview();
+                }
+            }
+            catch
+            {
+                // Preview messages are non-critical; leave the editor usable.
+            }
         }
 
         private void LoadProblemToForm(ProblemDocument problem)
@@ -80,6 +196,7 @@ namespace Local_Judge
             DescriptionTextBox.Text = problem.Description;
             InputDescriptionTextBox.Text = problem.InputFormat;
             OutputDescriptionTextBox.Text = problem.OutputFormat;
+            _lastStatementTextBox = DescriptionTextBox;
 
             _sampleEditors.Clear();
             SamplesPanel.Children.Clear();
@@ -119,9 +236,98 @@ namespace Local_Judge
             }
         }
 
+        private void WirePreviewRefreshEvents()
+        {
+            TextBox[] textBoxes =
+            {
+                ProblemIdTextBox,
+                TitleTextBox,
+                AuthorNameTextBox,
+                SourceTextBox,
+                TimeLimitTextBox,
+                MemoryLimitTextBox,
+                DescriptionTextBox,
+                InputDescriptionTextBox,
+                OutputDescriptionTextBox
+            };
+
+            foreach (TextBox textBox in textBoxes)
+            {
+                textBox.TextChanged += (_, _) => RequestPreviewRefresh();
+            }
+
+            DescriptionTextBox.GotKeyboardFocus += (_, _) => _lastStatementTextBox = DescriptionTextBox;
+            InputDescriptionTextBox.GotKeyboardFocus += (_, _) => _lastStatementTextBox = InputDescriptionTextBox;
+            OutputDescriptionTextBox.GotKeyboardFocus += (_, _) => _lastStatementTextBox = OutputDescriptionTextBox;
+        }
+
+        private void RequestPreviewRefresh()
+        {
+            if (!_isPreviewReady)
+            {
+                return;
+            }
+
+            _previewRefreshTimer.Stop();
+            _previewRefreshTimer.Start();
+        }
+
+        private void RefreshPreview()
+        {
+            if (!_isPreviewReady || ProblemPreviewWebView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            string json = JsonSerializer.Serialize(new
+            {
+                type = "renderProblem",
+                assetBaseUrl = $"https://{ProblemAssetsHostName}/",
+                problem = BuildPreviewPayload()
+            }, _jsonOptions);
+
+            ProblemPreviewWebView.CoreWebView2.PostWebMessageAsJson(json);
+        }
+
+        private object BuildPreviewPayload()
+        {
+            _ = int.TryParse(TimeLimitTextBox.Text.Trim(), out int timeLimitMs);
+            _ = int.TryParse(MemoryLimitTextBox.Text.Trim(), out int memoryLimitMb);
+
+            return new
+            {
+                emptyState = false,
+                id = ProblemIdTextBox.Text.Trim(),
+                title = string.IsNullOrWhiteSpace(TitleTextBox.Text) ? "제목 없는 문제" : TitleTextBox.Text.Trim(),
+                authorName = _isNewProblem ? AuthorNameTextBox.Text.Trim() : Problem.AuthorName,
+                source = _isNewProblem ? SourceTextBox.Text.Trim() : Problem.Source,
+                timeLimitMs,
+                memoryLimitMb,
+                statementFormat = ProblemStatementFormats.MarkdownLatex,
+                description = DescriptionTextBox.Text,
+                inputFormat = InputDescriptionTextBox.Text,
+                outputFormat = OutputDescriptionTextBox.Text,
+                samples = CollectSamplesForPreview(),
+                testCaseCount = _testCases.Count
+            };
+        }
+
+        private List<SampleCaseDocument> CollectSamplesForPreview()
+        {
+            return _sampleEditors
+                .Select(editor => new SampleCaseDocument
+                {
+                    Input = editor.InputTextBox.Text,
+                    Output = editor.OutputTextBox.Text
+                })
+                .Where(sample => !string.IsNullOrWhiteSpace(sample.Input) || !string.IsNullOrWhiteSpace(sample.Output))
+                .ToList();
+        }
+
         private void AddSampleButton_Click(object sender, RoutedEventArgs e)
         {
             AddSampleEditor(new SampleCaseDocument());
+            RequestPreviewRefresh();
         }
 
         private void AddSampleEditor(SampleCaseDocument sample)
@@ -161,6 +367,9 @@ namespace Local_Judge
             };
 
             TextBox outputTextBox = CreateMultilineEditor(sample.Output);
+
+            inputTextBox.TextChanged += (_, _) => RequestPreviewRefresh();
+            outputTextBox.TextChanged += (_, _) => RequestPreviewRefresh();
 
             container.Children.Add(inputHeader);
             container.Children.Add(inputTextBox);
@@ -205,6 +414,7 @@ namespace Local_Judge
             SamplesPanel.Children.Remove(editor.Container);
             _sampleEditors.RemoveAt(index);
             RefreshSampleEditorLabels();
+            RequestPreviewRefresh();
         }
 
         private void RefreshSampleEditorLabels()
@@ -218,6 +428,156 @@ namespace Local_Judge
                 editor.OutputLabel.Text = $"예제 출력 {sampleNumber}";
                 editor.DeleteButton.Visibility = i == 0 ? Visibility.Collapsed : Visibility.Visible;
             }
+        }
+
+        private void InsertImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            TextBox targetTextBox = ResolveImageInsertTarget(sender);
+
+            var dialog = new OpenFileDialog
+            {
+                Title = "문항 이미지 삽입",
+                Filter = "이미지 파일 (*.png;*.jpg;*.jpeg;*.gif;*.webp)|*.png;*.jpg;*.jpeg;*.gif;*.webp|모든 파일 (*.*)|*.*"
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                return;
+            }
+
+            if (!ProblemAssetUtilities.IsSupportedImageFile(dialog.FileName))
+            {
+                MessageBox.Show(
+                    "지원하지 않는 이미지 형식입니다. png, jpg, jpeg, gif, webp 파일을 선택하세요.",
+                    "이미지 형식 확인",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(_assetWorkspacePath);
+                HashSet<string> reservedNames = _assets
+                    .Select(asset => asset.FileName)
+                    .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                foreach (string filePath in Directory.EnumerateFiles(_assetWorkspacePath))
+                {
+                    reservedNames.Add(Path.GetFileName(filePath));
+                }
+
+                string fileName = ProblemAssetUtilities.CreateSafeAssetFileName(dialog.FileName, reservedNames);
+                string targetFilePath = Path.Combine(_assetWorkspacePath, fileName);
+                File.Copy(dialog.FileName, targetFilePath, overwrite: false);
+
+                string relativePath = ProblemAssetUtilities.ToMarkdownAssetPath(fileName);
+                _assets.Add(new ProblemAssetDocument
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    FileName = fileName,
+                    RelativePath = relativePath,
+                    ContentType = ProblemAssetUtilities.GetContentType(fileName)
+                });
+
+                string altText = Path.GetFileNameWithoutExtension(fileName);
+                InsertTextAtCaret(targetTextBox, $"{Environment.NewLine}![{altText}]({relativePath}){Environment.NewLine}");
+                RequestPreviewRefresh();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"이미지 삽입 중 오류가 발생했습니다.\n\n{ex.Message}",
+                    "이미지 삽입 실패",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private TextBox ResolveImageInsertTarget(object sender)
+        {
+            if (sender is Button button && button.Tag is string tag)
+            {
+                return tag switch
+                {
+                    "input" => InputDescriptionTextBox,
+                    "output" => OutputDescriptionTextBox,
+                    _ => DescriptionTextBox
+                };
+            }
+
+            return _lastStatementTextBox ?? DescriptionTextBox;
+        }
+
+        private static void InsertTextAtCaret(TextBox textBox, string text)
+        {
+            int start = textBox.SelectionStart;
+            string currentText = textBox.Text;
+            textBox.Text = currentText.Remove(start, textBox.SelectionLength).Insert(start, text);
+            textBox.SelectionStart = start + text.Length;
+            textBox.SelectionLength = 0;
+            textBox.Focus();
+        }
+
+        private void CleanupUnusedAssetsButton_Click(object sender, RoutedEventArgs e)
+        {
+            HashSet<string> usedAssetPaths = CollectReferencedAssetPaths();
+            int removedCount = 0;
+
+            for (int i = _assets.Count - 1; i >= 0; i--)
+            {
+                ProblemAssetDocument asset = _assets[i];
+                if (!usedAssetPaths.Contains(asset.RelativePath))
+                {
+                    _assets.RemoveAt(i);
+                    removedCount++;
+                }
+            }
+
+            foreach (string filePath in Directory.EnumerateFiles(_assetWorkspacePath))
+            {
+                string relativePath = ProblemAssetUtilities.ToMarkdownAssetPath(Path.GetFileName(filePath));
+                if (!usedAssetPaths.Contains(relativePath))
+                {
+                    try
+                    {
+                        File.Delete(filePath);
+                        removedCount++;
+                    }
+                    catch
+                    {
+                        // A locked temp image should not block editing.
+                    }
+                }
+            }
+
+            MessageBox.Show(
+                removedCount == 0
+                    ? "정리할 이미지가 없습니다."
+                    : $"사용하지 않는 이미지 {removedCount}개를 정리했습니다.",
+                "이미지 정리",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            RequestPreviewRefresh();
+        }
+
+        private HashSet<string> CollectReferencedAssetPaths()
+        {
+            var references = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string text = string.Join(
+                Environment.NewLine,
+                DescriptionTextBox.Text,
+                InputDescriptionTextBox.Text,
+                OutputDescriptionTextBox.Text);
+
+            foreach (Match match in Regex.Matches(text, @"!\[[^\]]*\]\((assets/[^)\s]+)(?:\s+""[^""]*"")?\)", RegexOptions.IgnoreCase))
+            {
+                references.Add(match.Groups[1].Value.Replace('\\', '/'));
+            }
+
+            return references;
         }
 
         private void LoadTestCasesZipButton_Click(object sender, RoutedEventArgs e)
@@ -238,6 +598,7 @@ namespace Local_Judge
             {
                 _testCases = LoadTestCasesFromZip(dialog.FileName);
                 UpdateTestCaseSummary(Path.GetFileName(dialog.FileName));
+                RequestPreviewRefresh();
 
                 MessageBox.Show(
                     $"채점 테스트 {_testCases.Count}개를 등록했습니다.",
@@ -418,16 +779,18 @@ namespace Local_Judge
 
             Problem = new ProblemDocument
             {
-                Version = 3,
+                Version = ProblemAssetUtilities.CurrentProblemVersion,
                 Id = id,
                 Title = title,
                 AuthorName = authorName,
                 Source = source,
                 TimeLimitMs = timeLimitMs,
                 MemoryLimitMb = memoryLimitMb,
+                StatementFormat = ProblemStatementFormats.MarkdownLatex,
                 Description = DescriptionTextBox.Text,
                 InputFormat = InputDescriptionTextBox.Text,
                 OutputFormat = OutputDescriptionTextBox.Text,
+                Assets = ProblemAssetUtilities.CloneAssets(_assets),
                 Samples = samples,
                 TestCases = CloneTestCases(_testCases)
             };
@@ -459,6 +822,13 @@ namespace Local_Judge
             {
                 string json = JsonSerializer.Serialize(Problem, _jsonOptions);
                 File.WriteAllText(dialog.FileName, json);
+
+                if (Directory.EnumerateFiles(_assetWorkspacePath).Any())
+                {
+                    string targetAssetFolderPath = ProblemAssetUtilities.GetAssetFolderPath(dialog.FileName);
+                    ProblemAssetUtilities.CopyAssetFolder(_assetWorkspacePath, targetAssetFolderPath);
+                }
+
                 SavedFilePath = dialog.FileName;
                 return true;
             }
@@ -504,7 +874,7 @@ namespace Local_Judge
                 if (hasInput != hasOutput)
                 {
                     MessageBox.Show(
-                        $"예제 {i + 1}의 입력과 출력은 함께 입력하거나 둘 다 비워두세요.",
+                        $"예제 {i + 1}의 입력과 출력은 함께 입력하거나 함께 비워야 합니다.",
                         "입력 확인",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);

@@ -11,11 +11,27 @@ namespace Local_Judge
         public string Source { get; set; } = string.Empty;
         public int TimeLimitMs { get; set; } = 2000;
         public int MemoryLimitMb { get; set; } = 128;
+        public string StatementFormat { get; set; } = ProblemStatementFormats.Plain;
         public string Description { get; set; } = string.Empty;
         public string InputFormat { get; set; } = string.Empty;
         public string OutputFormat { get; set; } = string.Empty;
+        public List<ProblemAssetDocument> Assets { get; set; } = new();
         public List<SampleCaseDocument> Samples { get; set; } = new();
         public List<TestCaseDocument> TestCases { get; set; } = new();
+    }
+
+    public static class ProblemStatementFormats
+    {
+        public const string Plain = "plain";
+        public const string MarkdownLatex = "markdown-latex";
+    }
+
+    public sealed class ProblemAssetDocument
+    {
+        public string Id { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public string RelativePath { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
     }
 
     public sealed class SampleCaseDocument

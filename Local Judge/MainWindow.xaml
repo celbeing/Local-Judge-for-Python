@@ -179,52 +179,9 @@
                         </DockPanel>
                     </Border>
 
-                    <ScrollViewer Grid.Row="1"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <StackPanel Margin="18">
-                            <TextBlock x:Name="ProblemTitleTextBlock"
-                                       Text="문제를 불러와주세요"
-                                       FontSize="24"
-                                       FontWeight="Bold"
-                                       TextWrapping="Wrap" />
-
-                            <TextBlock x:Name="ProblemMetaTextBlock"
-                                       Text="시간 제한: - / 메모리 제한: -"
-                                       Margin="0,6,0,16"
-                                       Foreground="#57606A" />
-
-                            <TextBlock Text="문제 설명"
-                                       Style="{StaticResource SectionTitleTextStyle}" />
-                            <TextBox x:Name="ProblemDescriptionTextBox"
-                                     Style="{StaticResource ReadOnlyProblemTextBoxStyle}"
-                                     Text="문제 설명이 이곳에 표시됩니다." />
-
-                            <TextBlock Text="입력"
-                                       Style="{StaticResource SectionTitleTextStyle}" />
-                            <TextBox x:Name="InputDescriptionTextBox"
-                                     Style="{StaticResource ReadOnlyProblemTextBoxStyle}"
-                                     Text="입력 형식이 이곳에 표시됩니다." />
-
-                            <TextBlock Text="출력"
-                                       Style="{StaticResource SectionTitleTextStyle}" />
-                            <TextBox x:Name="OutputDescriptionTextBox"
-                                     Style="{StaticResource ReadOnlyProblemTextBoxStyle}"
-                                     Text="출력 형식이 이곳에 표시됩니다." />
-
-                            <TextBlock Text="입력 예시"
-                                       Style="{StaticResource SectionTitleTextStyle}" />
-                            <TextBox x:Name="SampleInputTextBox"
-                                     Style="{StaticResource SampleBoxStyle}"
-                                     Text="예시 입력이 이곳에 표시됩니다." />
-
-                            <TextBlock Text="출력 예시"
-                                       Style="{StaticResource SectionTitleTextStyle}" />
-                            <TextBox x:Name="SampleOutputTextBox"
-                                     Style="{StaticResource SampleBoxStyle}"
-                                     Text="예시 출력이 이곳에 표시됩니다." />
-                        </StackPanel>
-                    </ScrollViewer>
+                    <wv2:WebView2 x:Name="ProblemViewerWebView"
+                                  Grid.Row="1"
+                                  DefaultBackgroundColor="White" />
                 </Grid>
             </Border>
 

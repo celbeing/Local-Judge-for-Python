@@ -26,6 +26,8 @@ namespace Local_Judge
         private readonly SubmissionHistoryExporter _submissionHistoryExporter;
         private readonly SubmissionHistoryImportReader _submissionHistoryImportReader;
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
+        private const string ProblemViewerHostName = "localjudge.problem-viewer";
+        private const string ProblemAssetsHostName = "localjudge.problem-assets";
 
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
         private readonly Brush _workingBrush = new SolidColorBrush(Color.FromRgb(251, 188, 5));
@@ -48,10 +50,13 @@ namespace Local_Judge
 
         private ProblemDocument? _currentProblem;
         private string? _currentProblemFilePath;
+        private string? _pendingProblemAssetWorkspacePath;
         private bool _isProblemDirty;
         private JudgeEnvironmentBenchmarkResult? _benchmarkResult;
         private bool _isBenchmarkRunning;
         private bool _terminalEndsWithLineBreak = true;
+        private bool _isProblemViewerReady;
+        private readonly string _emptyProblemAssetFolderPath = Path.Combine(Path.GetTempPath(), "LocalJudge", "EmptyProblemAssets");
 
         public MainWindow()
         {
@@ -66,8 +71,67 @@ namespace Local_Judge
             ResetProblemView();
             AppendTerminal("[UI] 화면 구성이 완료되었습니다.");
 
+            _ = InitializeProblemViewerAsync();
             _ = InitializeCodeEditorAsync();
             _ = StartEnvironmentBenchmarkAsync(isManual: false);
+        }
+
+        private async Task InitializeProblemViewerAsync()
+        {
+            try
+            {
+                await ProblemViewerWebView.EnsureCoreWebView2Async();
+
+                string viewerFolderPath = Path.Combine(AppContext.BaseDirectory, "ProblemViewer");
+
+                if (!Directory.Exists(viewerFolderPath))
+                {
+                    AppendTerminal($"[Problem] ProblemViewer 폴더를 찾을 수 없습니다: {viewerFolderPath}");
+                    return;
+                }
+
+                Directory.CreateDirectory(_emptyProblemAssetFolderPath);
+
+                ProblemViewerWebView.CoreWebView2.WebMessageReceived += ProblemViewerWebView_WebMessageReceived;
+                ProblemViewerWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    ProblemViewerHostName,
+                    viewerFolderPath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+
+                MapProblemAssetFolder(GetCurrentProblemAssetFolderPath());
+
+                ProblemViewerWebView.Source = new Uri($"https://{ProblemViewerHostName}/index.html");
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Problem] WebView2 문제 뷰어 초기화 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
+        }
+
+        private void ProblemViewerWebView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(e.WebMessageAsJson);
+                JsonElement root = document.RootElement;
+
+                if (!root.TryGetProperty("type", out JsonElement typeElement))
+                {
+                    return;
+                }
+
+                if (string.Equals(typeElement.GetString(), "viewerReady", StringComparison.Ordinal))
+                {
+                    _isProblemViewerReady = true;
+                    RenderProblemView();
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Problem] 문제 뷰어 메시지 처리 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
         }
 
         private async Task InitializeCodeEditorAsync()
@@ -396,43 +460,87 @@ namespace Local_Judge
 
         private void ResetProblemView()
         {
-            ProblemTitleTextBlock.Text = "문제를 불러와주세요";
-            ProblemMetaTextBlock.Text = "시간 제한: - / 메모리 제한: -";
-            ProblemDescriptionTextBox.Text = "문제 설명이 이곳에 표시됩니다.";
-            InputDescriptionTextBox.Text = "입력 형식이 이곳에 표시됩니다.";
-            OutputDescriptionTextBox.Text = "출력 형식이 이곳에 표시됩니다.";
-            SampleInputTextBox.Text = "예시 입력이 이곳에 표시됩니다.";
-            SampleOutputTextBox.Text = "예시 출력이 이곳에 표시됩니다.";
             ProgramInputTextBox.Text = string.Empty;
             CurrentProblemStatusTextBlock.Text = "문제 미선택";
+            RenderProblemView();
             UpdateProblemCommandState();
         }
 
         private void DisplayProblem(ProblemDocument problem)
         {
-            string title = string.IsNullOrWhiteSpace(problem.Id)
-                ? problem.Title
-                : $"[{problem.Id}] {problem.Title}";
-
-            ProblemTitleTextBlock.Text = string.IsNullOrWhiteSpace(title) ? "제목 없는 문제" : title;
-            ProblemMetaTextBlock.Text = FormatProblemMetaText(problem);
-            ProblemDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.Description)
-                ? "문제 설명이 비어 있습니다."
-                : problem.Description;
-            InputDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.InputFormat)
-                ? "입력 설명이 비어 있습니다."
-                : problem.InputFormat;
-            OutputDescriptionTextBox.Text = string.IsNullOrWhiteSpace(problem.OutputFormat)
-                ? "출력 설명이 비어 있습니다."
-                : problem.OutputFormat;
-
             SampleCaseDocument? firstSample = problem.Samples.Count > 0 ? problem.Samples[0] : null;
-            SampleInputTextBox.Text = firstSample?.Input ?? "예시 입력이 없습니다.";
-            SampleOutputTextBox.Text = firstSample?.Output ?? "예시 출력이 없습니다.";
             ProgramInputTextBox.Text = firstSample?.Input ?? string.Empty;
 
+            RenderProblemView();
             UpdateCurrentProblemStatus();
             UpdateProblemCommandState();
+        }
+
+        private void RenderProblemView()
+        {
+            if (!_isProblemViewerReady || ProblemViewerWebView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            MapProblemAssetFolder(GetCurrentProblemAssetFolderPath());
+
+            object problemPayload = _currentProblem is null
+                ? new
+                {
+                    emptyState = true,
+                    message = "문제를 불러와주세요."
+                }
+                : new
+                {
+                    emptyState = false,
+                    id = _currentProblem.Id,
+                    title = _currentProblem.Title,
+                    authorName = _currentProblem.AuthorName,
+                    source = _currentProblem.Source,
+                    timeLimitMs = _currentProblem.TimeLimitMs,
+                    memoryLimitMb = _currentProblem.MemoryLimitMb,
+                    statementFormat = _currentProblem.StatementFormat,
+                    description = _currentProblem.Description,
+                    inputFormat = _currentProblem.InputFormat,
+                    outputFormat = _currentProblem.OutputFormat,
+                    samples = _currentProblem.Samples,
+                    testCaseCount = _currentProblem.TestCases.Count
+                };
+
+            string json = JsonSerializer.Serialize(new
+            {
+                type = "renderProblem",
+                assetBaseUrl = $"https://{ProblemAssetsHostName}/",
+                problem = problemPayload
+            }, _jsonOptions);
+
+            ProblemViewerWebView.CoreWebView2.PostWebMessageAsJson(json);
+        }
+
+        private string? GetCurrentProblemAssetFolderPath()
+        {
+            return string.IsNullOrWhiteSpace(_currentProblemFilePath)
+                ? null
+                : ProblemAssetUtilities.GetAssetFolderPath(_currentProblemFilePath);
+        }
+
+        private void MapProblemAssetFolder(string? folderPath)
+        {
+            if (ProblemViewerWebView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            string assetFolderPath = !string.IsNullOrWhiteSpace(folderPath) && Directory.Exists(folderPath)
+                ? folderPath
+                : _emptyProblemAssetFolderPath;
+
+            Directory.CreateDirectory(assetFolderPath);
+            ProblemViewerWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                ProblemAssetsHostName,
+                assetFolderPath,
+                CoreWebView2HostResourceAccessKind.Allow);
         }
 
         private string FormatProblemMetaText(ProblemDocument problem)
@@ -658,7 +766,7 @@ namespace Local_Judge
                 return;
             }
 
-            var editor = new ProblemEditorWindow(_currentProblem)
+            var editor = new ProblemEditorWindow(_currentProblem, _currentProblemFilePath)
             {
                 Owner = this
             };
@@ -671,6 +779,7 @@ namespace Local_Judge
             }
 
             _currentProblem = editor.Problem;
+            _pendingProblemAssetWorkspacePath = editor.AssetWorkspacePath;
             _isProblemDirty = true;
 
             DisplayProblem(_currentProblem);
@@ -705,16 +814,11 @@ namespace Local_Judge
                     throw new InvalidOperationException("문제 JSON을 읽었지만 내용이 비어 있습니다.");
                 }
 
-                problem.Samples ??= new();
-                problem.TestCases ??= new();
-                problem.AuthorName ??= string.Empty;
-                problem.Source ??= string.Empty;
-                problem.Version = problem.Version <= 0 ? 3 : Math.Max(problem.Version, 3);
-                problem.TimeLimitMs = problem.TimeLimitMs <= 0 ? 2000 : problem.TimeLimitMs;
-                problem.MemoryLimitMb = problem.MemoryLimitMb <= 0 ? 128 : problem.MemoryLimitMb;
+                NormalizeProblemDocument(problem, defaultToMarkdownLatex: false);
 
                 _currentProblem = problem;
                 _currentProblemFilePath = dialog.FileName;
+                _pendingProblemAssetWorkspacePath = null;
                 _isProblemDirty = false;
 
                 DisplayProblem(problem);
@@ -813,12 +917,29 @@ namespace Local_Judge
 
             try
             {
+                string? previousProblemFilePath = _currentProblemFilePath;
                 string json = JsonSerializer.Serialize(_currentProblem, _jsonOptions);
                 File.WriteAllText(filePath, json);
 
+                string? sourceAssetFolderPath = _pendingProblemAssetWorkspacePath;
+                if (string.IsNullOrWhiteSpace(sourceAssetFolderPath)
+                    && !string.IsNullOrWhiteSpace(previousProblemFilePath)
+                    && !Path.GetFullPath(previousProblemFilePath).Equals(Path.GetFullPath(filePath), StringComparison.OrdinalIgnoreCase))
+                {
+                    sourceAssetFolderPath = ProblemAssetUtilities.GetAssetFolderPath(previousProblemFilePath);
+                }
+
+                if (!string.IsNullOrWhiteSpace(sourceAssetFolderPath) && Directory.Exists(sourceAssetFolderPath))
+                {
+                    string targetAssetFolderPath = ProblemAssetUtilities.GetAssetFolderPath(filePath);
+                    ProblemAssetUtilities.CopyAssetFolder(sourceAssetFolderPath, targetAssetFolderPath);
+                }
+
                 _currentProblemFilePath = filePath;
+                _pendingProblemAssetWorkspacePath = null;
                 _isProblemDirty = false;
                 UpdateCurrentProblemStatus();
+                RenderProblemView();
 
                 AppendTerminal("[Problem] 문제 JSON 저장이 완료되었습니다.");
                 return true;
@@ -861,6 +982,26 @@ namespace Local_Judge
             }
 
             return baseName + "_submissions.zip";
+        }
+
+        private static void NormalizeProblemDocument(ProblemDocument problem, bool defaultToMarkdownLatex)
+        {
+            bool useMarkdownLatexByDefault = defaultToMarkdownLatex
+                                             || problem.Version >= ProblemAssetUtilities.CurrentProblemVersion;
+            problem.Samples ??= new();
+            problem.TestCases ??= new();
+            problem.Assets ??= new();
+            problem.AuthorName ??= string.Empty;
+            problem.Source ??= string.Empty;
+            problem.Description ??= string.Empty;
+            problem.InputFormat ??= string.Empty;
+            problem.OutputFormat ??= string.Empty;
+            problem.StatementFormat = ProblemAssetUtilities.NormalizeStatementFormat(
+                problem.StatementFormat,
+                useMarkdownLatexByDefault);
+            problem.Version = problem.Version <= 0 ? 3 : Math.Max(problem.Version, 3);
+            problem.TimeLimitMs = problem.TimeLimitMs <= 0 ? 2000 : problem.TimeLimitMs;
+            problem.MemoryLimitMb = problem.MemoryLimitMb <= 0 ? 128 : problem.MemoryLimitMb;
         }
 
         private async void SaveCodeMenuItem_Click(object sender, RoutedEventArgs e)
