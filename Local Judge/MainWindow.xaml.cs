@@ -23,6 +23,7 @@ namespace Local_Judge
         private readonly PythonRunner _pythonRunner = new();
         private readonly JudgeEnvironmentBenchmark _environmentBenchmark;
         private readonly SubmissionHistoryStore _submissionHistoryStore;
+        private readonly SubmissionHistoryExporter _submissionHistoryExporter;
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
 
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
@@ -55,6 +56,7 @@ namespace Local_Judge
         {
             _environmentBenchmark = new JudgeEnvironmentBenchmark(_pythonRunner);
             _submissionHistoryStore = new SubmissionHistoryStore(_jsonOptions);
+            _submissionHistoryExporter = new SubmissionHistoryExporter(_submissionHistoryStore, _jsonOptions);
 
             InitializeComponent();
 
@@ -485,6 +487,8 @@ namespace Local_Judge
             RunSampleButton.IsEnabled = hasProblem && canRunWithLimits;
             SubmitMenuItem.IsEnabled = hasProblem && canRunWithLimits;
             SubmitButton.IsEnabled = hasProblem && canRunWithLimits;
+            SubmissionHistoryMenuItem.IsEnabled = hasProblem;
+            ExportSubmissionHistoryMenuItem.IsEnabled = hasProblem;
             BenchmarkMenuItem.IsEnabled = !_isBenchmarkRunning && !_pythonRunner.IsRunning;
         }
 
@@ -839,6 +843,22 @@ namespace Local_Judge
             }
 
             return baseName + ".json";
+        }
+
+        private static string CreateDefaultSubmissionExportFileName(ProblemDocument problem)
+        {
+            string baseName = string.IsNullOrWhiteSpace(problem.Id)
+                ? problem.Title
+                : $"{problem.Id}_{problem.Title}";
+
+            baseName = Regex.Replace(baseName, @"[\\/:*?""<>|]+", "_").Trim();
+
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                baseName = "problem";
+            }
+
+            return baseName + "_submissions.zip";
         }
 
         private async void SaveCodeMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1238,13 +1258,7 @@ namespace Local_Judge
             {
                 AttemptId = SubmissionHistoryStore.CreateAttemptId(submittedAt),
                 SubmittedAt = submittedAt,
-                Problem = new SubmissionProblemDocument
-                {
-                    Id = problem.Id,
-                    Title = problem.Title,
-                    AuthorName = problem.AuthorName,
-                    Source = problem.Source
-                },
+                Problem = CreateSubmissionProblemDocument(problem),
                 ProblemFilePath = problemFilePath ?? string.Empty,
                 Verdict = verdict,
                 PassedCount = passedCount,
@@ -1270,6 +1284,17 @@ namespace Local_Judge
                     ExtraMemoryMb = benchmark.ExtraMemoryMb
                 },
                 TestResults = testResults
+            };
+        }
+
+        private static SubmissionProblemDocument CreateSubmissionProblemDocument(ProblemDocument problem)
+        {
+            return new SubmissionProblemDocument
+            {
+                Id = problem.Id,
+                Title = problem.Title,
+                AuthorName = problem.AuthorName,
+                Source = problem.Source
             };
         }
 
@@ -1442,6 +1467,103 @@ namespace Local_Judge
                 totalCount,
                 submissionLimits,
                 testResults));
+        }
+
+        private void SubmissionHistoryMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentProblem is null)
+            {
+                AppendTerminal("[Submit] 제출 이력을 보려면 먼저 문제를 불러오세요.");
+                return;
+            }
+
+            try
+            {
+                SubmissionProblemDocument problemDocument = CreateSubmissionProblemDocument(_currentProblem);
+                IReadOnlyList<SubmissionAttemptHistoryItem> historyItems = _submissionHistoryStore
+                    .LoadAttemptsForProblem(problemDocument);
+
+                var window = new SubmissionHistoryWindow(_currentProblem, historyItems)
+                {
+                    Owner = this
+                };
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Submit] 제출 이력을 불러오는 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
+        }
+
+        private void ExportSubmissionHistoryMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentProblem is null)
+            {
+                AppendTerminal("[Submit] 제출 이력을 내보내려면 먼저 문제를 불러오세요.");
+                return;
+            }
+
+            try
+            {
+                SubmissionProblemDocument problemDocument = CreateSubmissionProblemDocument(_currentProblem);
+                IReadOnlyList<SubmissionAttemptHistoryItem> historyItems = _submissionHistoryStore
+                    .LoadAttemptsForProblem(problemDocument);
+
+                if (historyItems.Count == 0)
+                {
+                    AppendTerminal("[Submit] 내보낼 제출 이력이 없습니다.");
+                    MessageBox.Show(
+                        "현재 문항에 저장된 제출 이력이 없습니다.",
+                        "제출 이력 내보내기",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                var dialog = new SaveFileDialog
+                {
+                    Title = "제출 이력 내보내기",
+                    Filter = "ZIP 파일 (*.zip)|*.zip|모든 파일 (*.*)|*.*",
+                    DefaultExt = ".zip",
+                    FileName = CreateDefaultSubmissionExportFileName(_currentProblem)
+                };
+
+                bool? result = dialog.ShowDialog(this);
+                if (result != true)
+                {
+                    return;
+                }
+
+                string displayName = string.IsNullOrWhiteSpace(_currentProblem.Id)
+                    ? _currentProblem.Title
+                    : $"[{_currentProblem.Id}] {_currentProblem.Title}";
+
+                var request = new SubmissionHistoryExportRequest
+                {
+                    DestinationFilePath = dialog.FileName,
+                    ExportKind = "Problem",
+                    ExportName = displayName,
+                    Problems =
+                    {
+                        new SubmissionHistoryExportProblem
+                        {
+                            DisplayName = displayName,
+                            Problem = problemDocument,
+                            ProblemFilePath = _currentProblemFilePath ?? string.Empty
+                        }
+                    }
+                };
+
+                SubmissionHistoryExportResult exportResult = _submissionHistoryExporter.Export(request);
+                AppendTerminal($"[Submit] 제출 이력을 내보냈습니다: {exportResult.FilePath}");
+                AppendTerminal($"[Submit] 내보낸 문항: {exportResult.ProblemCount}개 / 제출: {exportResult.AttemptCount}개");
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Submit] 제출 이력 내보내기 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
         }
 
         private async void PythonPathMenuItem_Click(object sender, RoutedEventArgs e)

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -21,12 +22,7 @@ namespace Local_Judge
 
         public string SaveAttempt(SubmissionAttemptDocument attempt)
         {
-            string problemKey = CreateProblemKey(attempt.Problem);
-            string submissionsRoot = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Local Judge",
-                "Submissions");
-            string problemDirectory = Path.Combine(submissionsRoot, problemKey);
+            string problemDirectory = GetProblemDirectory(attempt.Problem);
 
             Directory.CreateDirectory(problemDirectory);
 
@@ -39,6 +35,58 @@ namespace Local_Judge
             File.WriteAllText(filePath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
             return filePath;
+        }
+
+        public IReadOnlyList<SubmissionAttemptHistoryItem> LoadAttemptsForProblem(SubmissionProblemDocument problem)
+        {
+            string problemDirectory = GetProblemDirectory(problem);
+            if (!Directory.Exists(problemDirectory))
+            {
+                return Array.Empty<SubmissionAttemptHistoryItem>();
+            }
+
+            var attempts = new List<SubmissionAttemptHistoryItem>();
+            foreach (string filePath in Directory.EnumerateFiles(problemDirectory, "*.json"))
+            {
+                try
+                {
+                    string json = File.ReadAllText(filePath);
+                    SubmissionAttemptDocument? attempt = JsonSerializer.Deserialize<SubmissionAttemptDocument>(json, _jsonOptions);
+                    if (attempt is null)
+                    {
+                        continue;
+                    }
+
+                    attempts.Add(new SubmissionAttemptHistoryItem(filePath, attempt));
+                }
+                catch
+                {
+                    // Ignore malformed history files. They should not block viewing valid attempts.
+                }
+            }
+
+            return attempts
+                .OrderByDescending(item => item.Attempt.SubmittedAt)
+                .ToList();
+        }
+
+        public string GetProblemDirectory(SubmissionProblemDocument problem)
+        {
+            string problemKey = CreateProblemKey(problem);
+            return Path.Combine(GetSubmissionsRoot(), problemKey);
+        }
+
+        public static string GetProblemKey(SubmissionProblemDocument problem)
+        {
+            return CreateProblemKey(problem);
+        }
+
+        public static string GetSubmissionsRoot()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Local Judge",
+                "Submissions");
         }
 
         public static string CreateAttemptId(DateTimeOffset submittedAt)
@@ -116,6 +164,10 @@ namespace Local_Judge
             return sanitized;
         }
     }
+
+    public sealed record SubmissionAttemptHistoryItem(
+        string FilePath,
+        SubmissionAttemptDocument Attempt);
 
     public sealed class SubmissionAttemptDocument
     {

@@ -85,6 +85,12 @@
                 <MenuItem x:Name="SubmitMenuItem"
                           Header="제출"
                           Click="SubmitMenuItem_Click" />
+                <MenuItem x:Name="SubmissionHistoryMenuItem"
+                          Header="제출 이력 보기..."
+                          Click="SubmissionHistoryMenuItem_Click" />
+                <MenuItem x:Name="ExportSubmissionHistoryMenuItem"
+                          Header="제출 이력 내보내기..."
+                          Click="ExportSubmissionHistoryMenuItem_Click" />
             </MenuItem>
 
             <MenuItem Header="_도구">
