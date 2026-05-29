@@ -96,6 +96,14 @@
             </MenuItem>
 
             <MenuItem Header="_수업">
+                <MenuItem x:Name="OpenLessonMenuItem"
+                          Header="수업 열기..."
+                          Click="OpenLessonMenuItem_Click" />
+                <MenuItem x:Name="CloseLessonMenuItem"
+                          Header="수업 닫기"
+                          IsEnabled="False"
+                          Click="CloseLessonMenuItem_Click" />
+                <Separator />
                 <MenuItem Header="수업 결과 확인하기..."
                           Click="InspectLessonResultMenuItem_Click" />
             </MenuItem>
@@ -150,6 +158,8 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="44" />
+                        <RowDefinition x:Name="LessonExplorerRow" Height="0" />
+                        <RowDefinition x:Name="LessonExplorerSplitterRow" Height="0" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
@@ -184,8 +194,34 @@
                         </DockPanel>
                     </Border>
 
+                    <GroupBox x:Name="LessonExplorerGroupBox"
+                              Grid.Row="1"
+                              Header="수업"
+                              Margin="10"
+                              Visibility="Collapsed">
+                        <DockPanel LastChildFill="True">
+                            <TextBlock x:Name="LessonTitleTextBlock"
+                                       DockPanel.Dock="Top"
+                                       Margin="6,2,6,8"
+                                       Foreground="#57606A"
+                                       TextWrapping="Wrap" />
+                            <TreeView x:Name="LessonTreeView"
+                                      BorderThickness="0"
+                                      SelectedItemChanged="LessonTreeView_SelectedItemChanged" />
+                        </DockPanel>
+                    </GroupBox>
+
+                    <GridSplitter x:Name="LessonExplorerGridSplitter"
+                                  Grid.Row="2"
+                                  Height="6"
+                                  HorizontalAlignment="Stretch"
+                                  Background="#EAECEF"
+                                  Cursor="SizeNS"
+                                  ShowsPreview="True"
+                                  Visibility="Collapsed" />
+
                     <wv2:WebView2 x:Name="ProblemViewerWebView"
-                                  Grid.Row="1"
+                                  Grid.Row="3"
                                   DefaultBackgroundColor="White" />
                 </Grid>
             </Border>

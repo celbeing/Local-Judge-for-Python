@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 
@@ -26,6 +27,7 @@ namespace Local_Judge
         private readonly SubmissionHistoryExporter _submissionHistoryExporter;
         private readonly SubmissionHistoryImportReader _submissionHistoryImportReader;
         private readonly LessonResultInspectionReader _lessonResultInspectionReader;
+        private readonly LessonPackageReader _lessonPackageReader;
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
         private const string ProblemViewerHostName = "localjudge.problem-viewer";
         private const string ProblemAssetsHostName = "localjudge.problem-assets";
@@ -52,6 +54,9 @@ namespace Local_Judge
         private ProblemDocument? _currentProblem;
         private string? _currentProblemFilePath;
         private string? _pendingProblemAssetWorkspacePath;
+        private LessonContext? _currentLesson;
+        private LessonProblemItem? _currentLessonProblem;
+        private bool _isRefreshingLessonExplorer;
         private bool _isProblemDirty;
         private JudgeEnvironmentBenchmarkResult? _benchmarkResult;
         private bool _isBenchmarkRunning;
@@ -66,6 +71,7 @@ namespace Local_Judge
             _submissionHistoryExporter = new SubmissionHistoryExporter(_submissionHistoryStore, _jsonOptions);
             _submissionHistoryImportReader = new SubmissionHistoryImportReader(_jsonOptions);
             _lessonResultInspectionReader = new LessonResultInspectionReader(_jsonOptions);
+            _lessonPackageReader = new LessonPackageReader(_jsonOptions);
 
             InitializeComponent();
 
@@ -478,6 +484,258 @@ namespace Local_Judge
             UpdateProblemCommandState();
         }
 
+        private async void OpenLessonMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "수업 ZIP 열기",
+                Filter = "ZIP 수업 파일 (*.zip)|*.zip|모든 파일 (*.*)|*.*"
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                return;
+            }
+
+            try
+            {
+                OpenLessonMenuItem.IsEnabled = false;
+                SetStatus("수업 여는 중", isWorking: true);
+                AppendTerminal($"[Lesson] 수업 ZIP을 여는 중입니다: {dialog.FileName}");
+
+                LessonContext lesson = await Task.Run(() => _lessonPackageReader.OpenZip(dialog.FileName));
+                SetCurrentLesson(lesson);
+                AppendTerminal($"[Lesson] 수업을 열었습니다: {lesson.Title}");
+                AppendTerminal($"[Lesson] 작업 폴더: {lesson.RootPath}");
+
+                LessonProblemItem? firstProblem = lesson.Problems.FirstOrDefault();
+                if (firstProblem is not null)
+                {
+                    OpenLessonProblem(firstProblem);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Lesson] 수업을 여는 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+                MessageBox.Show(
+                    "수업 ZIP 파일을 열 수 없습니다.\n\n" + ex.Message,
+                    "수업 열기",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            finally
+            {
+                OpenLessonMenuItem.IsEnabled = true;
+                if (!_isBenchmarkRunning && !_pythonRunner.IsRunning)
+                {
+                    SetStatus("채점 대기");
+                }
+                UpdateProblemCommandState();
+            }
+        }
+
+        private void CloseLessonMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            CloseCurrentLesson();
+        }
+
+        private void SetCurrentLesson(LessonContext lesson)
+        {
+            _currentLesson = lesson;
+            _currentLessonProblem = null;
+
+            LessonExplorerRow.Height = new GridLength(190);
+            LessonExplorerSplitterRow.Height = new GridLength(6);
+            LessonExplorerGroupBox.Visibility = Visibility.Visible;
+            LessonExplorerGridSplitter.Visibility = Visibility.Visible;
+            CloseLessonMenuItem.IsEnabled = true;
+
+            LessonTitleTextBlock.Text = $"{lesson.Title} | 문항 {lesson.Problems.Count()}개";
+            RefreshLessonExplorer();
+            UpdateProblemCommandState();
+        }
+
+        private void CloseCurrentLesson()
+        {
+            _currentLesson = null;
+            _currentLessonProblem = null;
+            LessonTreeView.Items.Clear();
+            LessonTitleTextBlock.Text = string.Empty;
+            LessonExplorerGroupBox.Visibility = Visibility.Collapsed;
+            LessonExplorerGridSplitter.Visibility = Visibility.Collapsed;
+            LessonExplorerRow.Height = new GridLength(0);
+            LessonExplorerSplitterRow.Height = new GridLength(0);
+            CloseLessonMenuItem.IsEnabled = false;
+
+            _currentProblem = null;
+            _currentProblemFilePath = null;
+            _pendingProblemAssetWorkspacePath = null;
+            _isProblemDirty = false;
+            ResetProblemView();
+            AppendTerminal("[Lesson] 수업을 닫았습니다.");
+        }
+
+        private void RefreshLessonExplorer(string? selectedProblemRelativePath = null)
+        {
+            if (_currentLesson is null)
+            {
+                return;
+            }
+
+            selectedProblemRelativePath ??= _currentLessonProblem?.RelativePath;
+            _isRefreshingLessonExplorer = true;
+            try
+            {
+                LessonTreeView.Items.Clear();
+
+                foreach (LessonSection section in _currentLesson.Sections)
+                {
+                    var sectionItem = new TreeViewItem
+                    {
+                        Header = section.Title,
+                        IsExpanded = true
+                    };
+
+                    foreach (LessonProblemItem problem in section.Problems)
+                    {
+                        UpdateLessonProblemStatus(problem);
+                        var problemItem = new TreeViewItem
+                        {
+                            Header = new TextBlock
+                            {
+                                Text = FormatLessonProblemTreeText(problem),
+                                Foreground = GetLessonProblemBrush(problem)
+                            },
+                            Tag = problem,
+                            IsSelected = string.Equals(problem.RelativePath, selectedProblemRelativePath, StringComparison.OrdinalIgnoreCase)
+                        };
+
+                        sectionItem.Items.Add(problemItem);
+                    }
+
+                    LessonTreeView.Items.Add(sectionItem);
+                }
+            }
+            finally
+            {
+                _isRefreshingLessonExplorer = false;
+            }
+        }
+
+        private void LessonTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (_isRefreshingLessonExplorer)
+            {
+                return;
+            }
+
+            if (e.NewValue is TreeViewItem { Tag: LessonProblemItem problem })
+            {
+                if (_currentLessonProblem is not null
+                    && string.Equals(_currentLessonProblem.RelativePath, problem.RelativePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                OpenLessonProblem(problem);
+            }
+        }
+
+        private void OpenLessonProblem(LessonProblemItem lessonProblem)
+        {
+            _currentLessonProblem = lessonProblem;
+            _currentProblem = lessonProblem.Problem;
+            _currentProblemFilePath = lessonProblem.FilePath;
+            _pendingProblemAssetWorkspacePath = null;
+            _isProblemDirty = false;
+
+            DisplayProblem(lessonProblem.Problem);
+            RefreshLessonExplorer(lessonProblem.RelativePath);
+            AppendTerminal($"[Lesson] 문항을 열었습니다: {FormatLessonProblemName(lessonProblem)}");
+        }
+
+        private void UpdateLessonProblemStatus(LessonProblemItem problem)
+        {
+            IReadOnlyList<SubmissionAttemptHistoryItem> attempts = LoadLessonAttempts(problem);
+            problem.AttemptCount = attempts.Count;
+            problem.HasAccepted = attempts.Any(item => string.Equals(item.Attempt.Verdict, "AC", StringComparison.OrdinalIgnoreCase));
+            problem.LastVerdict = attempts
+                .OrderBy(item => item.Attempt.SubmittedAt)
+                .LastOrDefault()
+                ?.Attempt
+                .Verdict ?? string.Empty;
+        }
+
+        private IReadOnlyList<SubmissionAttemptHistoryItem> LoadLessonAttempts(LessonProblemItem problem)
+        {
+            if (_currentLesson is null)
+            {
+                return Array.Empty<SubmissionAttemptHistoryItem>();
+            }
+
+            string problemDirectory = Path.Combine(_currentLesson.SubmissionsRoot, problem.SubmissionKey);
+            if (!Directory.Exists(problemDirectory))
+            {
+                return Array.Empty<SubmissionAttemptHistoryItem>();
+            }
+
+            var attempts = new List<SubmissionAttemptHistoryItem>();
+            foreach (string filePath in Directory.EnumerateFiles(problemDirectory, "*.json"))
+            {
+                try
+                {
+                    string json = File.ReadAllText(filePath);
+                    SubmissionAttemptDocument? attempt = JsonSerializer.Deserialize<SubmissionAttemptDocument>(json, _jsonOptions);
+                    if (attempt is null)
+                    {
+                        continue;
+                    }
+
+                    attempts.Add(new SubmissionAttemptHistoryItem(filePath, attempt));
+                }
+                catch
+                {
+                    // Ignore malformed lesson submission files.
+                }
+            }
+
+            return attempts
+                .OrderByDescending(item => item.Attempt.SubmittedAt)
+                .ToList();
+        }
+
+        private static string FormatLessonProblemTreeText(LessonProblemItem problem)
+        {
+            string name = FormatLessonProblemName(problem);
+            if (problem.AttemptCount == 0 || problem.HasAccepted || string.IsNullOrWhiteSpace(problem.LastVerdict))
+            {
+                return name;
+            }
+
+            return $"{name} ({problem.LastVerdict})";
+        }
+
+        private static string FormatLessonProblemName(LessonProblemItem problem)
+        {
+            return string.IsNullOrWhiteSpace(problem.Problem.Id)
+                ? problem.Problem.Title
+                : $"[{problem.Problem.Id}] {problem.Problem.Title}";
+        }
+
+        private static Brush GetLessonProblemBrush(LessonProblemItem problem)
+        {
+            if (problem.HasAccepted)
+            {
+                return Brushes.ForestGreen;
+            }
+
+            return problem.AttemptCount > 0
+                ? Brushes.Firebrick
+                : Brushes.Black;
+        }
+
         private void RenderProblemView()
         {
             if (!_isProblemViewerReady || ProblemViewerWebView.CoreWebView2 is null)
@@ -569,7 +827,9 @@ namespace Local_Judge
         {
             if (_currentProblem is null)
             {
-                CurrentProblemStatusTextBlock.Text = "문제 미선택";
+                CurrentProblemStatusTextBlock.Text = _currentLesson is null
+                    ? "문제 미선택"
+                    : $"현재 수업: {_currentLesson.Title} | 문제 미선택";
                 return;
             }
 
@@ -581,26 +841,33 @@ namespace Local_Judge
                 ? "새 문제"
                 : Path.GetFileName(_currentProblemFilePath);
 
+            if (_currentLesson is not null && _currentLessonProblem is not null)
+            {
+                CurrentProblemStatusTextBlock.Text = $"현재 수업: {_currentLesson.Title} | {_currentLessonProblem.SectionTitle} | {title}";
+                return;
+            }
+
             CurrentProblemStatusTextBlock.Text = $"현재 문제: {title} | {saveState} | {pathState}";
         }
 
         private void UpdateProblemCommandState()
         {
             bool hasProblem = _currentProblem is not null;
+            bool isLessonProblem = _currentLesson is not null && _currentLessonProblem is not null;
             bool canRunWithLimits = _benchmarkResult is not null
                                     && !_isBenchmarkRunning
                                     && !_pythonRunner.IsRunning;
 
             RunCodeMenuItem.IsEnabled = canRunWithLimits;
             RunCodeButton.IsEnabled = canRunWithLimits;
-            EditProblemMenuItem.IsEnabled = hasProblem;
-            EditProblemButton.IsEnabled = hasProblem;
+            EditProblemMenuItem.IsEnabled = hasProblem && !isLessonProblem;
+            EditProblemButton.IsEnabled = hasProblem && !isLessonProblem;
             RunSampleMenuItem.IsEnabled = hasProblem && canRunWithLimits;
             RunSampleButton.IsEnabled = hasProblem && canRunWithLimits;
             SubmitMenuItem.IsEnabled = hasProblem && canRunWithLimits;
             SubmitButton.IsEnabled = hasProblem && canRunWithLimits;
             SubmissionHistoryMenuItem.IsEnabled = hasProblem;
-            ExportSubmissionHistoryMenuItem.IsEnabled = hasProblem;
+            ExportSubmissionHistoryMenuItem.IsEnabled = hasProblem && !isLessonProblem;
             BenchmarkMenuItem.IsEnabled = !_isBenchmarkRunning && !_pythonRunner.IsRunning;
         }
 
@@ -821,7 +1088,9 @@ namespace Local_Judge
                 _currentProblem = problem;
                 _currentProblemFilePath = dialog.FileName;
                 _pendingProblemAssetWorkspacePath = null;
+                _currentLessonProblem = null;
                 _isProblemDirty = false;
+                RefreshLessonExplorer();
 
                 DisplayProblem(problem);
                 AppendTerminal($"[Problem] 문제를 불러왔습니다: [{problem.Id}] {problem.Title}");
@@ -1448,14 +1717,46 @@ namespace Local_Judge
         {
             try
             {
-                string filePath = _submissionHistoryStore.SaveAttempt(attempt);
-                AppendTerminal($"[Submit] 제출 이력을 저장했습니다: {filePath}");
+                string filePath;
+                if (_currentLesson is not null && _currentLessonProblem is not null)
+                {
+                    filePath = SaveLessonSubmissionAttempt(attempt, _currentLesson, _currentLessonProblem);
+                    RefreshLessonExplorer(_currentLessonProblem.RelativePath);
+                    AppendTerminal($"[Submit] 수업 제출 이력을 저장했습니다: {filePath}");
+                }
+                else
+                {
+                    filePath = _submissionHistoryStore.SaveAttempt(attempt);
+                    AppendTerminal($"[Submit] 제출 이력을 저장했습니다: {filePath}");
+                }
             }
             catch (Exception ex)
             {
                 AppendTerminal("[Submit] 제출 이력 저장 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
             }
+        }
+
+        private string SaveLessonSubmissionAttempt(
+            SubmissionAttemptDocument attempt,
+            LessonContext lesson,
+            LessonProblemItem lessonProblem)
+        {
+            attempt.LessonId = lesson.LessonId;
+            attempt.LessonTitle = lesson.Title;
+            attempt.SectionTitle = lessonProblem.SectionTitle;
+            attempt.ProblemRelativePath = lessonProblem.RelativePath;
+
+            string problemDirectory = Path.Combine(lesson.SubmissionsRoot, lessonProblem.SubmissionKey);
+            Directory.CreateDirectory(problemDirectory);
+
+            string attemptId = string.IsNullOrWhiteSpace(attempt.AttemptId)
+                ? SubmissionHistoryStore.CreateAttemptId(attempt.SubmittedAt)
+                : Regex.Replace(attempt.AttemptId, @"[\\/:*?""<>|]+", "_");
+            string filePath = Path.Combine(problemDirectory, attemptId + ".json");
+            string json = JsonSerializer.Serialize(attempt, _jsonOptions);
+            File.WriteAllText(filePath, json);
+            return filePath;
         }
 
         private void StopRunButton_Click(object sender, RoutedEventArgs e)
@@ -1626,8 +1927,10 @@ namespace Local_Judge
             try
             {
                 SubmissionProblemDocument problemDocument = CreateSubmissionProblemDocument(_currentProblem);
-                IReadOnlyList<SubmissionAttemptHistoryItem> historyItems = _submissionHistoryStore
-                    .LoadAttemptsForProblem(problemDocument);
+                IReadOnlyList<SubmissionAttemptHistoryItem> historyItems =
+                    _currentLesson is not null && _currentLessonProblem is not null
+                        ? LoadLessonAttempts(_currentLessonProblem)
+                        : _submissionHistoryStore.LoadAttemptsForProblem(problemDocument);
 
                 var window = new SubmissionHistoryWindow(_currentProblem, historyItems)
                 {
