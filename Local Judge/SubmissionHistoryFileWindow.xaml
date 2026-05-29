@@ -69,6 +69,11 @@
                       IsReadOnly="True"
                       SelectionMode="Single"
                       SelectionChanged="ProblemSummaryDataGrid_SelectionChanged">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Foreground" Value="{Binding RowForeground}" />
+                    </Style>
+                </DataGrid.RowStyle>
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="번호" Binding="{Binding ProblemId}" Width="90" />
                     <DataGridTextColumn Header="제목" Binding="{Binding Title}" Width="*" />

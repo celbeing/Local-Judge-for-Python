@@ -180,6 +180,10 @@ namespace Local_Judge
         public int PassedCount { get; set; }
         public int TotalCount { get; set; }
         public string Language { get; set; } = "Python";
+        public string LessonId { get; set; } = string.Empty;
+        public string LessonTitle { get; set; } = string.Empty;
+        public string SectionTitle { get; set; } = string.Empty;
+        public string ProblemRelativePath { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public SubmissionLimitDocument Limits { get; set; } = new();
         public SubmissionBenchmarkDocument Benchmark { get; set; } = new();

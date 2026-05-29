@@ -95,6 +95,11 @@
                           Click="InspectSubmissionHistoryFileMenuItem_Click" />
             </MenuItem>
 
+            <MenuItem Header="_수업">
+                <MenuItem Header="수업 결과 확인하기..."
+                          Click="InspectLessonResultMenuItem_Click" />
+            </MenuItem>
+
             <MenuItem Header="_도구">
                 <MenuItem Header="Python 경로 설정" Click="PythonPathMenuItem_Click" />
                 <MenuItem x:Name="BenchmarkMenuItem"

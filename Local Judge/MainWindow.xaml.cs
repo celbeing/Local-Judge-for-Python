@@ -25,6 +25,7 @@ namespace Local_Judge
         private readonly SubmissionHistoryStore _submissionHistoryStore;
         private readonly SubmissionHistoryExporter _submissionHistoryExporter;
         private readonly SubmissionHistoryImportReader _submissionHistoryImportReader;
+        private readonly LessonResultInspectionReader _lessonResultInspectionReader;
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
         private const string ProblemViewerHostName = "localjudge.problem-viewer";
         private const string ProblemAssetsHostName = "localjudge.problem-assets";
@@ -64,6 +65,7 @@ namespace Local_Judge
             _submissionHistoryStore = new SubmissionHistoryStore(_jsonOptions);
             _submissionHistoryExporter = new SubmissionHistoryExporter(_submissionHistoryStore, _jsonOptions);
             _submissionHistoryImportReader = new SubmissionHistoryImportReader(_jsonOptions);
+            _lessonResultInspectionReader = new LessonResultInspectionReader(_jsonOptions);
 
             InitializeComponent();
 
@@ -1742,6 +1744,59 @@ namespace Local_Judge
                     "제출 이력 파일 확인",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
+            }
+        }
+
+        private void InspectLessonResultMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "수업 결과 확인",
+                Filter = "ZIP 수업 결과 파일 (*.zip)|*.zip|모든 파일 (*.*)|*.*"
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                return;
+            }
+
+            try
+            {
+                SubmissionHistoryInspectionDocument document = _lessonResultInspectionReader.ReadZip(dialog.FileName);
+                var window = new SubmissionHistoryFileWindow(document)
+                {
+                    Owner = this
+                };
+                window.ShowDialog();
+            }
+            catch (InvalidLessonResultFileException)
+            {
+                AppendTerminal("[Lesson] 잘못된 수업 결과 파일입니다.");
+                MessageBox.Show(
+                    "잘못된 파일입니다.",
+                    "수업 결과 확인",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            catch (LessonResultNoSubmissionsException)
+            {
+                AppendTerminal("[Lesson] 수업 결과 파일에 제출 기록이 없습니다.");
+                MessageBox.Show(
+                    "제출 기록이 없습니다.",
+                    "수업 결과 확인",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Lesson] 수업 결과 파일을 확인하는 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+                MessageBox.Show(
+                    "잘못된 파일입니다.",
+                    "수업 결과 확인",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
             }
         }
 

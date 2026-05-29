@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Local_Judge
 {
@@ -24,8 +25,14 @@ namespace Local_Judge
             TitleTextBlock.Text = string.IsNullOrWhiteSpace(document.Manifest.ExportName)
                 ? "제출 이력 파일"
                 : document.Manifest.ExportName;
+            string kindText = string.Equals(document.Manifest.ExportKind, "LessonResult", StringComparison.OrdinalIgnoreCase)
+                ? "수업 결과"
+                : document.Manifest.ExportKind;
+            string timeLabel = string.Equals(document.Manifest.ExportKind, "LessonResult", StringComparison.OrdinalIgnoreCase)
+                ? "확인 시각"
+                : "내보낸 시각";
             SummaryTextBlock.Text =
-                $"종류: {document.Manifest.ExportKind} / 내보낸 시각: {FormatDateTime(document.Manifest.ExportedAt)} / 문항: {document.Problems.Count}개 / 제출: {_problemRows.Sum(row => row.AttemptCount)}개 / 건너뜀: {document.SkippedFileCount}개";
+                $"종류: {kindText} / {timeLabel}: {FormatDateTime(document.Manifest.ExportedAt)} / 문항: {document.Problems.Count}개 / 제출: {_problemRows.Sum(row => row.AttemptCount)}개 / 건너뜀: {document.SkippedFileCount}개";
 
             ProblemSummaryDataGrid.ItemsSource = _problemRows;
             ConfigureContestSummary();
@@ -156,12 +163,33 @@ namespace Local_Judge
                 ? Problem.Problem.Title
                 : $"[{Problem.Problem.Id}] {Problem.Problem.Title}";
             public string ProblemId => string.IsNullOrWhiteSpace(Problem.Problem.Id) ? "-" : Problem.Problem.Id;
-            public string Title => Problem.Problem.Title;
+            public string Title
+            {
+                get
+                {
+                    string title = Problem.Problem.Title;
+                    if (FirstAccepted is not null || AttemptCount == 0)
+                    {
+                        return title;
+                    }
+
+                    string verdict = LatestVerdict;
+                    return string.IsNullOrWhiteSpace(verdict) || verdict == "-"
+                        ? title
+                        : $"{title} ({verdict})";
+                }
+            }
             public string TimeLimitText => Problem.IdealTimeLimitMs > 0 ? $"{Problem.IdealTimeLimitMs} ms" : "-";
             public string MemoryLimitText => Problem.IdealMemoryLimitMb > 0 ? $"{Problem.IdealMemoryLimitMb} MB" : "-";
             public int AttemptCount => SubmissionRows.Count;
             public int Score => Problem.Score;
             public SubmissionAttemptRow? FirstAccepted => SubmissionRows.FirstOrDefault(row => row.IsAccepted);
+            public string LatestVerdict => SubmissionRows.LastOrDefault()?.Verdict ?? "-";
+            public Brush RowForeground => FirstAccepted is not null
+                ? Brushes.ForestGreen
+                : AttemptCount > 0
+                    ? Brushes.Firebrick
+                    : Brushes.Black;
             public string FirstAcceptedAttemptText
             {
                 get
@@ -178,7 +206,7 @@ namespace Local_Judge
             }
             public string BestVerdict => FirstAccepted is not null
                 ? "AC"
-                : SubmissionRows.LastOrDefault()?.Verdict ?? "-";
+                : LatestVerdict;
             public string MaxElapsedText => SubmissionRows.Count == 0
                 ? "-"
                 : $"{SubmissionRows.Max(row => row.MaxElapsedMs):0} ms";
