@@ -394,3 +394,11 @@ dotnet build "Local Judge\Local Judge.sln" --no-restore -p:OutputPath="$env:TEMP
 외부 번들까지 포함한 `bin/obj` 제외 전체 기준:
 
 - 약 72,058줄
+
+## 2026-06-01 추가 작업
+
+- `수업 > 수업 결과 내보내기...` 메뉴를 추가했습니다.
+- 현재 열려 있는 수업 작업 폴더를 ZIP으로 압축해 교사에게 제출할 수 있습니다.
+- 내보내기 ZIP에는 문항 JSON, asset 폴더, `.localjudge/submissions` 제출 기록이 함께 포함됩니다.
+- 제출 기록이 없으면 `"제출 기록이 없습니다."` 메시지를 띄우고 내보내지 않습니다.
+- 기존 `수업 결과 확인하기...` 기능이 이 ZIP을 그대로 읽을 수 있는 구조입니다.

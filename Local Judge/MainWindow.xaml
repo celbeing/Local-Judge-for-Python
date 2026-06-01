@@ -104,6 +104,10 @@
                           IsEnabled="False"
                           Click="CloseLessonMenuItem_Click" />
                 <Separator />
+                <MenuItem x:Name="ExportLessonResultMenuItem"
+                          Header="수업 결과 내보내기..."
+                          IsEnabled="False"
+                          Click="ExportLessonResultMenuItem_Click" />
                 <MenuItem Header="수업 결과 확인하기..."
                           Click="InspectLessonResultMenuItem_Click" />
             </MenuItem>

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -551,6 +552,7 @@ namespace Local_Judge
             LessonExplorerGroupBox.Visibility = Visibility.Visible;
             LessonExplorerGridSplitter.Visibility = Visibility.Visible;
             CloseLessonMenuItem.IsEnabled = true;
+            ExportLessonResultMenuItem.IsEnabled = true;
 
             LessonTitleTextBlock.Text = $"{lesson.Title} | 문항 {lesson.Problems.Count()}개";
             RefreshLessonExplorer();
@@ -568,6 +570,7 @@ namespace Local_Judge
             LessonExplorerRow.Height = new GridLength(0);
             LessonExplorerSplitterRow.Height = new GridLength(0);
             CloseLessonMenuItem.IsEnabled = false;
+            ExportLessonResultMenuItem.IsEnabled = false;
 
             _currentProblem = null;
             _currentProblemFilePath = null;
@@ -853,7 +856,7 @@ namespace Local_Judge
         private void UpdateProblemCommandState()
         {
             bool hasProblem = _currentProblem is not null;
-            bool isLessonProblem = _currentLesson is not null && _currentLessonProblem is not null;
+            bool isLessonProblem = ResolveCurrentLessonProblem() is not null;
             bool canRunWithLimits = _benchmarkResult is not null
                                     && !_isBenchmarkRunning
                                     && !_pythonRunner.IsRunning;
@@ -1253,6 +1256,18 @@ namespace Local_Judge
             }
 
             return baseName + "_submissions.zip";
+        }
+
+        private static string CreateDefaultLessonResultExportFileName(LessonContext lesson)
+        {
+            string baseName = Regex.Replace(lesson.Title, @"[\\/:*?""<>|]+", "_").Trim();
+
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                baseName = "lesson";
+            }
+
+            return baseName + "_result.zip";
         }
 
         private static void NormalizeProblemDocument(ProblemDocument problem, bool defaultToMarkdownLatex)
@@ -1718,11 +1733,13 @@ namespace Local_Judge
             try
             {
                 string filePath;
-                if (_currentLesson is not null && _currentLessonProblem is not null)
+                LessonProblemItem? lessonProblem = ResolveCurrentLessonProblem();
+                if (_currentLesson is not null && lessonProblem is not null)
                 {
-                    filePath = SaveLessonSubmissionAttempt(attempt, _currentLesson, _currentLessonProblem);
-                    RefreshLessonExplorer(_currentLessonProblem.RelativePath);
+                    filePath = SaveLessonSubmissionAttempt(attempt, _currentLesson, lessonProblem);
+                    RefreshLessonExplorer(lessonProblem.RelativePath);
                     AppendTerminal($"[Submit] 수업 제출 이력을 저장했습니다: {filePath}");
+                    AppendTerminal($"[Submit] 수업 작업 폴더: {_currentLesson.RootPath}");
                 }
                 else
                 {
@@ -1735,6 +1752,65 @@ namespace Local_Judge
                 AppendTerminal("[Submit] 제출 이력 저장 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
             }
+        }
+
+        private LessonProblemItem? ResolveCurrentLessonProblem()
+        {
+            if (_currentLesson is null || _currentProblem is null)
+            {
+                return null;
+            }
+
+            if (_currentLessonProblem is not null
+                && IsSamePath(_currentLessonProblem.FilePath, _currentProblemFilePath))
+            {
+                return _currentLessonProblem;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_currentProblemFilePath))
+            {
+                LessonProblemItem? pathMatch = _currentLesson.Problems.FirstOrDefault(problem =>
+                    IsSamePath(problem.FilePath, _currentProblemFilePath));
+                if (pathMatch is not null)
+                {
+                    _currentLessonProblem = pathMatch;
+                    return pathMatch;
+                }
+            }
+
+            List<LessonProblemItem> documentMatches = _currentLesson.Problems
+                .Where(problem => ReferenceEquals(problem.Problem, _currentProblem))
+                .ToList();
+            if (documentMatches.Count == 1)
+            {
+                _currentLessonProblem = documentMatches[0];
+                return documentMatches[0];
+            }
+
+            return null;
+        }
+
+        private static bool IsSamePath(string? left, string? right)
+        {
+            if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
+            {
+                return false;
+            }
+
+            return string.Equals(
+                Path.GetFullPath(left),
+                Path.GetFullPath(right),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsPathInsideDirectory(string filePath, string directoryPath)
+        {
+            string fullFilePath = Path.GetFullPath(filePath);
+            string fullDirectoryPath = Path.GetFullPath(directoryPath).TrimEnd(
+                Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+            return fullFilePath.StartsWith(fullDirectoryPath, StringComparison.OrdinalIgnoreCase);
         }
 
         private string SaveLessonSubmissionAttempt(
@@ -1927,9 +2003,10 @@ namespace Local_Judge
             try
             {
                 SubmissionProblemDocument problemDocument = CreateSubmissionProblemDocument(_currentProblem);
+                LessonProblemItem? lessonProblem = ResolveCurrentLessonProblem();
                 IReadOnlyList<SubmissionAttemptHistoryItem> historyItems =
-                    _currentLesson is not null && _currentLessonProblem is not null
-                        ? LoadLessonAttempts(_currentLessonProblem)
+                    _currentLesson is not null && lessonProblem is not null
+                        ? LoadLessonAttempts(lessonProblem)
                         : _submissionHistoryStore.LoadAttemptsForProblem(problemDocument);
 
                 var window = new SubmissionHistoryWindow(_currentProblem, historyItems)
@@ -2048,6 +2125,120 @@ namespace Local_Judge
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+        }
+
+        private void ExportLessonResultMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentLesson is null)
+            {
+                AppendTerminal("[Lesson] 수업 결과를 내보내려면 먼저 수업을 여세요.");
+                MessageBox.Show(
+                    "먼저 수업을 여세요.",
+                    "수업 결과 내보내기",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                if (!HasLessonSubmissionFiles(_currentLesson))
+                {
+                    AppendTerminal("[Lesson] 내보낼 제출 기록이 없습니다.");
+                    MessageBox.Show(
+                        "제출 기록이 없습니다.",
+                        "수업 결과 내보내기",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                var dialog = new SaveFileDialog
+                {
+                    Title = "수업 결과 내보내기",
+                    Filter = "ZIP 파일 (*.zip)|*.zip|모든 파일 (*.*)|*.*",
+                    DefaultExt = ".zip",
+                    FileName = CreateDefaultLessonResultExportFileName(_currentLesson)
+                };
+
+                bool? result = dialog.ShowDialog(this);
+                if (result != true)
+                {
+                    return;
+                }
+
+                if (IsPathInsideDirectory(dialog.FileName, _currentLesson.RootPath))
+                {
+                    AppendTerminal("[Lesson] 수업 결과 ZIP은 현재 수업 작업 폴더 바깥에 저장해야 합니다.");
+                    MessageBox.Show(
+                        "수업 결과 파일은 현재 수업 작업 폴더 바깥에 저장해 주세요.",
+                        "수업 결과 내보내기",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                int fileCount = ExportLessonResultZip(_currentLesson, dialog.FileName);
+                AppendTerminal($"[Lesson] 수업 결과를 내보냈습니다: {dialog.FileName}");
+                AppendTerminal($"[Lesson] 내보낸 파일: {fileCount}개");
+                MessageBox.Show(
+                    "수업 결과를 내보냈습니다.",
+                    "수업 결과 내보내기",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Lesson] 수업 결과 내보내기 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+                MessageBox.Show(
+                    "수업 결과를 내보낼 수 없습니다.\n\n" + ex.Message,
+                    "수업 결과 내보내기",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private static bool HasLessonSubmissionFiles(LessonContext lesson)
+        {
+            return Directory.Exists(lesson.SubmissionsRoot)
+                   && Directory.EnumerateFiles(lesson.SubmissionsRoot, "*.json", SearchOption.AllDirectories).Any();
+        }
+
+        private static int ExportLessonResultZip(LessonContext lesson, string destinationFilePath)
+        {
+            string? destinationDirectory = Path.GetDirectoryName(destinationFilePath);
+            if (!string.IsNullOrWhiteSpace(destinationDirectory))
+            {
+                Directory.CreateDirectory(destinationDirectory);
+            }
+
+            if (File.Exists(destinationFilePath))
+            {
+                File.Delete(destinationFilePath);
+            }
+
+            int fileCount = 0;
+            using var outputStream = File.Create(destinationFilePath);
+            using var archive = new ZipArchive(outputStream, ZipArchiveMode.Create);
+
+            foreach (string filePath in Directory.EnumerateFiles(lesson.RootPath, "*", SearchOption.AllDirectories))
+            {
+                string relativePath = Path.GetRelativePath(lesson.RootPath, filePath);
+                if (string.IsNullOrWhiteSpace(relativePath))
+                {
+                    continue;
+                }
+
+                string entryName = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+                ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+                using Stream entryStream = entry.Open();
+                using FileStream inputStream = File.OpenRead(filePath);
+                inputStream.CopyTo(entryStream);
+                fileCount++;
+            }
+
+            return fileCount;
         }
 
         private void InspectLessonResultMenuItem_Click(object sender, RoutedEventArgs e)
