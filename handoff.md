@@ -402,3 +402,6 @@ dotnet build "Local Judge\Local Judge.sln" --no-restore -p:OutputPath="$env:TEMP
 - 내보내기 ZIP에는 문항 JSON, asset 폴더, `.localjudge/submissions` 제출 기록이 함께 포함됩니다.
 - 제출 기록이 없으면 `"제출 기록이 없습니다."` 메시지를 띄우고 내보내지 않습니다.
 - 기존 `수업 결과 확인하기...` 기능이 이 ZIP을 그대로 읽을 수 있는 구조입니다.
+- Python 연결 확인과 채점 환경 벤치마크가 성공하기 전에는 실행, 예제 실행, 제출 버튼이 잠깁니다.
+- 벤치마크 실패 시 fallback 보정값으로 실행하지 않고, 성공 전까지 실행/제출을 막습니다.
+- 사용자가 선택한 Python 경로는 벤치마크 성공 후 `%LocalAppData%\Local Judge\settings.json`에 저장되고 다음 실행 때 복원됩니다.

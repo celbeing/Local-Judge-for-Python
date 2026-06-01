@@ -29,6 +29,7 @@ namespace Local_Judge
         private readonly SubmissionHistoryImportReader _submissionHistoryImportReader;
         private readonly LessonResultInspectionReader _lessonResultInspectionReader;
         private readonly LessonPackageReader _lessonPackageReader;
+        private readonly LocalJudgeSettingsStore _settingsStore;
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
         private const string ProblemViewerHostName = "localjudge.problem-viewer";
         private const string ProblemAssetsHostName = "localjudge.problem-assets";
@@ -57,6 +58,8 @@ namespace Local_Judge
         private string? _pendingProblemAssetWorkspacePath;
         private LessonContext? _currentLesson;
         private LessonProblemItem? _currentLessonProblem;
+        private LocalJudgeUserSettings _userSettings = new();
+        private bool _isPythonConnected;
         private bool _isRefreshingLessonExplorer;
         private bool _isProblemDirty;
         private JudgeEnvironmentBenchmarkResult? _benchmarkResult;
@@ -73,9 +76,11 @@ namespace Local_Judge
             _submissionHistoryImportReader = new SubmissionHistoryImportReader(_jsonOptions);
             _lessonResultInspectionReader = new LessonResultInspectionReader(_jsonOptions);
             _lessonPackageReader = new LessonPackageReader(_jsonOptions);
+            _settingsStore = new LocalJudgeSettingsStore(_jsonOptions);
 
             InitializeComponent();
 
+            LoadUserSettings();
             SetStatus("채점 대기");
             ResetProblemView();
             AppendTerminal("[UI] 화면 구성이 완료되었습니다.");
@@ -83,6 +88,34 @@ namespace Local_Judge
             _ = InitializeProblemViewerAsync();
             _ = InitializeCodeEditorAsync();
             _ = StartEnvironmentBenchmarkAsync(isManual: false);
+        }
+
+        private void LoadUserSettings()
+        {
+            _userSettings = _settingsStore.Load();
+
+            if (string.IsNullOrWhiteSpace(_userSettings.PythonExecutablePath))
+            {
+                AppendTerminal("[Settings] 저장된 Python 경로가 없습니다. 기본 python 명령으로 연결을 확인합니다.");
+                return;
+            }
+
+            _pythonRunner.PythonExecutablePath = _userSettings.PythonExecutablePath;
+            AppendTerminal($"[Settings] 저장된 Python 경로를 불러왔습니다: {_pythonRunner.PythonExecutablePath}");
+        }
+
+        private void SaveUserSettings()
+        {
+            try
+            {
+                _settingsStore.Save(_userSettings);
+                AppendTerminal($"[Settings] 설정을 저장했습니다: {LocalJudgeSettingsStore.GetSettingsFilePath()}");
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Settings] 설정 저장 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+            }
         }
 
         private async Task InitializeProblemViewerAsync()
@@ -857,18 +890,19 @@ namespace Local_Judge
         {
             bool hasProblem = _currentProblem is not null;
             bool isLessonProblem = ResolveCurrentLessonProblem() is not null;
-            bool canRunWithLimits = _benchmarkResult is not null
-                                    && !_isBenchmarkRunning
-                                    && !_pythonRunner.IsRunning;
+            bool isJudgeRuntimeReady = _isPythonConnected
+                                       && _benchmarkResult?.Succeeded == true
+                                       && !_isBenchmarkRunning
+                                       && !_pythonRunner.IsRunning;
 
-            RunCodeMenuItem.IsEnabled = canRunWithLimits;
-            RunCodeButton.IsEnabled = canRunWithLimits;
+            RunCodeMenuItem.IsEnabled = isJudgeRuntimeReady;
+            RunCodeButton.IsEnabled = isJudgeRuntimeReady;
             EditProblemMenuItem.IsEnabled = hasProblem && !isLessonProblem;
             EditProblemButton.IsEnabled = hasProblem && !isLessonProblem;
-            RunSampleMenuItem.IsEnabled = hasProblem && canRunWithLimits;
-            RunSampleButton.IsEnabled = hasProblem && canRunWithLimits;
-            SubmitMenuItem.IsEnabled = hasProblem && canRunWithLimits;
-            SubmitButton.IsEnabled = hasProblem && canRunWithLimits;
+            RunSampleMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady;
+            RunSampleButton.IsEnabled = hasProblem && isJudgeRuntimeReady;
+            SubmitMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady;
+            SubmitButton.IsEnabled = hasProblem && isJudgeRuntimeReady;
             SubmissionHistoryMenuItem.IsEnabled = hasProblem;
             ExportSubmissionHistoryMenuItem.IsEnabled = hasProblem && !isLessonProblem;
             BenchmarkMenuItem.IsEnabled = !_isBenchmarkRunning && !_pythonRunner.IsRunning;
@@ -889,8 +923,8 @@ namespace Local_Judge
                 return;
             }
 
-            JudgeEnvironmentBenchmarkResult? previousResult = _benchmarkResult;
             _isBenchmarkRunning = true;
+            _benchmarkResult = null;
             UpdateProblemCommandState();
             SelectTerminalTab();
 
@@ -903,54 +937,34 @@ namespace Local_Judge
 
             try
             {
-                JudgeEnvironmentBenchmarkResult result = await _environmentBenchmark.RunAsync();
-                bool keptPreviousResult = !result.Succeeded && previousResult is not null;
-
-                if (!keptPreviousResult)
+                if (!await EnsurePythonConnectionAsync())
                 {
-                    _benchmarkResult = result;
+                    return;
                 }
+
+                JudgeEnvironmentBenchmarkResult result = await _environmentBenchmark.RunAsync();
 
                 if (result.Succeeded)
                 {
+                    _benchmarkResult = result;
                     SetStatus("채점 환경 준비 완료");
                     AppendBenchmarkSummary(result);
                 }
                 else
                 {
+                    _benchmarkResult = null;
                     SetStatus("채점 환경 점검 실패", isError: true);
                     AppendTerminal($"[Benchmark] 실패: {result.ErrorMessage}");
-
-                    if (keptPreviousResult)
-                    {
-                        AppendTerminal("[Benchmark] 이전 보정값을 유지합니다.");
-                        AppendBenchmarkSummary(previousResult!);
-                    }
-                    else
-                    {
-                        AppendTerminal("[Benchmark] 안전 기본 보정값을 적용합니다.");
-                        AppendBenchmarkSummary(result);
-                    }
+                    AppendTerminal("[Benchmark] 벤치마크가 성공하기 전까지 실행과 제출을 사용할 수 없습니다.");
                 }
             }
             catch (Exception ex)
             {
+                _benchmarkResult = null;
                 SetStatus("채점 환경 점검 실패", isError: true);
                 AppendTerminal("[Benchmark] 벤치마크 실행 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
-
-                if (previousResult is not null)
-                {
-                    _benchmarkResult = previousResult;
-                    AppendTerminal("[Benchmark] 이전 보정값을 유지합니다.");
-                    AppendBenchmarkSummary(previousResult);
-                }
-                else
-                {
-                    _benchmarkResult = JudgeEnvironmentBenchmarkResult.CreateFallback(ex.Message);
-                    AppendTerminal("[Benchmark] 안전 기본 보정값을 적용합니다.");
-                    AppendBenchmarkSummary(_benchmarkResult);
-                }
+                AppendTerminal("[Benchmark] 벤치마크가 성공하기 전까지 실행과 제출을 사용할 수 없습니다.");
             }
             finally
             {
@@ -964,6 +978,34 @@ namespace Local_Judge
                 {
                     UpdateProblemCommandState();
                 }
+            }
+        }
+
+        private async Task<bool> EnsurePythonConnectionAsync()
+        {
+            try
+            {
+                string versionText = await _pythonRunner.GetVersionTextAsync();
+                if (string.IsNullOrWhiteSpace(versionText))
+                {
+                    throw new InvalidOperationException("Python 버전 정보를 읽을 수 없습니다.");
+                }
+
+                _isPythonConnected = true;
+                AppendTerminal($"[Settings] Python 연결 확인: {versionText}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _isPythonConnected = false;
+                _benchmarkResult = null;
+
+                SetStatus("Python 연결 필요", isError: true);
+                AppendTerminal("[Settings] Python 실행 파일을 확인할 수 없습니다.");
+                AppendTerminal($"[Settings] 현재 Python 실행 파일 설정: {_pythonRunner.PythonExecutablePath}");
+                AppendTerminal("[Settings] [도구] > [Python 경로 설정]에서 python.exe를 선택하세요.");
+                AppendTerminal(ex.Message);
+                return false;
             }
         }
 
@@ -993,6 +1035,14 @@ namespace Local_Judge
 
         private bool EnsureBenchmarkReadyForRun()
         {
+            if (!_isPythonConnected)
+            {
+                SetStatus("Python 연결 필요", isError: true);
+                AppendTerminal("[Run] Python 연결과 채점 환경 벤치마크가 완료된 뒤 실행할 수 있습니다.");
+                AppendTerminal("[Run] [도구] > [Python 경로 설정]에서 python.exe를 선택하세요.");
+                return false;
+            }
+
             if (_isBenchmarkRunning)
             {
                 SetStatus("채점 환경 점검 중", isError: true);
@@ -1000,10 +1050,10 @@ namespace Local_Judge
                 return false;
             }
 
-            if (_benchmarkResult is null)
+            if (_benchmarkResult?.Succeeded != true)
             {
                 SetStatus("채점 환경 미준비", isError: true);
-                AppendTerminal("[Benchmark] 채점 환경 벤치마크가 아직 완료되지 않았습니다.");
+                AppendTerminal("[Benchmark] 채점 환경 벤치마크가 성공적으로 완료된 뒤 실행할 수 있습니다.");
                 return false;
             }
 
@@ -1526,8 +1576,13 @@ namespace Local_Judge
             int memoryLimitMb = problem?.MemoryLimitMb > 0
                 ? problem.MemoryLimitMb
                 : 128;
-            JudgeEnvironmentBenchmarkResult calibration = _benchmarkResult
-                ?? JudgeEnvironmentBenchmarkResult.DefaultFallback;
+
+            if (_benchmarkResult?.Succeeded != true)
+            {
+                throw new InvalidOperationException("채점 환경 벤치마크가 완료되지 않았습니다.");
+            }
+
+            JudgeEnvironmentBenchmarkResult calibration = _benchmarkResult;
 
             int adjustedTimeLimitMs = calibration.ApplyTimeLimitMs(timeLimitMs);
             int adjustedMemoryLimitMb = calibration.ApplyMemoryLimitMb(memoryLimitMb);
@@ -1681,7 +1736,7 @@ namespace Local_Judge
         {
             DateTimeOffset submittedAt = DateTimeOffset.Now;
             JudgeEnvironmentBenchmarkResult benchmark = _benchmarkResult
-                ?? JudgeEnvironmentBenchmarkResult.DefaultFallback;
+                ?? throw new InvalidOperationException("채점 환경 벤치마크가 완료되지 않았습니다.");
 
             return new SubmissionAttemptDocument
             {
@@ -2308,17 +2363,25 @@ namespace Local_Judge
                 return;
             }
 
-            _pythonRunner.PythonExecutablePath = dialog.FileName;
+            string selectedPythonPath = dialog.FileName;
+            _pythonRunner.PythonExecutablePath = selectedPythonPath;
+            _isPythonConnected = false;
+            _benchmarkResult = null;
+            UpdateProblemCommandState();
+
             AppendTerminal($"[Settings] Python 경로를 설정했습니다: {_pythonRunner.PythonExecutablePath}");
-
-            string versionText = await GetPythonVersionTextAsync();
-            if (!string.IsNullOrWhiteSpace(versionText))
-            {
-                AppendTerminal($"[Settings] {versionText}");
-            }
-
             AppendTerminal("[Benchmark] Python 경로가 변경되어 채점 환경 벤치마크를 다시 실행합니다.");
             await StartEnvironmentBenchmarkAsync(isManual: true);
+
+            if (_isPythonConnected && _benchmarkResult?.Succeeded == true)
+            {
+                _userSettings.PythonExecutablePath = selectedPythonPath;
+                SaveUserSettings();
+            }
+            else
+            {
+                AppendTerminal("[Settings] Python 경로는 연결 확인과 벤치마크가 성공한 뒤 저장됩니다.");
+            }
         }
 
         private async void BenchmarkMenuItem_Click(object sender, RoutedEventArgs e)
