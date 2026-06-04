@@ -144,6 +144,15 @@
             <StatusBarItem>
                 <TextBlock x:Name="CurrentProblemStatusTextBlock" Text="문제 미선택" />
             </StatusBarItem>
+
+            <Separator />
+
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="버전: " FontWeight="SemiBold" />
+                    <TextBlock x:Name="VersionStatusTextBlock" />
+                </StackPanel>
+            </StatusBarItem>
         </StatusBar>
 
         <!-- 메인 영역: 좌측 문제 / 우측 에디터 + 터미널 -->

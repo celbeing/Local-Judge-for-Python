@@ -30,6 +30,10 @@ namespace Local_Judge
         private readonly LessonResultInspectionReader _lessonResultInspectionReader;
         private readonly LessonPackageReader _lessonPackageReader;
         private readonly LocalJudgeSettingsStore _settingsStore;
+        private const string ApplicationVersion = "v1.0";
+        private const string ApplicationAuthor = "김명서";
+        private const string ApplicationIndischoolId = "전라남도교육지원청";
+        private const string ApplicationTistoryUrl = "https://celbeing.tistory.com/";
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
         private const string ProblemViewerHostName = "localjudge.problem-viewer";
         private const string ProblemAssetsHostName = "localjudge.problem-assets";
@@ -80,6 +84,7 @@ namespace Local_Judge
 
             InitializeComponent();
 
+            VersionStatusTextBlock.Text = ApplicationVersion;
             LoadUserSettings();
             SetStatus("채점 대기");
             ResetProblemView();
@@ -2458,11 +2463,16 @@ namespace Local_Judge
 
         private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show(
-                "[Local Judge]\nC# WPF 기반 PS 로컬 저지 프로그램\n버전:v1.0\n제작:김명서\nindischool:전라남도교육지원청\ntistory:https://celbeing.tistory.com/",
-                "정보",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            var window = new AboutWindow(
+                ApplicationVersion,
+                ApplicationAuthor,
+                ApplicationIndischoolId,
+                ApplicationTistoryUrl)
+            {
+                Owner = this
+            };
+
+            window.ShowDialog();
         }
 
         private void ClearTerminalMenuItem_Click(object sender, RoutedEventArgs e)
