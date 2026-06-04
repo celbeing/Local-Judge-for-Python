@@ -118,6 +118,33 @@ namespace Local_Judge
             }
         }
 
+        private void ApplyInitialDirectory(FileDialog dialog, string? directoryPath)
+        {
+            if (string.IsNullOrWhiteSpace(directoryPath))
+            {
+                return;
+            }
+
+            try
+            {
+                string fullPath = Path.GetFullPath(directoryPath);
+                Directory.CreateDirectory(fullPath);
+                dialog.InitialDirectory = fullPath;
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal($"[Settings] 저장 경로 설정을 적용할 수 없습니다: {directoryPath}");
+                AppendTerminal(ex.Message);
+            }
+        }
+
+        private static string FormatConfiguredDirectory(string? directoryPath)
+        {
+            return string.IsNullOrWhiteSpace(directoryPath)
+                ? "미지정"
+                : directoryPath;
+        }
+
         private async Task InitializeProblemViewerAsync()
         {
             try
@@ -1062,7 +1089,7 @@ namespace Local_Judge
 
         private void NewProblemMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var editor = new ProblemEditorWindow
+            var editor = new ProblemEditorWindow(defaultProblemSaveDirectory: _userSettings.ProblemSaveDirectory)
             {
                 Owner = this
             };
@@ -1191,6 +1218,7 @@ namespace Local_Judge
                 Filter = "JSON 문제 파일 (*.json)|*.json|모든 파일 (*.*)|*.*",
                 FileName = CreateDefaultProblemFileName(_currentProblem)
             };
+            ApplyInitialDirectory(dialog, _userSettings.ProblemSaveDirectory);
 
             bool? result = dialog.ShowDialog(this);
             if (result != true)
@@ -1219,6 +1247,7 @@ namespace Local_Judge
                 Filter = "JSON 문제 파일 (*.json)|*.json|모든 파일 (*.*)|*.*",
                 FileName = CreateDefaultProblemFileName(_currentProblem)
             };
+            ApplyInitialDirectory(dialog, _userSettings.ProblemSaveDirectory);
 
             bool? result = dialog.ShowDialog(this);
             if (result != true)
@@ -1266,6 +1295,7 @@ namespace Local_Judge
                 RenderProblemView();
 
                 AppendTerminal("[Problem] 문제 JSON 저장이 완료되었습니다.");
+                AppendTerminal($"[Problem] 저장 위치: {filePath}");
                 return true;
             }
             catch (Exception ex)
@@ -2109,6 +2139,7 @@ namespace Local_Judge
                     DefaultExt = ".zip",
                     FileName = CreateDefaultSubmissionExportFileName(_currentProblem)
                 };
+                ApplyInitialDirectory(dialog, _userSettings.SubmissionHistoryExportDirectory);
 
                 bool? result = dialog.ShowDialog(this);
                 if (result != true)
@@ -2405,12 +2436,30 @@ namespace Local_Judge
 
         private void SettingsMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            var window = new SettingsWindow(_userSettings)
+            {
+                Owner = this
+            };
+
+            bool? result = window.ShowDialog();
+            if (result != true)
+            {
+                return;
+            }
+
+            _userSettings.ProblemSaveDirectory = window.ProblemSaveDirectory;
+            _userSettings.SubmissionHistoryExportDirectory = window.SubmissionHistoryExportDirectory;
+            SaveUserSettings();
+
+            AppendTerminal("[Settings] 환경 설정을 적용했습니다.");
+            AppendTerminal($"[Settings] 문항 저장 경로: {FormatConfiguredDirectory(_userSettings.ProblemSaveDirectory)}");
+            AppendTerminal($"[Settings] 제출 이력 내보내기 경로: {FormatConfiguredDirectory(_userSettings.SubmissionHistoryExportDirectory)}");
         }
 
         private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
         {
             MessageBox.Show(
-                "Local Judge\nC# WPF 기반 PS 로컬 저지 프로그램",
+                "[Local Judge]\nC# WPF 기반 PS 로컬 저지 프로그램\n버전:v1.0\n제작:김명서\nindischool:전라남도교육지원청\ntistory:https://celbeing.tistory.com/",
                 "정보",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);

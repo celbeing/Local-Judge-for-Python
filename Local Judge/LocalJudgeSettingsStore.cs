@@ -61,5 +61,7 @@ namespace Local_Judge
     public sealed class LocalJudgeUserSettings
     {
         public string PythonExecutablePath { get; set; } = string.Empty;
+        public string ProblemSaveDirectory { get; set; } = string.Empty;
+        public string SubmissionHistoryExportDirectory { get; set; } = string.Empty;
     }
 }

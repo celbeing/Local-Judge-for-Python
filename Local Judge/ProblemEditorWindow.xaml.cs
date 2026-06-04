@@ -24,6 +24,7 @@ namespace Local_Judge
         private readonly List<ProblemAssetDocument> _assets = new();
         private readonly bool _isNewProblem;
         private readonly string? _sourceProblemFilePath;
+        private readonly string? _defaultProblemSaveDirectory;
         private readonly string _assetWorkspacePath;
         private readonly DispatcherTimer _previewRefreshTimer;
         private List<TestCaseDocument> _testCases = new();
@@ -41,10 +42,14 @@ namespace Local_Judge
         public string? SavedFilePath { get; private set; }
         public string AssetWorkspacePath => _assetWorkspacePath;
 
-        public ProblemEditorWindow(ProblemDocument? problem = null, string? problemFilePath = null)
+        public ProblemEditorWindow(
+            ProblemDocument? problem = null,
+            string? problemFilePath = null,
+            string? defaultProblemSaveDirectory = null)
         {
             _isNewProblem = problem is null;
             _sourceProblemFilePath = problemFilePath;
+            _defaultProblemSaveDirectory = defaultProblemSaveDirectory;
             _assetWorkspacePath = Path.Combine(
                 Path.GetTempPath(),
                 "LocalJudge",
@@ -811,6 +816,7 @@ namespace Local_Judge
                 Filter = "JSON 문제 파일 (*.json)|*.json|모든 파일 (*.*)|*.*",
                 FileName = CreateDefaultProblemFileName(Problem)
             };
+            ApplyInitialDirectory(dialog, _defaultProblemSaveDirectory);
 
             bool? result = dialog.ShowDialog(this);
             if (result != true)
@@ -840,6 +846,25 @@ namespace Local_Judge
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 return false;
+            }
+        }
+
+        private static void ApplyInitialDirectory(SaveFileDialog dialog, string? directoryPath)
+        {
+            if (string.IsNullOrWhiteSpace(directoryPath))
+            {
+                return;
+            }
+
+            try
+            {
+                string fullPath = Path.GetFullPath(directoryPath);
+                Directory.CreateDirectory(fullPath);
+                dialog.InitialDirectory = fullPath;
+            }
+            catch
+            {
+                // Invalid user settings should not block saving a new problem.
             }
         }
 
