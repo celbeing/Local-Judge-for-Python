@@ -669,6 +669,24 @@ namespace Local_Judge
             AppendTerminal("[Lesson] 수업을 닫았습니다.");
         }
 
+        private void CreateContestMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var editor = new ContestCreatorWindow(_jsonOptions, _userSettings.ProblemSaveDirectory)
+            {
+                Owner = this
+            };
+
+            bool? result = editor.ShowDialog();
+            if (result != true)
+            {
+                AppendTerminal("[Contest] 대회 만들기를 취소했습니다.");
+                return;
+            }
+
+            AppendTerminal("[Contest] 대회 ZIP을 저장했습니다.");
+            AppendTerminal($"[Contest] 저장 위치: {editor.SavedFilePath ?? "경로 알 수 없음"}");
+        }
+
         private async void OpenContestMenuItem_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new OpenFileDialog
@@ -694,6 +712,7 @@ namespace Local_Judge
                 AppendTerminal($"[Contest] 대회를 열었습니다: {contest.Title}");
                 AppendTerminal($"[Contest] 작업 폴더: {contest.RootPath}");
                 AppendTerminal($"[Contest] 시작: {contest.StartsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss} / 종료: {contest.EndsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss}");
+                AppendContestInfo(contest);
 
                 if (IsContestProblemOpenAllowed())
                 {
@@ -735,6 +754,21 @@ namespace Local_Judge
         private void CloseContestMenuItem_Click(object sender, RoutedEventArgs e)
         {
             CloseCurrentContest();
+        }
+
+        private void AppendContestInfo(ContestContext contest)
+        {
+            if (contest.AdditionalInfo.Count == 0)
+            {
+                return;
+            }
+
+            foreach (ContestInfoDocument item in contest.AdditionalInfo)
+            {
+                string label = string.IsNullOrWhiteSpace(item.Label) ? "정보" : item.Label.Trim();
+                string text = string.IsNullOrWhiteSpace(item.Text) ? "-" : item.Text.Trim();
+                AppendTerminal($"[Contest] {label}: {text}");
+            }
         }
 
         private void SetCurrentContest(ContestContext contest)
@@ -818,11 +852,7 @@ namespace Local_Judge
                     UpdateContestProblemStatus(problem);
                     var problemItem = new TreeViewItem
                     {
-                        Header = new TextBlock
-                        {
-                            Text = FormatContestProblemTreeText(problem),
-                            Foreground = GetContestProblemBrush(problem)
-                        },
+                        Header = CreateContestProblemTreeHeader(problem),
                         Tag = problem,
                         IsSelected = string.Equals(problem.RelativePath, selectedProblemRelativePath, StringComparison.OrdinalIgnoreCase)
                     };
@@ -1100,6 +1130,34 @@ namespace Local_Judge
             return $"{problem.Label}. {title}";
         }
 
+        private static StackPanel CreateContestProblemTreeHeader(ContestProblemItem problem)
+        {
+            return new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Children =
+                {
+                    new System.Windows.Shapes.Ellipse
+                    {
+                        Width = 10,
+                        Height = 10,
+                        Fill = GetContestBalloonBrush(problem),
+                        Stroke = Brushes.DimGray,
+                        StrokeThickness = 0.5,
+                        Margin = new Thickness(0, 0, 6, 0),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        ToolTip = "풍선 색"
+                    },
+                    new TextBlock
+                    {
+                        Text = FormatContestProblemTreeText(problem),
+                        Foreground = GetContestProblemBrush(problem),
+                        VerticalAlignment = VerticalAlignment.Center
+                    }
+                }
+            };
+        }
+
         private static Brush GetContestProblemBrush(ContestProblemItem problem)
         {
             if (problem.HasAccepted)
@@ -1110,6 +1168,29 @@ namespace Local_Judge
             return problem.AttemptCount > 0
                 ? Brushes.Firebrick
                 : Brushes.Black;
+        }
+
+        private static Brush GetContestBalloonBrush(ContestProblemItem problem)
+        {
+            string colorText = string.IsNullOrWhiteSpace(problem.BalloonColor)
+                ? "#7F8C8D"
+                : problem.BalloonColor.Trim();
+
+            try
+            {
+                if (ColorConverter.ConvertFromString(colorText) is Color color)
+                {
+                    var brush = new SolidColorBrush(color);
+                    brush.Freeze();
+                    return brush;
+                }
+            }
+            catch
+            {
+                // Invalid contest metadata falls back to a neutral color.
+            }
+
+            return Brushes.Gray;
         }
 
         private void RenderProblemView()

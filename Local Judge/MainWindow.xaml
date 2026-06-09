@@ -113,6 +113,9 @@
             </MenuItem>
 
             <MenuItem Header="_대회">
+                <MenuItem Header="대회 만들기..."
+                          Click="CreateContestMenuItem_Click" />
+                <Separator />
                 <MenuItem x:Name="OpenContestMenuItem"
                           Header="대회 열기..."
                           Click="OpenContestMenuItem_Click" />

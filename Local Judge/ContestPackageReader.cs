@@ -86,6 +86,11 @@ namespace Local_Judge
                 Title = title,
                 StartsAt = manifest.StartsAt,
                 EndsAt = manifest.EndsAt,
+                Venue = manifest.Venue ?? string.Empty,
+                Organizer = manifest.Organizer ?? string.Empty,
+                Prize = manifest.Prize ?? string.Empty,
+                Caption = manifest.Caption ?? string.Empty,
+                AdditionalInfo = NormalizeContestInfo(manifest),
                 WrongSubmissionPenaltyMinutes = manifest.WrongSubmissionPenaltyMinutes <= 0
                     ? 20
                     : manifest.WrongSubmissionPenaltyMinutes,
@@ -128,6 +133,44 @@ namespace Local_Judge
             }
         }
 
+        private static List<ContestInfoDocument> NormalizeContestInfo(ContestManifestDocument manifest)
+        {
+            var items = new List<ContestInfoDocument>();
+            items.AddRange((manifest.AdditionalInfo ?? new List<ContestInfoDocument>())
+                .Where(item => item is not null)
+                .Select(item => new ContestInfoDocument
+                {
+                    Label = item.Label ?? string.Empty,
+                    Text = item.Text ?? string.Empty
+                })
+                .Where(item => !string.IsNullOrWhiteSpace(item.Label)
+                               || !string.IsNullOrWhiteSpace(item.Text)));
+
+            AddLegacyContestInfo(items, "장소", manifest.Venue);
+            AddLegacyContestInfo(items, "주최", manifest.Organizer);
+            AddLegacyContestInfo(items, "상품", manifest.Prize);
+            AddLegacyContestInfo(items, "안내", manifest.Caption);
+            return items;
+        }
+
+        private static void AddLegacyContestInfo(
+            List<ContestInfoDocument> items,
+            string label,
+            string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)
+                || items.Any(item => string.Equals(item.Label, label, StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
+            items.Add(new ContestInfoDocument
+            {
+                Label = label,
+                Text = text.Trim()
+            });
+        }
+
         private List<ContestProblemItem> ReadProblems(string contestRootPath, ContestManifestDocument manifest)
         {
             List<string> orderedRelativePaths = GetProblemRelativePaths(contestRootPath, manifest);
@@ -167,7 +210,10 @@ namespace Local_Judge
                         Problem = problem,
                         SubmissionProblem = submissionProblem,
                         SubmissionKey = CreateContestProblemKey(submissionProblem, relativePath),
-                        Score = problemManifest?.Score > 0 ? problemManifest.Score : 1
+                        Score = problemManifest?.Score > 0 ? problemManifest.Score : 1,
+                        BalloonColor = string.IsNullOrWhiteSpace(problemManifest?.BalloonColor)
+                            ? GetDefaultBalloonColor(i)
+                            : problemManifest!.BalloonColor.Trim()
                     });
                 }
                 catch
@@ -319,6 +365,24 @@ namespace Local_Judge
 
             return builder.ToString();
         }
+
+        private static string GetDefaultBalloonColor(int index)
+        {
+            string[] colors =
+            [
+                "#E74C3C",
+                "#3498DB",
+                "#2ECC71",
+                "#F1C40F",
+                "#9B59B6",
+                "#E67E22",
+                "#1ABC9C",
+                "#E84393",
+                "#7F8C8D"
+            ];
+
+            return colors[index % colors.Length];
+        }
     }
 
     public sealed class ContestManifestDocument
@@ -326,8 +390,19 @@ namespace Local_Judge
         public string Title { get; set; } = string.Empty;
         public DateTimeOffset StartsAt { get; set; }
         public DateTimeOffset EndsAt { get; set; }
+        public string Venue { get; set; } = string.Empty;
+        public string Organizer { get; set; } = string.Empty;
+        public string Prize { get; set; } = string.Empty;
+        public string Caption { get; set; } = string.Empty;
+        public List<ContestInfoDocument> AdditionalInfo { get; set; } = new();
         public int WrongSubmissionPenaltyMinutes { get; set; } = 20;
         public List<ContestProblemManifestItem> Problems { get; set; } = new();
+    }
+
+    public sealed class ContestInfoDocument
+    {
+        public string Label { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
     }
 
     public sealed class ContestProblemManifestItem
@@ -336,6 +411,7 @@ namespace Local_Judge
         public string File { get; set; } = string.Empty;
         public string ProblemFilePath { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+        public string BalloonColor { get; set; } = string.Empty;
         public int Score { get; set; } = 1;
     }
 
@@ -345,6 +421,11 @@ namespace Local_Judge
         public string Title { get; set; } = string.Empty;
         public DateTimeOffset StartsAt { get; set; }
         public DateTimeOffset EndsAt { get; set; }
+        public string Venue { get; set; } = string.Empty;
+        public string Organizer { get; set; } = string.Empty;
+        public string Prize { get; set; } = string.Empty;
+        public string Caption { get; set; } = string.Empty;
+        public List<ContestInfoDocument> AdditionalInfo { get; set; } = new();
         public int WrongSubmissionPenaltyMinutes { get; set; } = 20;
         public string RootPath { get; set; } = string.Empty;
         public string SourceZipPath { get; set; } = string.Empty;
@@ -361,6 +442,7 @@ namespace Local_Judge
         public SubmissionProblemDocument SubmissionProblem { get; set; } = new();
         public string SubmissionKey { get; set; } = string.Empty;
         public int Score { get; set; } = 1;
+        public string BalloonColor { get; set; } = string.Empty;
         public int AttemptCount { get; set; }
         public bool HasAccepted { get; set; }
         public string LastVerdict { get; set; } = string.Empty;
