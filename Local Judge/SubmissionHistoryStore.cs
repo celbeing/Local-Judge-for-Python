@@ -184,6 +184,10 @@ namespace Local_Judge
         public string LessonTitle { get; set; } = string.Empty;
         public string SectionTitle { get; set; } = string.Empty;
         public string ProblemRelativePath { get; set; } = string.Empty;
+        public string ContestId { get; set; } = string.Empty;
+        public string ContestTitle { get; set; } = string.Empty;
+        public string ContestProblemLabel { get; set; } = string.Empty;
+        public string ContestProblemRelativePath { get; set; } = string.Empty;
         public string Code { get; set; } = string.Empty;
         public SubmissionLimitDocument Limits { get; set; } = new();
         public SubmissionBenchmarkDocument Benchmark { get; set; } = new();

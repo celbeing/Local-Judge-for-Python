@@ -1,4 +1,4 @@
-<Window x:Class="Local_Judge.SubmissionHistoryFileWindow"
+﻿<Window x:Class="Local_Judge.SubmissionHistoryFileWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="제출 이력 파일 확인"

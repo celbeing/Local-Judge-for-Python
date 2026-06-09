@@ -30,7 +30,7 @@ namespace Local_Judge
             }
 
             var problemGroups = request.Problems
-                .GroupBy(problem => SubmissionHistoryStore.GetProblemKey(problem.Problem))
+                .GroupBy(GetExportProblemKey)
                 .Select(group => group.First())
                 .ToList();
 
@@ -42,8 +42,9 @@ namespace Local_Judge
 
             foreach (SubmissionHistoryExportProblem problem in problemGroups)
             {
-                string problemKey = SubmissionHistoryStore.GetProblemKey(problem.Problem);
-                IReadOnlyList<SubmissionAttemptHistoryItem> attempts = _historyStore.LoadAttemptsForProblem(problem.Problem);
+                string problemKey = GetExportProblemKey(problem);
+                IReadOnlyList<SubmissionAttemptHistoryItem> attempts = problem.Attempts
+                    ?? _historyStore.LoadAttemptsForProblem(problem.Problem);
                 var files = new List<string>();
                 SubmissionAttemptDocument? firstAttempt = attempts
                     .OrderBy(attempt => attempt.Attempt.SubmittedAt)
@@ -103,6 +104,13 @@ namespace Local_Judge
             sourceStream.CopyTo(entryStream);
         }
 
+        private static string GetExportProblemKey(SubmissionHistoryExportProblem problem)
+        {
+            return string.IsNullOrWhiteSpace(problem.ProblemKey)
+                ? SubmissionHistoryStore.GetProblemKey(problem.Problem)
+                : problem.ProblemKey;
+        }
+
         private static void AddTextEntry(ZipArchive archive, string entryName, string text)
         {
             ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
@@ -123,10 +131,12 @@ namespace Local_Judge
 
     public sealed class SubmissionHistoryExportProblem
     {
+        public string ProblemKey { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public SubmissionProblemDocument Problem { get; set; } = new();
         public string ProblemFilePath { get; set; } = string.Empty;
         public int Score { get; set; } = 1;
+        public IReadOnlyList<SubmissionAttemptHistoryItem>? Attempts { get; set; }
     }
 
     public sealed record SubmissionHistoryExportResult(

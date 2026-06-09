@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,14 +25,10 @@ namespace Local_Judge
             TitleTextBlock.Text = string.IsNullOrWhiteSpace(document.Manifest.ExportName)
                 ? "제출 이력 파일"
                 : document.Manifest.ExportName;
-            string kindText = string.Equals(document.Manifest.ExportKind, "LessonResult", StringComparison.OrdinalIgnoreCase)
-                ? "수업 결과"
-                : document.Manifest.ExportKind;
-            string timeLabel = string.Equals(document.Manifest.ExportKind, "LessonResult", StringComparison.OrdinalIgnoreCase)
-                ? "확인 시각"
-                : "내보낸 시각";
+
+            string kindText = FormatExportKind(document.Manifest.ExportKind);
             SummaryTextBlock.Text =
-                $"종류: {kindText} / {timeLabel}: {FormatDateTime(document.Manifest.ExportedAt)} / 문항: {document.Problems.Count}개 / 제출: {_problemRows.Sum(row => row.AttemptCount)}개 / 건너뜀: {document.SkippedFileCount}개";
+                $"종류: {kindText} / 내보낸 시각: {FormatDateTime(document.Manifest.ExportedAt)} / 문항: {document.Problems.Count}개 / 제출: {_problemRows.Sum(row => row.AttemptCount)}개 / 건너뜀: {document.SkippedFileCount}개";
 
             ProblemSummaryDataGrid.ItemsSource = _problemRows;
             ConfigureContestSummary();
@@ -110,6 +106,18 @@ namespace Local_Judge
             Close();
         }
 
+        private static string FormatExportKind(string exportKind)
+        {
+            return exportKind switch
+            {
+                "LessonResult" => "수업 결과",
+                "Contest" => "대회 결과",
+                "Problem" => "문항 제출 이력",
+                _ when string.IsNullOrWhiteSpace(exportKind) => "제출 이력",
+                _ => exportKind
+            };
+        }
+
         private static string FormatDateTime(DateTimeOffset value)
         {
             return value == default
@@ -159,15 +167,26 @@ namespace Local_Judge
 
             public SubmissionHistoryInspectionProblem Problem { get; }
             public List<SubmissionAttemptRow> SubmissionRows { get; }
-            public string ProblemName => string.IsNullOrWhiteSpace(Problem.Problem.Id)
-                ? Problem.Problem.Title
-                : $"[{Problem.Problem.Id}] {Problem.Problem.Title}";
+            public string ProblemName
+            {
+                get
+                {
+                    if (!string.IsNullOrWhiteSpace(Problem.DisplayName))
+                    {
+                        return Problem.DisplayName;
+                    }
+
+                    return string.IsNullOrWhiteSpace(Problem.Problem.Id)
+                        ? Problem.Problem.Title
+                        : $"[{Problem.Problem.Id}] {Problem.Problem.Title}";
+                }
+            }
             public string ProblemId => string.IsNullOrWhiteSpace(Problem.Problem.Id) ? "-" : Problem.Problem.Id;
             public string Title
             {
                 get
                 {
-                    string title = Problem.Problem.Title;
+                    string title = ProblemName;
                     if (FirstAccepted is not null || AttemptCount == 0)
                     {
                         return title;
@@ -230,7 +249,6 @@ namespace Local_Judge
             public string FilePath { get; }
             public SubmissionAttemptDocument Attempt { get; }
             public bool IsAccepted => string.Equals(Attempt.Verdict, "AC", StringComparison.OrdinalIgnoreCase);
-            public bool IsWrongBeforeAccepted => !IsAccepted;
             public string SubmittedAtText => FormatDateTime(Attempt.SubmittedAt);
             public string Language => string.IsNullOrWhiteSpace(Attempt.Language) ? "Python" : Attempt.Language;
             public string Verdict => Attempt.Verdict;

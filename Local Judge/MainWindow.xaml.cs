@@ -13,6 +13,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Local_Judge
 {
@@ -29,6 +30,7 @@ namespace Local_Judge
         private readonly SubmissionHistoryImportReader _submissionHistoryImportReader;
         private readonly LessonResultInspectionReader _lessonResultInspectionReader;
         private readonly LessonPackageReader _lessonPackageReader;
+        private readonly ContestPackageReader _contestPackageReader;
         private readonly LocalJudgeSettingsStore _settingsStore;
         private const string ApplicationVersion = "v1.0";
         private const string ApplicationAuthor = "김명서";
@@ -62,14 +64,22 @@ namespace Local_Judge
         private string? _pendingProblemAssetWorkspacePath;
         private LessonContext? _currentLesson;
         private LessonProblemItem? _currentLessonProblem;
+        private ContestContext? _currentContest;
+        private ContestProblemItem? _currentContestProblem;
         private LocalJudgeUserSettings _userSettings = new();
         private bool _isPythonConnected;
         private bool _isRefreshingLessonExplorer;
+        private bool _isRefreshingContestExplorer;
         private bool _isProblemDirty;
         private JudgeEnvironmentBenchmarkResult? _benchmarkResult;
         private bool _isBenchmarkRunning;
+        private bool _isSubmitting;
+        private bool _contestAutoExportCompleted;
+        private bool _contestAutoExportFailed;
+        private bool _isContestAutoExporting;
         private bool _terminalEndsWithLineBreak = true;
         private bool _isProblemViewerReady;
+        private readonly DispatcherTimer _contestTimer;
         private readonly string _emptyProblemAssetFolderPath = Path.Combine(Path.GetTempPath(), "LocalJudge", "EmptyProblemAssets");
 
         public MainWindow()
@@ -80,14 +90,22 @@ namespace Local_Judge
             _submissionHistoryImportReader = new SubmissionHistoryImportReader(_jsonOptions);
             _lessonResultInspectionReader = new LessonResultInspectionReader(_jsonOptions);
             _lessonPackageReader = new LessonPackageReader(_jsonOptions);
+            _contestPackageReader = new ContestPackageReader(_jsonOptions);
             _settingsStore = new LocalJudgeSettingsStore(_jsonOptions);
 
             InitializeComponent();
+
+            _contestTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _contestTimer.Tick += ContestTimer_Tick;
 
             VersionStatusTextBlock.Text = ApplicationVersion;
             LoadUserSettings();
             SetStatus("채점 대기");
             ResetProblemView();
+            UpdateContestStatus();
             AppendTerminal("[UI] 화면 구성이 완료되었습니다.");
 
             _ = InitializeProblemViewerAsync();
@@ -609,12 +627,18 @@ namespace Local_Judge
 
         private void SetCurrentLesson(LessonContext lesson)
         {
+            if (_currentContest is not null)
+            {
+                CloseCurrentContest(showLog: false);
+            }
+
             _currentLesson = lesson;
             _currentLessonProblem = null;
 
             LessonExplorerRow.Height = new GridLength(190);
             LessonExplorerSplitterRow.Height = new GridLength(6);
             LessonExplorerGroupBox.Visibility = Visibility.Visible;
+            LessonExplorerGroupBox.Header = "수업";
             LessonExplorerGridSplitter.Visibility = Visibility.Visible;
             CloseLessonMenuItem.IsEnabled = true;
             ExportLessonResultMenuItem.IsEnabled = true;
@@ -643,6 +667,173 @@ namespace Local_Judge
             _isProblemDirty = false;
             ResetProblemView();
             AppendTerminal("[Lesson] 수업을 닫았습니다.");
+        }
+
+        private async void OpenContestMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "대회 ZIP 열기",
+                Filter = "ZIP 대회 파일 (*.zip)|*.zip|모든 파일 (*.*)|*.*"
+            };
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                return;
+            }
+
+            try
+            {
+                OpenContestMenuItem.IsEnabled = false;
+                SetStatus("대회 여는 중", isWorking: true);
+                AppendTerminal($"[Contest] 대회 ZIP을 여는 중입니다: {dialog.FileName}");
+
+                ContestContext contest = await Task.Run(() => _contestPackageReader.OpenZip(dialog.FileName));
+                SetCurrentContest(contest);
+                AppendTerminal($"[Contest] 대회를 열었습니다: {contest.Title}");
+                AppendTerminal($"[Contest] 작업 폴더: {contest.RootPath}");
+                AppendTerminal($"[Contest] 시작: {contest.StartsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss} / 종료: {contest.EndsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss}");
+
+                if (IsContestProblemOpenAllowed())
+                {
+                    ContestProblemItem? firstProblem = contest.Problems.FirstOrDefault();
+                    if (firstProblem is not null)
+                    {
+                        OpenContestProblem(firstProblem);
+                    }
+                }
+                else
+                {
+                    ResetProblemView();
+                    CurrentProblemStatusTextBlock.Text = $"현재 대회: {contest.Title} | 시작 전";
+                    AppendTerminal("[Contest] 대회 시작 전에는 문항을 열 수 없습니다.");
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Contest] 대회를 여는 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+                MessageBox.Show(
+                    "대회 ZIP 파일을 열 수 없습니다.\n\n" + ex.Message,
+                    "대회 열기",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            finally
+            {
+                OpenContestMenuItem.IsEnabled = true;
+                if (!_isBenchmarkRunning && !_pythonRunner.IsRunning)
+                {
+                    SetStatus("채점 대기");
+                }
+                UpdateProblemCommandState();
+                UpdateContestStatus();
+            }
+        }
+
+        private void CloseContestMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            CloseCurrentContest();
+        }
+
+        private void SetCurrentContest(ContestContext contest)
+        {
+            if (_currentContest is not null)
+            {
+                CloseCurrentContest(showLog: false);
+            }
+
+            if (_currentLesson is not null)
+            {
+                CloseCurrentLesson();
+            }
+
+            _currentContest = contest;
+            _currentContestProblem = null;
+            _contestAutoExportCompleted = false;
+            _contestAutoExportFailed = false;
+
+            LessonExplorerRow.Height = new GridLength(190);
+            LessonExplorerSplitterRow.Height = new GridLength(6);
+            LessonExplorerGroupBox.Visibility = Visibility.Visible;
+            LessonExplorerGroupBox.Header = "대회";
+            LessonExplorerGridSplitter.Visibility = Visibility.Visible;
+            CloseContestMenuItem.IsEnabled = true;
+            ExportContestResultMenuItem.IsEnabled = true;
+
+            LessonTitleTextBlock.Text = $"{contest.Title} | 문항 {contest.Problems.Count}개";
+            RefreshContestExplorer();
+            _contestTimer.Start();
+            UpdateContestStatus();
+            UpdateProblemCommandState();
+        }
+
+        private void CloseCurrentContest(bool showLog = true)
+        {
+            _contestTimer.Stop();
+            _currentContest = null;
+            _currentContestProblem = null;
+            _contestAutoExportCompleted = false;
+            _contestAutoExportFailed = false;
+            _isContestAutoExporting = false;
+
+            LessonTreeView.Items.Clear();
+            LessonTitleTextBlock.Text = string.Empty;
+            LessonExplorerGroupBox.Visibility = Visibility.Collapsed;
+            LessonExplorerGridSplitter.Visibility = Visibility.Collapsed;
+            LessonExplorerRow.Height = new GridLength(0);
+            LessonExplorerSplitterRow.Height = new GridLength(0);
+            CloseContestMenuItem.IsEnabled = false;
+            ExportContestResultMenuItem.IsEnabled = false;
+
+            _currentProblem = null;
+            _currentProblemFilePath = null;
+            _pendingProblemAssetWorkspacePath = null;
+            _isProblemDirty = false;
+            ResetProblemView();
+            UpdateContestStatus();
+
+            if (showLog)
+            {
+                AppendTerminal("[Contest] 대회를 닫았습니다.");
+            }
+        }
+
+        private void RefreshContestExplorer(string? selectedProblemRelativePath = null)
+        {
+            if (_currentContest is null)
+            {
+                return;
+            }
+
+            selectedProblemRelativePath ??= _currentContestProblem?.RelativePath;
+            _isRefreshingContestExplorer = true;
+            try
+            {
+                LessonTreeView.Items.Clear();
+
+                foreach (ContestProblemItem problem in _currentContest.Problems)
+                {
+                    UpdateContestProblemStatus(problem);
+                    var problemItem = new TreeViewItem
+                    {
+                        Header = new TextBlock
+                        {
+                            Text = FormatContestProblemTreeText(problem),
+                            Foreground = GetContestProblemBrush(problem)
+                        },
+                        Tag = problem,
+                        IsSelected = string.Equals(problem.RelativePath, selectedProblemRelativePath, StringComparison.OrdinalIgnoreCase)
+                    };
+
+                    LessonTreeView.Items.Add(problemItem);
+                }
+            }
+            finally
+            {
+                _isRefreshingContestExplorer = false;
+            }
         }
 
         private void RefreshLessonExplorer(string? selectedProblemRelativePath = null)
@@ -694,7 +885,7 @@ namespace Local_Judge
 
         private void LessonTreeView_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            if (_isRefreshingLessonExplorer)
+            if (_isRefreshingLessonExplorer || _isRefreshingContestExplorer)
             {
                 return;
             }
@@ -709,6 +900,16 @@ namespace Local_Judge
 
                 OpenLessonProblem(problem);
             }
+            else if (e.NewValue is TreeViewItem { Tag: ContestProblemItem contestProblem })
+            {
+                if (_currentContestProblem is not null
+                    && string.Equals(_currentContestProblem.RelativePath, contestProblem.RelativePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;
+                }
+
+                OpenContestProblem(contestProblem);
+            }
         }
 
         private void OpenLessonProblem(LessonProblemItem lessonProblem)
@@ -722,6 +923,27 @@ namespace Local_Judge
             DisplayProblem(lessonProblem.Problem);
             RefreshLessonExplorer(lessonProblem.RelativePath);
             AppendTerminal($"[Lesson] 문항을 열었습니다: {FormatLessonProblemName(lessonProblem)}");
+        }
+
+        private void OpenContestProblem(ContestProblemItem contestProblem)
+        {
+            if (!IsContestProblemOpenAllowed())
+            {
+                SetStatus("대회 시작 전", isError: true);
+                AppendTerminal("[Contest] 대회 시작 전에는 문항을 열 수 없습니다.");
+                RefreshContestExplorer(_currentContestProblem?.RelativePath);
+                return;
+            }
+
+            _currentContestProblem = contestProblem;
+            _currentProblem = contestProblem.Problem;
+            _currentProblemFilePath = contestProblem.FilePath;
+            _pendingProblemAssetWorkspacePath = null;
+            _isProblemDirty = false;
+
+            DisplayProblem(contestProblem.Problem);
+            RefreshContestExplorer(contestProblem.RelativePath);
+            AppendTerminal($"[Contest] 문항을 열었습니다: {FormatContestProblemName(contestProblem)}");
         }
 
         private void UpdateLessonProblemStatus(LessonProblemItem problem)
@@ -774,6 +996,56 @@ namespace Local_Judge
                 .ToList();
         }
 
+        private void UpdateContestProblemStatus(ContestProblemItem problem)
+        {
+            IReadOnlyList<SubmissionAttemptHistoryItem> attempts = LoadContestAttempts(problem);
+            problem.AttemptCount = attempts.Count;
+            problem.HasAccepted = attempts.Any(item => string.Equals(item.Attempt.Verdict, "AC", StringComparison.OrdinalIgnoreCase));
+            problem.LastVerdict = attempts
+                .OrderBy(item => item.Attempt.SubmittedAt)
+                .LastOrDefault()
+                ?.Attempt
+                .Verdict ?? string.Empty;
+        }
+
+        private IReadOnlyList<SubmissionAttemptHistoryItem> LoadContestAttempts(ContestProblemItem problem)
+        {
+            if (_currentContest is null)
+            {
+                return Array.Empty<SubmissionAttemptHistoryItem>();
+            }
+
+            string problemDirectory = Path.Combine(_currentContest.SubmissionsRoot, problem.SubmissionKey);
+            if (!Directory.Exists(problemDirectory))
+            {
+                return Array.Empty<SubmissionAttemptHistoryItem>();
+            }
+
+            var attempts = new List<SubmissionAttemptHistoryItem>();
+            foreach (string filePath in Directory.EnumerateFiles(problemDirectory, "*.json"))
+            {
+                try
+                {
+                    string json = File.ReadAllText(filePath);
+                    SubmissionAttemptDocument? attempt = JsonSerializer.Deserialize<SubmissionAttemptDocument>(json, _jsonOptions);
+                    if (attempt is null)
+                    {
+                        continue;
+                    }
+
+                    attempts.Add(new SubmissionAttemptHistoryItem(filePath, attempt));
+                }
+                catch
+                {
+                    // Ignore malformed contest submission files.
+                }
+            }
+
+            return attempts
+                .OrderByDescending(item => item.Attempt.SubmittedAt)
+                .ToList();
+        }
+
         private static string FormatLessonProblemTreeText(LessonProblemItem problem)
         {
             string name = FormatLessonProblemName(problem);
@@ -793,6 +1065,42 @@ namespace Local_Judge
         }
 
         private static Brush GetLessonProblemBrush(LessonProblemItem problem)
+        {
+            if (problem.HasAccepted)
+            {
+                return Brushes.ForestGreen;
+            }
+
+            return problem.AttemptCount > 0
+                ? Brushes.Firebrick
+                : Brushes.Black;
+        }
+
+        private static string FormatContestProblemTreeText(ContestProblemItem problem)
+        {
+            string name = FormatContestProblemName(problem);
+            if (problem.HasAccepted)
+            {
+                return $"{name} (AC)";
+            }
+
+            if (problem.AttemptCount == 0 || string.IsNullOrWhiteSpace(problem.LastVerdict))
+            {
+                return name;
+            }
+
+            return $"{name} ({problem.LastVerdict})";
+        }
+
+        private static string FormatContestProblemName(ContestProblemItem problem)
+        {
+            string title = string.IsNullOrWhiteSpace(problem.Problem.Id)
+                ? problem.Problem.Title
+                : $"[{problem.Problem.Id}] {problem.Problem.Title}";
+            return $"{problem.Label}. {title}";
+        }
+
+        private static Brush GetContestProblemBrush(ContestProblemItem problem)
         {
             if (problem.HasAccepted)
             {
@@ -895,9 +1203,16 @@ namespace Local_Judge
         {
             if (_currentProblem is null)
             {
-                CurrentProblemStatusTextBlock.Text = _currentLesson is null
-                    ? "문제 미선택"
-                    : $"현재 수업: {_currentLesson.Title} | 문제 미선택";
+                if (_currentContest is not null)
+                {
+                    CurrentProblemStatusTextBlock.Text = $"현재 대회: {_currentContest.Title} | 문제 미선택";
+                }
+                else
+                {
+                    CurrentProblemStatusTextBlock.Text = _currentLesson is null
+                        ? "문제 미선택"
+                        : $"현재 수업: {_currentLesson.Title} | 문제 미선택";
+                }
                 return;
             }
 
@@ -915,6 +1230,12 @@ namespace Local_Judge
                 return;
             }
 
+            if (_currentContest is not null && _currentContestProblem is not null)
+            {
+                CurrentProblemStatusTextBlock.Text = $"현재 대회: {_currentContest.Title} | {_currentContestProblem.Label} | {title}";
+                return;
+            }
+
             CurrentProblemStatusTextBlock.Text = $"현재 문제: {title} | {saveState} | {pathState}";
         }
 
@@ -922,6 +1243,8 @@ namespace Local_Judge
         {
             bool hasProblem = _currentProblem is not null;
             bool isLessonProblem = ResolveCurrentLessonProblem() is not null;
+            bool isContestProblem = ResolveCurrentContestProblem() is not null;
+            bool isContestProblemRunnable = !isContestProblem || IsContestActive();
             bool isJudgeRuntimeReady = _isPythonConnected
                                        && _benchmarkResult?.Succeeded == true
                                        && !_isBenchmarkRunning
@@ -929,15 +1252,93 @@ namespace Local_Judge
 
             RunCodeMenuItem.IsEnabled = isJudgeRuntimeReady;
             RunCodeButton.IsEnabled = isJudgeRuntimeReady;
-            EditProblemMenuItem.IsEnabled = hasProblem && !isLessonProblem;
-            EditProblemButton.IsEnabled = hasProblem && !isLessonProblem;
-            RunSampleMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady;
-            RunSampleButton.IsEnabled = hasProblem && isJudgeRuntimeReady;
-            SubmitMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady;
-            SubmitButton.IsEnabled = hasProblem && isJudgeRuntimeReady;
+            EditProblemMenuItem.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
+            EditProblemButton.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
+            RunSampleMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemRunnable;
+            RunSampleButton.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemRunnable;
+            SubmitMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemRunnable;
+            SubmitButton.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemRunnable;
             SubmissionHistoryMenuItem.IsEnabled = hasProblem;
-            ExportSubmissionHistoryMenuItem.IsEnabled = hasProblem && !isLessonProblem;
+            ExportSubmissionHistoryMenuItem.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
             BenchmarkMenuItem.IsEnabled = !_isBenchmarkRunning && !_pythonRunner.IsRunning;
+        }
+
+        private void ContestTimer_Tick(object? sender, EventArgs e)
+        {
+            UpdateContestStatus();
+            RefreshContestExplorer(_currentContestProblem?.RelativePath);
+            UpdateProblemCommandState();
+
+            if (_currentContest is not null
+                && IsContestEnded()
+                && !_contestAutoExportCompleted
+                && !_contestAutoExportFailed
+                && !_isContestAutoExporting
+                && !_isSubmitting
+                && !_pythonRunner.IsRunning)
+            {
+                TryAutoExportContestResult();
+            }
+        }
+
+        private void UpdateContestStatus()
+        {
+            if (_currentContest is null)
+            {
+                ContestStatusTextBlock.Text = "대회: 없음";
+                return;
+            }
+
+            DateTimeOffset now = DateTimeOffset.Now;
+            if (now < _currentContest.StartsAt)
+            {
+                ContestStatusTextBlock.Text = $"대회: 시작 전 | 시작까지 {FormatDuration(_currentContest.StartsAt - now)}";
+                return;
+            }
+
+            if (now <= _currentContest.EndsAt)
+            {
+                ContestStatusTextBlock.Text = $"대회: 진행 중 | 남은 시간 {FormatDuration(_currentContest.EndsAt - now)}";
+                return;
+            }
+
+            ContestStatusTextBlock.Text = _contestAutoExportCompleted
+                ? "대회: 종료 | 결과 내보냄"
+                : _contestAutoExportFailed
+                ? "대회: 종료 | 결과 내보내기 실패"
+                : "대회: 종료";
+        }
+
+        private static string FormatDuration(TimeSpan duration)
+        {
+            if (duration < TimeSpan.Zero)
+            {
+                duration = TimeSpan.Zero;
+            }
+
+            int totalHours = (int)Math.Floor(duration.TotalHours);
+            return $"{totalHours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
+        }
+
+        private bool IsContestProblemOpenAllowed()
+        {
+            return _currentContest is not null && DateTimeOffset.Now >= _currentContest.StartsAt;
+        }
+
+        private bool IsContestActive()
+        {
+            if (_currentContest is null)
+            {
+                return false;
+            }
+
+            DateTimeOffset now = DateTimeOffset.Now;
+            return now >= _currentContest.StartsAt && now <= _currentContest.EndsAt;
+        }
+
+        private bool IsContestEnded()
+        {
+            return _currentContest is not null && DateTimeOffset.Now > _currentContest.EndsAt;
         }
 
         private async Task StartEnvironmentBenchmarkAsync(bool isManual)
@@ -1823,8 +2224,16 @@ namespace Local_Judge
             try
             {
                 string filePath;
+                ContestProblemItem? contestProblem = ResolveCurrentContestProblem();
                 LessonProblemItem? lessonProblem = ResolveCurrentLessonProblem();
-                if (_currentLesson is not null && lessonProblem is not null)
+                if (_currentContest is not null && contestProblem is not null)
+                {
+                    filePath = SaveContestSubmissionAttempt(attempt, _currentContest, contestProblem);
+                    RefreshContestExplorer(contestProblem.RelativePath);
+                    AppendTerminal($"[Submit] 대회 제출 이력을 저장했습니다: {filePath}");
+                    AppendTerminal($"[Submit] 대회 작업 폴더: {_currentContest.RootPath}");
+                }
+                else if (_currentLesson is not null && lessonProblem is not null)
                 {
                     filePath = SaveLessonSubmissionAttempt(attempt, _currentLesson, lessonProblem);
                     RefreshLessonExplorer(lessonProblem.RelativePath);
@@ -1880,6 +2289,42 @@ namespace Local_Judge
             return null;
         }
 
+        private ContestProblemItem? ResolveCurrentContestProblem()
+        {
+            if (_currentContest is null || _currentProblem is null)
+            {
+                return null;
+            }
+
+            if (_currentContestProblem is not null
+                && IsSamePath(_currentContestProblem.FilePath, _currentProblemFilePath))
+            {
+                return _currentContestProblem;
+            }
+
+            if (!string.IsNullOrWhiteSpace(_currentProblemFilePath))
+            {
+                ContestProblemItem? pathMatch = _currentContest.Problems.FirstOrDefault(problem =>
+                    IsSamePath(problem.FilePath, _currentProblemFilePath));
+                if (pathMatch is not null)
+                {
+                    _currentContestProblem = pathMatch;
+                    return pathMatch;
+                }
+            }
+
+            List<ContestProblemItem> documentMatches = _currentContest.Problems
+                .Where(problem => ReferenceEquals(problem.Problem, _currentProblem))
+                .ToList();
+            if (documentMatches.Count == 1)
+            {
+                _currentContestProblem = documentMatches[0];
+                return documentMatches[0];
+            }
+
+            return null;
+        }
+
         private static bool IsSamePath(string? left, string? right)
         {
             if (string.IsNullOrWhiteSpace(left) || string.IsNullOrWhiteSpace(right))
@@ -1914,6 +2359,28 @@ namespace Local_Judge
             attempt.ProblemRelativePath = lessonProblem.RelativePath;
 
             string problemDirectory = Path.Combine(lesson.SubmissionsRoot, lessonProblem.SubmissionKey);
+            Directory.CreateDirectory(problemDirectory);
+
+            string attemptId = string.IsNullOrWhiteSpace(attempt.AttemptId)
+                ? SubmissionHistoryStore.CreateAttemptId(attempt.SubmittedAt)
+                : Regex.Replace(attempt.AttemptId, @"[\\/:*?""<>|]+", "_");
+            string filePath = Path.Combine(problemDirectory, attemptId + ".json");
+            string json = JsonSerializer.Serialize(attempt, _jsonOptions);
+            File.WriteAllText(filePath, json);
+            return filePath;
+        }
+
+        private string SaveContestSubmissionAttempt(
+            SubmissionAttemptDocument attempt,
+            ContestContext contest,
+            ContestProblemItem contestProblem)
+        {
+            attempt.ContestId = contest.ContestId;
+            attempt.ContestTitle = contest.Title;
+            attempt.ContestProblemLabel = contestProblem.Label;
+            attempt.ContestProblemRelativePath = contestProblem.RelativePath;
+
+            string problemDirectory = Path.Combine(contest.SubmissionsRoot, contestProblem.SubmissionKey);
             Directory.CreateDirectory(problemDirectory);
 
             string attemptId = string.IsNullOrWhiteSpace(attempt.AttemptId)
@@ -1979,6 +2446,17 @@ namespace Local_Judge
 
         private async void SubmitMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            ContestProblemItem? activeContestProblem = ResolveCurrentContestProblem();
+            if (activeContestProblem is not null && !IsContestActive())
+            {
+                SetStatus(IsContestEnded() ? "대회 종료" : "대회 시작 전", isError: true);
+                AppendTerminal(IsContestEnded()
+                    ? "[Contest] 대회가 종료되어 새 제출을 할 수 없습니다."
+                    : "[Contest] 대회 시작 전에는 제출할 수 없습니다.");
+                UpdateProblemCommandState();
+                return;
+            }
+
             if (!EnsureBenchmarkReadyForRun())
             {
                 return;
@@ -2010,76 +2488,94 @@ namespace Local_Judge
                 return;
             }
 
-            int passedCount = 0;
-            int totalCount = problem.TestCases.Count;
-            var testResults = new List<SubmissionTestResultDocument>();
-            bool judgingError = false;
-            PythonExecutionLimits submissionLimits = CreateExecutionLimits(problem);
-
-            SetStatus("채점 중", isWorking: true);
-            AppendTerminal("----------------------------------------");
-            AppendTerminal($"[Submit] 채점 시작 - 총 {totalCount}개");
-
-            for (int i = 0; i < totalCount; i++)
+            _isSubmitting = true;
+            try
             {
-                TestCaseDocument testCase = problem.TestCases[i];
-                int testCaseNumber = i + 1;
+                int passedCount = 0;
+                int totalCount = problem.TestCases.Count;
+                var testResults = new List<SubmissionTestResultDocument>();
+                bool judgingError = false;
+                PythonExecutionLimits submissionLimits = CreateExecutionLimits(problem);
 
-                PythonExecutionResult? result = await RunPythonCodeAsync(
+                SetStatus("채점 중", isWorking: true);
+                AppendTerminal("----------------------------------------");
+                AppendTerminal($"[Submit] 채점 시작 - 총 {totalCount}개");
+
+                for (int i = 0; i < totalCount; i++)
+                {
+                    TestCaseDocument testCase = problem.TestCases[i];
+                    int testCaseNumber = i + 1;
+
+                    PythonExecutionResult? result = await RunPythonCodeAsync(
+                        code,
+                        runTitle: $"테스트 {testCaseNumber} 채점",
+                        inputText: testCase.Input,
+                        showStartBanner: false,
+                        limits: submissionLimits);
+
+                    if (result is null)
+                    {
+                        judgingError = true;
+                        break;
+                    }
+
+                    bool passed = result.Succeeded
+                                  && CompareOutput(result.StandardOutput, testCase.Output);
+                    string testVerdict = GetSubmissionVerdict(result, passed);
+
+                    if (passed)
+                    {
+                        passedCount++;
+                    }
+
+                    AppendTerminal($"[Test {testCaseNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
+
+                    AppendExecutionResult(result, passed);
+                    testResults.Add(CreateSubmissionTestResult(testCaseNumber, result, testVerdict));
+
+                    if (ShouldStopBatch(result))
+                    {
+                        break;
+                    }
+                }
+
+                AppendTerminal("----------------------------------------");
+                AppendTerminal($"[Submit] 채점 완료: {passedCount}/{totalCount} 통과");
+
+                if (passedCount == totalCount)
+                {
+                    SetStatus($"채점 완료: {passedCount}/{totalCount} 통과");
+                }
+                else
+                {
+                    SetStatus($"채점 완료: {passedCount}/{totalCount} 통과", isError: true);
+                }
+
+                string finalVerdict = DetermineSubmissionVerdict(testResults, judgingError, passedCount, totalCount);
+                SaveSubmissionAttempt(CreateSubmissionAttempt(
+                    problem,
+                    problemFilePath,
                     code,
-                    runTitle: $"테스트 {testCaseNumber} 채점",
-                    inputText: testCase.Input,
-                    showStartBanner: false,
-                    limits: submissionLimits);
-
-                if (result is null)
-                {
-                    judgingError = true;
-                    break;
-                }
-
-                bool passed = result.Succeeded
-                              && CompareOutput(result.StandardOutput, testCase.Output);
-                string testVerdict = GetSubmissionVerdict(result, passed);
-
-                if (passed)
-                {
-                    passedCount++;
-                }
-
-                AppendTerminal($"[Test {testCaseNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
-
-                AppendExecutionResult(result, passed);
-                testResults.Add(CreateSubmissionTestResult(testCaseNumber, result, testVerdict));
-
-                if (ShouldStopBatch(result))
-                {
-                    break;
-                }
+                    finalVerdict,
+                    passedCount,
+                    totalCount,
+                    submissionLimits,
+                    testResults));
             }
-
-            AppendTerminal("----------------------------------------");
-            AppendTerminal($"[Submit] 채점 완료: {passedCount}/{totalCount} 통과");
-
-            if (passedCount == totalCount)
+            finally
             {
-                SetStatus($"채점 완료: {passedCount}/{totalCount} 통과");
-            }
-            else
-            {
-                SetStatus($"채점 완료: {passedCount}/{totalCount} 통과", isError: true);
-            }
+                _isSubmitting = false;
+                UpdateProblemCommandState();
 
-            string finalVerdict = DetermineSubmissionVerdict(testResults, judgingError, passedCount, totalCount);
-            SaveSubmissionAttempt(CreateSubmissionAttempt(
-                problem,
-                problemFilePath,
-                code,
-                finalVerdict,
-                passedCount,
-                totalCount,
-                submissionLimits,
-                testResults));
+                if (_currentContest is not null
+                    && IsContestEnded()
+                    && !_contestAutoExportCompleted
+                    && !_contestAutoExportFailed
+                    && !_isContestAutoExporting)
+                {
+                    TryAutoExportContestResult();
+                }
+            }
         }
 
         private void SubmissionHistoryMenuItem_Click(object sender, RoutedEventArgs e)
@@ -2093,9 +2589,12 @@ namespace Local_Judge
             try
             {
                 SubmissionProblemDocument problemDocument = CreateSubmissionProblemDocument(_currentProblem);
+                ContestProblemItem? contestProblem = ResolveCurrentContestProblem();
                 LessonProblemItem? lessonProblem = ResolveCurrentLessonProblem();
                 IReadOnlyList<SubmissionAttemptHistoryItem> historyItems =
-                    _currentLesson is not null && lessonProblem is not null
+                    _currentContest is not null && contestProblem is not null
+                        ? LoadContestAttempts(contestProblem)
+                        : _currentLesson is not null && lessonProblem is not null
                         ? LoadLessonAttempts(lessonProblem)
                         : _submissionHistoryStore.LoadAttemptsForProblem(problemDocument);
 
@@ -2330,6 +2829,167 @@ namespace Local_Judge
             }
 
             return fileCount;
+        }
+
+        private void ExportContestResultMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentContest is null)
+            {
+                AppendTerminal("[Contest] 대회 결과를 내보내려면 먼저 대회를 여세요.");
+                MessageBox.Show(
+                    "먼저 대회를 여세요.",
+                    "대회 결과 내보내기",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                Title = "대회 결과 내보내기",
+                Filter = "ZIP 파일 (*.zip)|*.zip|모든 파일 (*.*)|*.*",
+                DefaultExt = ".zip",
+                FileName = CreateDefaultContestResultExportFileName(_currentContest)
+            };
+            ApplyInitialDirectory(dialog, _userSettings.SubmissionHistoryExportDirectory);
+
+            bool? result = dialog.ShowDialog(this);
+            if (result != true)
+            {
+                return;
+            }
+
+            ExportContestResult(_currentContest, dialog.FileName, isAutomatic: false);
+        }
+
+        private void TryAutoExportContestResult()
+        {
+            if (_currentContest is null || _contestAutoExportCompleted || _contestAutoExportFailed || _isContestAutoExporting)
+            {
+                return;
+            }
+
+            string destinationFilePath;
+            try
+            {
+                string exportDirectory = GetContestAutoExportDirectory(_currentContest);
+                destinationFilePath = Path.Combine(
+                    exportDirectory,
+                    CreateDefaultContestResultExportFileName(_currentContest));
+            }
+            catch (Exception ex)
+            {
+                _contestAutoExportFailed = true;
+                UpdateContestStatus();
+                AppendTerminal("[Contest] 대회 종료 결과 자동 내보내기 경로를 준비하지 못했습니다.");
+                AppendTerminal(ex.Message);
+                return;
+            }
+
+            ExportContestResult(_currentContest, destinationFilePath, isAutomatic: true);
+        }
+
+        private void ExportContestResult(ContestContext contest, string destinationFilePath, bool isAutomatic)
+        {
+            try
+            {
+                _isContestAutoExporting = true;
+                var request = new SubmissionHistoryExportRequest
+                {
+                    DestinationFilePath = destinationFilePath,
+                    ExportKind = "Contest",
+                    ExportName = contest.Title,
+                    ContestSettings = new SubmissionHistoryContestSettings
+                    {
+                        PenaltyMode = "ICPC",
+                        WrongSubmissionPenaltyMinutes = contest.WrongSubmissionPenaltyMinutes,
+                        CountWrongBeforeAcceptedOnly = true,
+                        ContestStartedAt = contest.StartsAt
+                    }
+                };
+
+                foreach (ContestProblemItem problem in contest.Problems)
+                {
+                    request.Problems.Add(new SubmissionHistoryExportProblem
+                    {
+                        ProblemKey = problem.SubmissionKey,
+                        DisplayName = FormatContestProblemName(problem),
+                        Problem = problem.SubmissionProblem,
+                        ProblemFilePath = problem.FilePath,
+                        Score = problem.Score,
+                        Attempts = LoadContestAttempts(problem)
+                    });
+                }
+
+                SubmissionHistoryExportResult exportResult = _submissionHistoryExporter.Export(request);
+                if (isAutomatic || DateTimeOffset.Now > contest.EndsAt)
+                {
+                    _contestAutoExportCompleted = true;
+                    _contestAutoExportFailed = false;
+                }
+
+                UpdateContestStatus();
+
+                AppendTerminal(isAutomatic
+                    ? $"[Contest] 대회 종료 결과를 자동으로 내보냈습니다: {exportResult.FilePath}"
+                    : $"[Contest] 대회 결과를 내보냈습니다: {exportResult.FilePath}");
+                AppendTerminal($"[Contest] 내보낸 문항: {exportResult.ProblemCount}개 / 제출: {exportResult.AttemptCount}개");
+
+                if (!isAutomatic)
+                {
+                    MessageBox.Show(
+                        "대회 결과를 내보냈습니다.",
+                        "대회 결과 내보내기",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                AppendTerminal("[Contest] 대회 결과 내보내기 중 오류가 발생했습니다.");
+                AppendTerminal(ex.Message);
+                if (isAutomatic)
+                {
+                    _contestAutoExportFailed = true;
+                    UpdateContestStatus();
+                }
+
+                if (!isAutomatic)
+                {
+                    MessageBox.Show(
+                        "대회 결과를 내보낼 수 없습니다.\n\n" + ex.Message,
+                        "대회 결과 내보내기",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+            finally
+            {
+                _isContestAutoExporting = false;
+                UpdateProblemCommandState();
+            }
+        }
+
+        private string GetContestAutoExportDirectory(ContestContext contest)
+        {
+            if (!string.IsNullOrWhiteSpace(_userSettings.SubmissionHistoryExportDirectory))
+            {
+                Directory.CreateDirectory(_userSettings.SubmissionHistoryExportDirectory);
+                return _userSettings.SubmissionHistoryExportDirectory;
+            }
+
+            return Directory.GetParent(contest.RootPath)?.FullName ?? contest.RootPath;
+        }
+
+        private static string CreateDefaultContestResultExportFileName(ContestContext contest)
+        {
+            string baseName = Regex.Replace(contest.Title, @"[\\/:*?""<>|]+", "_").Trim();
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                baseName = "contest";
+            }
+
+            return $"{baseName}_result_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
         }
 
         private void InspectLessonResultMenuItem_Click(object sender, RoutedEventArgs e)

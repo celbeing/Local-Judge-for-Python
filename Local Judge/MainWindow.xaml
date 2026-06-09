@@ -112,6 +112,21 @@
                           Click="InspectLessonResultMenuItem_Click" />
             </MenuItem>
 
+            <MenuItem Header="_대회">
+                <MenuItem x:Name="OpenContestMenuItem"
+                          Header="대회 열기..."
+                          Click="OpenContestMenuItem_Click" />
+                <MenuItem x:Name="CloseContestMenuItem"
+                          Header="대회 닫기"
+                          IsEnabled="False"
+                          Click="CloseContestMenuItem_Click" />
+                <Separator />
+                <MenuItem x:Name="ExportContestResultMenuItem"
+                          Header="대회 결과 내보내기..."
+                          IsEnabled="False"
+                          Click="ExportContestResultMenuItem_Click" />
+            </MenuItem>
+
             <MenuItem Header="_도구">
                 <MenuItem Header="Python 경로 설정" Click="PythonPathMenuItem_Click" />
                 <MenuItem x:Name="BenchmarkMenuItem"
@@ -143,6 +158,12 @@
 
             <StatusBarItem>
                 <TextBlock x:Name="CurrentProblemStatusTextBlock" Text="문제 미선택" />
+            </StatusBarItem>
+
+            <Separator />
+
+            <StatusBarItem>
+                <TextBlock x:Name="ContestStatusTextBlock" Text="대회: 없음" />
             </StatusBarItem>
 
             <Separator />
