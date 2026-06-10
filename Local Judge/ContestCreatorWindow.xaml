@@ -165,11 +165,15 @@
                                   Grid.Row="0"
                                   Grid.Column="2"
                                   ItemsSource="{Binding HourOptions}"
+                                  DisplayMemberPath="Text"
+                                  SelectedValuePath="Value"
                                   Style="{StaticResource ComboInputStyle}" />
                         <ComboBox x:Name="StartMinuteComboBox"
                                   Grid.Row="0"
                                   Grid.Column="3"
                                   ItemsSource="{Binding MinuteOptions}"
+                                  DisplayMemberPath="Text"
+                                  SelectedValuePath="Value"
                                   Style="{StaticResource ComboInputStyle}" />
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="종료" Style="{StaticResource FieldLabelStyle}" />
@@ -182,11 +186,15 @@
                                   Grid.Row="1"
                                   Grid.Column="2"
                                   ItemsSource="{Binding HourOptions}"
+                                  DisplayMemberPath="Text"
+                                  SelectedValuePath="Value"
                                   Style="{StaticResource ComboInputStyle}" />
                         <ComboBox x:Name="EndMinuteComboBox"
                                   Grid.Row="1"
                                   Grid.Column="3"
                                   ItemsSource="{Binding MinuteOptions}"
+                                  DisplayMemberPath="Text"
+                                  SelectedValuePath="Value"
                                   Style="{StaticResource ComboInputStyle}" />
 
                         <TextBlock Grid.Row="0"

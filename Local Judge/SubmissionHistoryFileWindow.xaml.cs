@@ -56,11 +56,11 @@ namespace Local_Judge
 
             int solvedCount = rows.Count(row => row.Solved);
             int totalScore = rows.Sum(row => row.Score);
-            int totalPenalty = rows.Where(row => row.Solved).Sum(row => row.PenaltyMinutes);
+            int totalPenaltySeconds = rows.Where(row => row.Solved).Sum(row => row.PenaltySeconds);
 
             ContestSummaryGroupBox.Visibility = Visibility.Visible;
             ContestSummaryTextBlock.Text =
-                $"맞은 문항: {solvedCount}개 / 최종 점수: {totalScore} / 패널티 총합: {totalPenalty}분 / 오답 패널티: {settings.WrongSubmissionPenaltyMinutes}분";
+                $"맞은 문항: {solvedCount}개 / 최종 점수: {totalScore} / 패널티 총합: {FormatPenaltySeconds(totalPenaltySeconds)} / 오답 패널티: {settings.WrongSubmissionPenaltyMinutes}분 / 기준: 제출 시각";
             ContestSummaryDataGrid.ItemsSource = rows;
         }
 
@@ -133,6 +133,18 @@ namespace Local_Judge
             }
 
             return $"{bytes / 1024d / 1024d:0.#} MB";
+        }
+
+        private static string FormatPenaltySeconds(int totalSeconds)
+        {
+            if (totalSeconds < 0)
+            {
+                totalSeconds = 0;
+            }
+
+            int minutes = totalSeconds / 60;
+            int seconds = totalSeconds % 60;
+            return $"{minutes}.{seconds:00}분";
         }
 
         private static string PreviewText(string text, bool truncated)
@@ -287,13 +299,13 @@ namespace Local_Judge
                         .Take(acceptedIndex)
                         .Count(row => !row.IsAccepted)
                     : problem.SubmissionRows.Count(row => !row.IsAccepted);
-                int elapsedMinutes = settings.ContestStartedAt is null
+                int elapsedSeconds = settings.ContestStartedAt is null
                     ? 0
-                    : Math.Max(0, (int)Math.Floor((firstAccepted.Attempt.SubmittedAt - settings.ContestStartedAt.Value).TotalMinutes));
+                    : Math.Max(0, (int)Math.Floor((firstAccepted.Attempt.SubmittedAt - settings.ContestStartedAt.Value).TotalSeconds));
 
                 FirstAcceptedAttemptText = (acceptedIndex + 1).ToString();
-                PenaltyMinutes = elapsedMinutes + wrongBeforeAccepted * settings.WrongSubmissionPenaltyMinutes;
-                PenaltyText = $"{PenaltyMinutes}분";
+                PenaltySeconds = elapsedSeconds + wrongBeforeAccepted * settings.WrongSubmissionPenaltyMinutes * 60;
+                PenaltyText = FormatPenaltySeconds(PenaltySeconds);
                 Score = problem.Score;
             }
 
@@ -301,7 +313,7 @@ namespace Local_Judge
             public int AttemptCount { get; }
             public bool Solved { get; }
             public string FirstAcceptedAttemptText { get; } = "-";
-            public int PenaltyMinutes { get; }
+            public int PenaltySeconds { get; }
             public string PenaltyText { get; } = "-";
             public int Score { get; }
         }

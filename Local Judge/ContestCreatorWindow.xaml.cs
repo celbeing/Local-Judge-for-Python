@@ -35,21 +35,23 @@ namespace Local_Judge
             DateTime end = start.AddHours(2);
 
             StartDatePicker.SelectedDate = start.Date;
-            StartHourComboBox.SelectedItem = start.Hour;
-            StartMinuteComboBox.SelectedItem = RoundDownToFiveMinutes(start.Minute);
+            StartHourComboBox.SelectedValue = start.Hour;
+            StartMinuteComboBox.SelectedValue = RoundDownToFiveMinutes(start.Minute);
             EndDatePicker.SelectedDate = end.Date;
-            EndHourComboBox.SelectedItem = end.Hour;
-            EndMinuteComboBox.SelectedItem = RoundDownToFiveMinutes(end.Minute);
+            EndHourComboBox.SelectedValue = end.Hour;
+            EndMinuteComboBox.SelectedValue = RoundDownToFiveMinutes(end.Minute);
             UpdateProblemCount();
         }
 
         public ObservableCollection<ContestProblemEditorItem> ContestProblems { get; } = new();
         public ObservableCollection<ContestInfoEditorItem> ContestInfoItems { get; } = new();
 
-        public IReadOnlyList<int> HourOptions { get; } = Enumerable.Range(0, 24).ToList();
+        public IReadOnlyList<TimeComboBoxOption> HourOptions { get; } = Enumerable.Range(0, 24)
+            .Select(hour => new TimeComboBoxOption(hour, "시"))
+            .ToList();
 
-        public IReadOnlyList<int> MinuteOptions { get; } = Enumerable.Range(0, 12)
-            .Select(index => index * 5)
+        public IReadOnlyList<TimeComboBoxOption> MinuteOptions { get; } = Enumerable.Range(0, 12)
+            .Select(index => new TimeComboBoxOption(index * 5, "분"))
             .ToList();
 
         public IReadOnlyList<BalloonColorOption> BalloonColorOptions { get; } =
@@ -335,7 +337,7 @@ namespace Local_Judge
                 return false;
             }
 
-            if (hourComboBox.SelectedItem is not int hour)
+            if (hourComboBox.SelectedValue is not int hour)
             {
                 MessageBox.Show(
                     $"{label} 시를 선택해 주세요.",
@@ -346,7 +348,7 @@ namespace Local_Judge
                 return false;
             }
 
-            if (minuteComboBox.SelectedItem is not int minute)
+            if (minuteComboBox.SelectedValue is not int minute)
             {
                 MessageBox.Show(
                     $"{label} 분을 선택해 주세요.",
@@ -544,5 +546,17 @@ namespace Local_Judge
 
             return Brushes.Gray;
         }
+    }
+
+    public sealed class TimeComboBoxOption
+    {
+        public TimeComboBoxOption(int value, string suffix)
+        {
+            Value = value;
+            Text = $"{value:00}{suffix}";
+        }
+
+        public int Value { get; }
+        public string Text { get; }
     }
 }

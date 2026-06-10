@@ -2249,9 +2249,9 @@ namespace Local_Judge
             int passedCount,
             int totalCount,
             PythonExecutionLimits limits,
+            DateTimeOffset submittedAt,
             List<SubmissionTestResultDocument> testResults)
         {
-            DateTimeOffset submittedAt = DateTimeOffset.Now;
             JudgeEnvironmentBenchmarkResult benchmark = _benchmarkResult
                 ?? throw new InvalidOperationException("채점 환경 벤치마크가 완료되지 않았습니다.");
 
@@ -2538,6 +2538,8 @@ namespace Local_Judge
                 return;
             }
 
+            DateTimeOffset submittedAt = DateTimeOffset.Now;
+
             if (!EnsureBenchmarkReadyForRun())
             {
                 return;
@@ -2641,6 +2643,7 @@ namespace Local_Judge
                     passedCount,
                     totalCount,
                     submissionLimits,
+                    submittedAt,
                     testResults));
             }
             finally
