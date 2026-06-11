@@ -13,10 +13,15 @@ namespace Local_Judge
 
             ProblemSaveDirectoryTextBox.Text = settings.ProblemSaveDirectory ?? string.Empty;
             SubmissionHistoryExportDirectoryTextBox.Text = settings.SubmissionHistoryExportDirectory ?? string.Empty;
+            AutoSaveDraftsCheckBox.IsChecked = settings.AutoSaveDraftsEnabled;
+            AutoSaveIntervalTextBox.Text = settings.AutoSaveDraftIntervalSeconds.ToString();
+            UpdateAutoSaveControls();
         }
 
         public string ProblemSaveDirectory { get; private set; } = string.Empty;
         public string SubmissionHistoryExportDirectory { get; private set; } = string.Empty;
+        public bool AutoSaveDraftsEnabled { get; private set; } = true;
+        public int AutoSaveDraftIntervalSeconds { get; private set; } = LocalJudgeUserSettings.DefaultAutoSaveDraftIntervalSeconds;
 
         private void BrowseProblemSaveDirectoryButton_Click(object sender, RoutedEventArgs e)
         {
@@ -50,12 +55,19 @@ namespace Local_Judge
             SubmissionHistoryExportDirectoryTextBox.Text = string.Empty;
         }
 
+        private void AutoSaveDraftsCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            UpdateAutoSaveControls();
+        }
+
         private void OkButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 ProblemSaveDirectory = NormalizeDirectoryPath(ProblemSaveDirectoryTextBox.Text);
                 SubmissionHistoryExportDirectory = NormalizeDirectoryPath(SubmissionHistoryExportDirectoryTextBox.Text);
+                AutoSaveDraftsEnabled = AutoSaveDraftsCheckBox.IsChecked == true;
+                AutoSaveDraftIntervalSeconds = ParseAutoSaveIntervalSeconds(AutoSaveIntervalTextBox.Text);
                 DialogResult = true;
             }
             catch (Exception ex)
@@ -66,6 +78,14 @@ namespace Local_Judge
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
+        }
+
+        private void UpdateAutoSaveControls()
+        {
+            bool isEnabled = AutoSaveDraftsCheckBox.IsChecked == true;
+            AutoSaveIntervalTextBox.IsEnabled = isEnabled;
+            AutoSaveIntervalUnitTextBlock.IsEnabled = isEnabled;
+            AutoSaveIntervalHelpTextBlock.IsEnabled = isEnabled;
         }
 
         private string? SelectFolder(string title, string currentPath)
@@ -96,6 +116,23 @@ namespace Local_Judge
             string fullPath = Path.GetFullPath(trimmedPath);
             Directory.CreateDirectory(fullPath);
             return fullPath;
+        }
+
+        private static int ParseAutoSaveIntervalSeconds(string text)
+        {
+            if (!int.TryParse((text ?? string.Empty).Trim(), out int seconds))
+            {
+                throw new InvalidOperationException("자동 저장 주기는 초 단위 숫자로 입력해 주세요.");
+            }
+
+            if (seconds < LocalJudgeUserSettings.MinAutoSaveDraftIntervalSeconds
+                || seconds > LocalJudgeUserSettings.MaxAutoSaveDraftIntervalSeconds)
+            {
+                throw new InvalidOperationException(
+                    $"자동 저장 주기는 {LocalJudgeUserSettings.MinAutoSaveDraftIntervalSeconds}초부터 {LocalJudgeUserSettings.MaxAutoSaveDraftIntervalSeconds}초까지 설정할 수 있습니다.");
+            }
+
+            return seconds;
         }
 
         private static bool TryGetExistingDirectory(string path, out string existingDirectory)

@@ -6,6 +6,8 @@ using System.ComponentModel;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -40,6 +42,7 @@ namespace Local_Judge
         private const int OutputLimitBytes = PythonExecutionLimits.DefaultOutputLimitBytes;
         private const string ProblemViewerHostName = "localjudge.problem-viewer";
         private const string ProblemAssetsHostName = "localjudge.problem-assets";
+        private const string DraftFileExtension = ".py";
 
         private readonly Brush _readyBrush = new SolidColorBrush(Color.FromRgb(45, 164, 78));
         private readonly Brush _workingBrush = new SolidColorBrush(Color.FromRgb(251, 188, 5));
@@ -81,9 +84,14 @@ namespace Local_Judge
         private bool _isContestInfoLockedUntilStart;
         private string? _activeEditorCodeScopeKey;
         private readonly Dictionary<string, string> _scopedEditorCodeBuffers = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, EditorDraftTarget> _editorCodeDraftTargets = new(StringComparer.OrdinalIgnoreCase);
+        private int _suppressedEditorCodeChangedCount;
+        private bool _activeEditorDraftDirty;
+        private string? _lastDraftSaveErrorScopeKey;
         private bool _terminalEndsWithLineBreak = true;
         private bool _isProblemViewerReady;
         private readonly DispatcherTimer _contestTimer;
+        private readonly DispatcherTimer _draftAutoSaveTimer;
         private readonly string _emptyProblemAssetFolderPath = Path.Combine(Path.GetTempPath(), "LocalJudge", "EmptyProblemAssets");
 
         public MainWindow()
@@ -105,6 +113,9 @@ namespace Local_Judge
             };
             _contestTimer.Tick += ContestTimer_Tick;
 
+            _draftAutoSaveTimer = new DispatcherTimer();
+            _draftAutoSaveTimer.Tick += DraftAutoSaveTimer_Tick;
+
             VersionStatusTextBlock.Text = ApplicationVersion;
             LoadUserSettings();
             SetStatus("채점 대기");
@@ -120,6 +131,7 @@ namespace Local_Judge
         private void LoadUserSettings()
         {
             _userSettings = _settingsStore.Load();
+            ApplyDraftAutoSaveSettings(logSetting: false);
 
             if (string.IsNullOrWhiteSpace(_userSettings.PythonExecutablePath))
             {
@@ -288,6 +300,14 @@ namespace Local_Judge
                         {
                             _latestEditorCode = codeElement.GetString() ?? "";
                             StoreLatestEditorCodeForActiveScope();
+                            if (_suppressedEditorCodeChangedCount > 0)
+                            {
+                                _suppressedEditorCodeChangedCount--;
+                            }
+                            else
+                            {
+                                MarkActiveEditorDraftDirty();
+                            }
                         }
                         break;
 
@@ -301,6 +321,7 @@ namespace Local_Judge
 
                             _latestEditorCode = code;
                             StoreLatestEditorCodeForActiveScope();
+                            MarkActiveEditorDraftDirty();
 
                             TaskCompletionSource<string>? pendingRequest = _editorCodeRequest;
                             if (pendingRequest is not null
@@ -377,6 +398,7 @@ namespace Local_Judge
                 code
             });
 
+            _suppressedEditorCodeChangedCount++;
             CodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
         }
 
@@ -390,20 +412,48 @@ namespace Local_Judge
             _scopedEditorCodeBuffers[_activeEditorCodeScopeKey] = _latestEditorCode;
         }
 
-        private void ActivateEditorCodeScope(string scopeKey)
+        private void MarkActiveEditorDraftDirty()
         {
+            if (!string.IsNullOrWhiteSpace(_activeEditorCodeScopeKey)
+                && _editorCodeDraftTargets.ContainsKey(_activeEditorCodeScopeKey))
+            {
+                _activeEditorDraftDirty = true;
+            }
+        }
+
+        private void ActivateEditorCodeScope(string scopeKey, EditorDraftTarget draftTarget)
+        {
+            SaveDraftForActiveScope(force: false, logOnSuccess: false);
             StoreLatestEditorCodeForActiveScope();
             _activeEditorCodeScopeKey = scopeKey;
-            string code = _scopedEditorCodeBuffers.TryGetValue(scopeKey, out string? bufferedCode)
-                ? bufferedCode
-                : DefaultPythonCode;
+            _editorCodeDraftTargets[scopeKey] = draftTarget;
+            _activeEditorDraftDirty = false;
+
+            string code;
+            if (_scopedEditorCodeBuffers.TryGetValue(scopeKey, out string? bufferedCode))
+            {
+                code = bufferedCode;
+            }
+            else if (TryLoadEditorDraft(draftTarget, out string draftCode, out string loadedDraftPath))
+            {
+                code = draftCode;
+                _scopedEditorCodeBuffers[scopeKey] = code;
+                AppendTerminal($"[Draft] 임시 저장 코드를 불러왔습니다: {loadedDraftPath}");
+            }
+            else
+            {
+                code = DefaultPythonCode;
+            }
+
             SetEditorCode(code);
         }
 
         private void DeactivateEditorCodeScope()
         {
+            SaveDraftForActiveScope(force: false, logOnSuccess: false);
             StoreLatestEditorCodeForActiveScope();
             _activeEditorCodeScopeKey = null;
+            _activeEditorDraftDirty = false;
         }
 
         private static string CreateLessonEditorCodeScopeKey(LessonContext lesson, LessonProblemItem problem)
@@ -414,6 +464,291 @@ namespace Local_Judge
         private static string CreateContestEditorCodeScopeKey(ContestContext contest, ContestProblemItem problem)
         {
             return $"contest:{contest.ContestId}:{problem.RelativePath}";
+        }
+
+        private EditorDraftTarget CreateLessonEditorDraftTarget(LessonContext lesson, LessonProblemItem problem)
+        {
+            return new EditorDraftTarget(
+                CreateSessionDraftFilePath(lesson.RootPath, problem.SubmissionKey),
+                CreateStableDraftFilePath("Lessons", CreateLessonDraftContextKey(lesson), problem.SubmissionKey),
+                FormatLessonProblemName(problem));
+        }
+
+        private EditorDraftTarget CreateContestEditorDraftTarget(ContestContext contest, ContestProblemItem problem)
+        {
+            return new EditorDraftTarget(
+                CreateSessionDraftFilePath(contest.RootPath, problem.SubmissionKey),
+                CreateStableDraftFilePath("Contests", CreateContestDraftContextKey(contest), problem.SubmissionKey),
+                FormatContestProblemName(problem));
+        }
+
+        private void SaveDraftForActiveScope(bool force, bool logOnSuccess)
+        {
+            StoreLatestEditorCodeForActiveScope();
+
+            if (!_userSettings.AutoSaveDraftsEnabled
+                || string.IsNullOrWhiteSpace(_activeEditorCodeScopeKey)
+                || !_editorCodeDraftTargets.TryGetValue(_activeEditorCodeScopeKey, out EditorDraftTarget? target)
+                || (!force && !_activeEditorDraftDirty))
+            {
+                return;
+            }
+
+            bool savedAny = false;
+            var failures = new List<string>();
+            foreach (string filePath in target.FilePaths.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    WriteDraftFileAtomically(filePath, _latestEditorCode);
+                    savedAny = true;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{filePath}: {ex.Message}");
+                }
+            }
+
+            if (savedAny)
+            {
+                if (failures.Count == 0)
+                {
+                    _activeEditorDraftDirty = false;
+                    _lastDraftSaveErrorScopeKey = null;
+                }
+                else
+                {
+                    _activeEditorDraftDirty = true;
+                }
+
+                if (logOnSuccess)
+                {
+                    AppendTerminal($"[Draft] 임시 저장을 완료했습니다: {target.PrimaryFilePath}");
+                }
+            }
+
+            if (failures.Count > 0
+                && !string.Equals(_lastDraftSaveErrorScopeKey, _activeEditorCodeScopeKey, StringComparison.OrdinalIgnoreCase))
+            {
+                _lastDraftSaveErrorScopeKey = _activeEditorCodeScopeKey;
+                AppendTerminal($"[Draft] 임시 저장 중 일부 파일을 저장하지 못했습니다: {target.DisplayName}");
+                foreach (string failure in failures)
+                {
+                    AppendTerminal(failure);
+                }
+            }
+        }
+
+        private bool TryLoadEditorDraft(EditorDraftTarget target, out string code, out string loadedFilePath)
+        {
+            foreach (string filePath in target.FilePaths.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    if (!File.Exists(filePath))
+                    {
+                        continue;
+                    }
+
+                    code = File.ReadAllText(filePath, Encoding.UTF8);
+                    loadedFilePath = filePath;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    AppendTerminal($"[Draft] 임시 저장 파일을 읽지 못했습니다: {filePath}");
+                    AppendTerminal(ex.Message);
+                }
+            }
+
+            code = string.Empty;
+            loadedFilePath = string.Empty;
+            return false;
+        }
+
+        private void DraftAutoSaveTimer_Tick(object? sender, EventArgs e)
+        {
+            SaveDraftForActiveScope(force: false, logOnSuccess: false);
+        }
+
+        private void ApplyDraftAutoSaveSettings(bool logSetting)
+        {
+            _userSettings.Normalize();
+            _draftAutoSaveTimer.Interval = TimeSpan.FromSeconds(_userSettings.AutoSaveDraftIntervalSeconds);
+
+            if (_userSettings.AutoSaveDraftsEnabled)
+            {
+                _draftAutoSaveTimer.Start();
+            }
+            else
+            {
+                _draftAutoSaveTimer.Stop();
+            }
+
+            if (logSetting)
+            {
+                AppendTerminal(_userSettings.AutoSaveDraftsEnabled
+                    ? $"[Draft] 자동 저장을 켰습니다. 주기: {_userSettings.AutoSaveDraftIntervalSeconds}초"
+                    : "[Draft] 자동 저장을 껐습니다.");
+            }
+        }
+
+        private static string CreateSessionDraftFilePath(string rootPath, string problemKey)
+        {
+            return Path.Combine(rootPath, ".localjudge", "drafts", CreateDraftFileName(problemKey));
+        }
+
+        private static string CreateStableDraftFilePath(string kind, string contextKey, string problemKey)
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Local Judge",
+                "Drafts",
+                kind,
+                contextKey,
+                CreateDraftFileName(problemKey));
+        }
+
+        private static string CreateLessonDraftContextKey(LessonContext lesson)
+        {
+            string context = CreateSourceFingerprint(lesson.SourceZipPath);
+            if (string.IsNullOrWhiteSpace(context))
+            {
+                context = SafeFullPath(lesson.RootPath);
+            }
+
+            return CreateShortHash($"lesson\n{context}\n{lesson.Title}");
+        }
+
+        private static string CreateContestDraftContextKey(ContestContext contest)
+        {
+            string context = CreateSourceFingerprint(contest.SourceZipPath);
+            if (string.IsNullOrWhiteSpace(context))
+            {
+                context = SafeFullPath(contest.RootPath);
+            }
+
+            return CreateShortHash($"contest\n{context}\n{contest.Title}\n{contest.StartsAt:O}\n{contest.EndsAt:O}");
+        }
+
+        private static string CreateSourceFingerprint(string sourcePath)
+        {
+            if (string.IsNullOrWhiteSpace(sourcePath))
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                var fileInfo = new FileInfo(sourcePath);
+                if (!fileInfo.Exists)
+                {
+                    return SafeFullPath(sourcePath);
+                }
+
+                return string.Join(
+                    "\n",
+                    fileInfo.FullName,
+                    fileInfo.Length.ToString(),
+                    fileInfo.LastWriteTimeUtc.Ticks.ToString());
+            }
+            catch
+            {
+                return sourcePath;
+            }
+        }
+
+        private static string SafeFullPath(string path)
+        {
+            try
+            {
+                return string.IsNullOrWhiteSpace(path) ? string.Empty : Path.GetFullPath(path);
+            }
+            catch
+            {
+                return path ?? string.Empty;
+            }
+        }
+
+        private static string CreateDraftFileName(string problemKey)
+        {
+            string fileName = Regex.Replace(problemKey ?? string.Empty, @"[\\/:*?""<>|]+", "_");
+            fileName = Regex.Replace(fileName, @"\s+", " ").Trim().TrimEnd('.', ' ');
+
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                fileName = "problem";
+            }
+
+            if (fileName.Length > 96)
+            {
+                fileName = fileName[..96].TrimEnd('_', '.', ' ');
+            }
+
+            return fileName + DraftFileExtension;
+        }
+
+        private static string CreateShortHash(string text)
+        {
+            return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text ?? string.Empty)))
+                .ToLowerInvariant()[..16];
+        }
+
+        private static void WriteDraftFileAtomically(string filePath, string code)
+        {
+            string? directoryPath = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrWhiteSpace(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            string tempFilePath = filePath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllText(tempFilePath, code ?? string.Empty, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                File.Move(tempFilePath, filePath, overwrite: true);
+            }
+            catch
+            {
+                try
+                {
+                    if (File.Exists(tempFilePath))
+                    {
+                        File.Delete(tempFilePath);
+                    }
+                }
+                catch
+                {
+                    // 임시 파일 정리 실패는 원래 저장 오류를 가리지 않도록 무시합니다.
+                }
+
+                throw;
+            }
+        }
+
+        private sealed class EditorDraftTarget
+        {
+            public EditorDraftTarget(string primaryFilePath, string recoveryFilePath, string displayName)
+            {
+                PrimaryFilePath = primaryFilePath;
+                RecoveryFilePath = recoveryFilePath;
+                DisplayName = displayName;
+            }
+
+            public string PrimaryFilePath { get; }
+
+            public string RecoveryFilePath { get; }
+
+            public string DisplayName { get; }
+
+            public IEnumerable<string> FilePaths
+            {
+                get
+                {
+                    yield return PrimaryFilePath;
+                    yield return RecoveryFilePath;
+                }
+            }
         }
 
         private void SetStatus(string message, bool isWorking = false, bool isError = false)
@@ -1181,7 +1516,9 @@ namespace Local_Judge
         {
             if (_currentLesson is not null)
             {
-                ActivateEditorCodeScope(CreateLessonEditorCodeScopeKey(_currentLesson, lessonProblem));
+                ActivateEditorCodeScope(
+                    CreateLessonEditorCodeScopeKey(_currentLesson, lessonProblem),
+                    CreateLessonEditorDraftTarget(_currentLesson, lessonProblem));
             }
 
             _currentLessonProblem = lessonProblem;
@@ -1207,7 +1544,9 @@ namespace Local_Judge
 
             if (_currentContest is not null)
             {
-                ActivateEditorCodeScope(CreateContestEditorCodeScopeKey(_currentContest, contestProblem));
+                ActivateEditorCodeScope(
+                    CreateContestEditorCodeScopeKey(_currentContest, contestProblem),
+                    CreateContestEditorDraftTarget(_currentContest, contestProblem));
             }
 
             _currentContestProblem = contestProblem;
@@ -1291,29 +1630,46 @@ namespace Local_Judge
                 return Array.Empty<SubmissionAttemptHistoryItem>();
             }
 
-            string problemDirectory = Path.Combine(_currentContest.SubmissionsRoot, problem.SubmissionKey);
-            if (!Directory.Exists(problemDirectory))
-            {
-                return Array.Empty<SubmissionAttemptHistoryItem>();
-            }
-
             var attempts = new List<SubmissionAttemptHistoryItem>();
-            foreach (string filePath in Directory.EnumerateFiles(problemDirectory, "*.json"))
+            var seenAttemptKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string submissionsRoot in GetContestSubmissionRoots(_currentContest))
             {
-                try
+                string problemDirectory = Path.Combine(submissionsRoot, problem.SubmissionKey);
+                if (!Directory.Exists(problemDirectory))
                 {
-                    string json = File.ReadAllText(filePath);
-                    SubmissionAttemptDocument? attempt = JsonSerializer.Deserialize<SubmissionAttemptDocument>(json, _jsonOptions);
-                    if (attempt is null)
-                    {
-                        continue;
-                    }
-
-                    attempts.Add(new SubmissionAttemptHistoryItem(filePath, attempt));
+                    continue;
                 }
-                catch
+
+                foreach (string filePath in Directory.EnumerateFiles(problemDirectory, "*.json"))
                 {
-                    // Ignore malformed contest submission files.
+                    try
+                    {
+                        string json = File.ReadAllText(filePath);
+                        SubmissionAttemptDocument? attempt = JsonSerializer.Deserialize<SubmissionAttemptDocument>(json, _jsonOptions);
+                        if (attempt is null)
+                        {
+                            continue;
+                        }
+
+                        attempt.ContestId = _currentContest.ContestId;
+                        attempt.ContestTitle = _currentContest.Title;
+                        attempt.ContestProblemLabel = problem.Label;
+                        attempt.ContestProblemRelativePath = problem.RelativePath;
+
+                        string attemptKey = string.IsNullOrWhiteSpace(attempt.AttemptId)
+                            ? Path.GetFileNameWithoutExtension(filePath)
+                            : attempt.AttemptId;
+                        if (!seenAttemptKeys.Add(attemptKey))
+                        {
+                            continue;
+                        }
+
+                        attempts.Add(new SubmissionAttemptHistoryItem(filePath, attempt));
+                    }
+                    catch
+                    {
+                        // Ignore malformed contest submission files.
+                    }
                 }
             }
 
@@ -2740,16 +3096,55 @@ namespace Local_Judge
             attempt.ContestProblemLabel = contestProblem.Label;
             attempt.ContestProblemRelativePath = contestProblem.RelativePath;
 
-            string problemDirectory = Path.Combine(contest.SubmissionsRoot, contestProblem.SubmissionKey);
-            Directory.CreateDirectory(problemDirectory);
-
             string attemptId = string.IsNullOrWhiteSpace(attempt.AttemptId)
                 ? SubmissionHistoryStore.CreateAttemptId(attempt.SubmittedAt)
                 : Regex.Replace(attempt.AttemptId, @"[\\/:*?""<>|]+", "_");
-            string filePath = Path.Combine(problemDirectory, attemptId + ".json");
             string json = JsonSerializer.Serialize(attempt, _jsonOptions);
-            File.WriteAllText(filePath, json);
-            return filePath;
+            string? primarySavedPath = null;
+            var failures = new List<string>();
+
+            foreach (string submissionsRoot in GetContestSubmissionRoots(contest))
+            {
+                try
+                {
+                    string problemDirectory = Path.Combine(submissionsRoot, contestProblem.SubmissionKey);
+                    Directory.CreateDirectory(problemDirectory);
+
+                    string filePath = Path.Combine(problemDirectory, attemptId + ".json");
+                    File.WriteAllText(filePath, json);
+                    primarySavedPath ??= filePath;
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"{submissionsRoot}: {ex.Message}");
+                }
+            }
+
+            if (primarySavedPath is null)
+            {
+                throw new InvalidOperationException("대회 제출 이력을 저장하지 못했습니다.\n" + string.Join("\n", failures));
+            }
+
+            foreach (string failure in failures)
+            {
+                AppendTerminal($"[Submit] 대회 제출 이력 복사본 저장 실패: {failure}");
+            }
+
+            return primarySavedPath;
+        }
+
+        private static IEnumerable<string> GetContestSubmissionRoots(ContestContext contest)
+        {
+            if (!string.IsNullOrWhiteSpace(contest.SubmissionsRoot))
+            {
+                yield return contest.SubmissionsRoot;
+            }
+
+            if (!string.IsNullOrWhiteSpace(contest.SessionSubmissionsRoot)
+                && !string.Equals(contest.SessionSubmissionsRoot, contest.SubmissionsRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                yield return contest.SessionSubmissionsRoot;
+            }
         }
 
         private void StopRunButton_Click(object sender, RoutedEventArgs e)
@@ -3477,7 +3872,10 @@ namespace Local_Judge
 
             _userSettings.ProblemSaveDirectory = window.ProblemSaveDirectory;
             _userSettings.SubmissionHistoryExportDirectory = window.SubmissionHistoryExportDirectory;
+            _userSettings.AutoSaveDraftsEnabled = window.AutoSaveDraftsEnabled;
+            _userSettings.AutoSaveDraftIntervalSeconds = window.AutoSaveDraftIntervalSeconds;
             SaveUserSettings();
+            ApplyDraftAutoSaveSettings(logSetting: true);
 
             AppendTerminal("[Settings] 환경 설정을 적용했습니다.");
             AppendTerminal($"[Settings] 문항 저장 경로: {FormatConfiguredDirectory(_userSettings.ProblemSaveDirectory)}");
@@ -3503,6 +3901,13 @@ namespace Local_Judge
             TerminalTextBox.Document.Blocks.Clear();
             _terminalEndsWithLineBreak = true;
             AppendTerminal("[System] 터미널을 비웠습니다.");
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            SaveDraftForActiveScope(force: false, logOnSuccess: false);
+            _draftAutoSaveTimer.Stop();
+            base.OnClosing(e);
         }
 
         private void ExitMenuItem_Click(object sender, RoutedEventArgs e)

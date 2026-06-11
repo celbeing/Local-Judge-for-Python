@@ -27,8 +27,10 @@ namespace Local_Judge
             try
             {
                 string json = File.ReadAllText(filePath, Encoding.UTF8);
-                return JsonSerializer.Deserialize<LocalJudgeUserSettings>(json, _jsonOptions)
-                       ?? new LocalJudgeUserSettings();
+                LocalJudgeUserSettings settings = JsonSerializer.Deserialize<LocalJudgeUserSettings>(json, _jsonOptions)
+                                                  ?? new LocalJudgeUserSettings();
+                settings.Normalize();
+                return settings;
             }
             catch
             {
@@ -38,6 +40,7 @@ namespace Local_Judge
 
         public void Save(LocalJudgeUserSettings settings)
         {
+            settings.Normalize();
             string filePath = GetSettingsFilePath();
             string? directoryPath = Path.GetDirectoryName(filePath);
             if (!string.IsNullOrWhiteSpace(directoryPath))
@@ -60,8 +63,27 @@ namespace Local_Judge
 
     public sealed class LocalJudgeUserSettings
     {
+        public const int DefaultAutoSaveDraftIntervalSeconds = 30;
+        public const int MinAutoSaveDraftIntervalSeconds = 5;
+        public const int MaxAutoSaveDraftIntervalSeconds = 3600;
+
         public string PythonExecutablePath { get; set; } = string.Empty;
         public string ProblemSaveDirectory { get; set; } = string.Empty;
         public string SubmissionHistoryExportDirectory { get; set; } = string.Empty;
+        public bool AutoSaveDraftsEnabled { get; set; } = true;
+        public int AutoSaveDraftIntervalSeconds { get; set; } = DefaultAutoSaveDraftIntervalSeconds;
+
+        public void Normalize()
+        {
+            if (AutoSaveDraftIntervalSeconds <= 0)
+            {
+                AutoSaveDraftIntervalSeconds = DefaultAutoSaveDraftIntervalSeconds;
+            }
+
+            AutoSaveDraftIntervalSeconds = Math.Clamp(
+                AutoSaveDraftIntervalSeconds,
+                MinAutoSaveDraftIntervalSeconds,
+                MaxAutoSaveDraftIntervalSeconds);
+        }
     }
 }

@@ -97,14 +97,8 @@ namespace Local_Judge
             }
 
             string title = string.IsNullOrWhiteSpace(manifest.Title) ? "대회" : manifest.Title.Trim();
-            string contestId = CreateStableHash(string.Join(
-                "\n",
-                title,
-                manifest.StartsAt.ToString("O"),
-                manifest.EndsAt.ToString("O"),
-                Path.GetFullPath(contestRootPath)));
-
-            return new ContestContext
+            string contestId = CreateContestId(title, manifest, problems);
+            var context = new ContestContext
             {
                 ContestId = contestId,
                 Title = title,
@@ -120,9 +114,13 @@ namespace Local_Judge
                     : manifest.WrongSubmissionPenaltyMinutes,
                 RootPath = contestRootPath,
                 SourceZipPath = sourceZipPath ?? string.Empty,
-                SubmissionsRoot = Path.Combine(contestRootPath, ".localjudge", "submissions"),
+                SubmissionsRoot = GetStableContestSubmissionsRoot(contestId),
+                SessionSubmissionsRoot = Path.Combine(contestRootPath, ".localjudge", "submissions"),
                 Problems = problems
             };
+
+            MigrateLegacyContestSubmissions(context);
+            return context;
         }
 
         private ContestManifestDocument ReadContestManifest(string filePath)
@@ -376,6 +374,112 @@ namespace Local_Judge
             return $"{baseKey}_{pathHash}";
         }
 
+        private static string CreateContestId(
+            string title,
+            ContestManifestDocument manifest,
+            IReadOnlyList<ContestProblemItem> problems)
+        {
+            var builder = new StringBuilder();
+            builder.AppendLine(title ?? string.Empty);
+            builder.AppendLine(manifest.StartsAt.ToString("O"));
+            builder.AppendLine(manifest.EndsAt.ToString("O"));
+            builder.AppendLine((manifest.WrongSubmissionPenaltyMinutes <= 0
+                ? 20
+                : manifest.WrongSubmissionPenaltyMinutes).ToString());
+
+            foreach (ContestProblemItem problem in problems)
+            {
+                builder.AppendLine(NormalizeRelativePath(problem.RelativePath));
+                builder.AppendLine(problem.Label ?? string.Empty);
+                builder.AppendLine(problem.SubmissionKey ?? string.Empty);
+                builder.AppendLine(problem.Score.ToString());
+                builder.AppendLine(problem.BalloonColor ?? string.Empty);
+            }
+
+            return CreateStableHash(builder.ToString())[..16];
+        }
+
+        private static string GetStableContestSubmissionsRoot(string contestId)
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Local Judge",
+                "ContestSubmissions",
+                contestId);
+        }
+
+        private void MigrateLegacyContestSubmissions(ContestContext targetContest)
+        {
+            string contestRootBase = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Local Judge",
+                "Contests");
+
+            if (!Directory.Exists(contestRootBase))
+            {
+                return;
+            }
+
+            foreach (string candidateDirectory in Directory.EnumerateDirectories(contestRootBase))
+            {
+                try
+                {
+                    string candidateRootPath = ResolveContestRootPath(candidateDirectory);
+                    string manifestPath = Path.Combine(candidateRootPath, "contest.json");
+                    if (!File.Exists(manifestPath))
+                    {
+                        continue;
+                    }
+
+                    ContestManifestDocument manifest = ReadContestManifest(manifestPath);
+                    ValidateContestManifest(manifest);
+                    List<ContestProblemItem> problems = ReadProblems(candidateRootPath, manifest);
+                    if (problems.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    string title = string.IsNullOrWhiteSpace(manifest.Title) ? "대회" : manifest.Title.Trim();
+                    string contestId = CreateContestId(title, manifest, problems);
+                    if (!string.Equals(contestId, targetContest.ContestId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    string sourceRoot = Path.Combine(candidateRootPath, ".localjudge", "submissions");
+                    CopyContestSubmissionFiles(sourceRoot, targetContest.SubmissionsRoot);
+                }
+                catch
+                {
+                    // Legacy migration should not block opening a valid contest.
+                }
+            }
+        }
+
+        private static void CopyContestSubmissionFiles(string sourceRoot, string destinationRoot)
+        {
+            if (!Directory.Exists(sourceRoot))
+            {
+                return;
+            }
+
+            foreach (string sourceFilePath in Directory.EnumerateFiles(sourceRoot, "*.json", SearchOption.AllDirectories))
+            {
+                string relativePath = Path.GetRelativePath(sourceRoot, sourceFilePath);
+                string destinationFilePath = Path.Combine(destinationRoot, relativePath);
+                string? destinationDirectory = Path.GetDirectoryName(destinationFilePath);
+                if (!string.IsNullOrWhiteSpace(destinationDirectory))
+                {
+                    Directory.CreateDirectory(destinationDirectory);
+                }
+
+                if (!File.Exists(destinationFilePath))
+                {
+                    File.Copy(sourceFilePath, destinationFilePath);
+                }
+            }
+        }
+
         private static string CreateStableHash(string text)
         {
             return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text ?? string.Empty)))
@@ -468,6 +572,7 @@ namespace Local_Judge
         public string RootPath { get; set; } = string.Empty;
         public string SourceZipPath { get; set; } = string.Empty;
         public string SubmissionsRoot { get; set; } = string.Empty;
+        public string SessionSubmissionsRoot { get; set; } = string.Empty;
         public List<ContestProblemItem> Problems { get; set; } = new();
     }
 
