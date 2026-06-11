@@ -569,8 +569,31 @@ namespace Local_Judge
             UpdateProblemCommandState();
         }
 
+        private bool EnsureContestSessionAllowsOpening(string actionName)
+        {
+            if (_currentContest is null)
+            {
+                return true;
+            }
+
+            string message = $"대회가 열려 있는 동안에는 '{actionName}' 작업을 할 수 없습니다. [대회] > [대회 닫기] 후 다시 시도하세요.";
+            SetStatus("대회 진행 중", isError: true);
+            AppendTerminal($"[Contest] {message}");
+            MessageBox.Show(
+                message,
+                "대회 진행 중",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return false;
+        }
+
         private async void OpenLessonMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (!EnsureContestSessionAllowsOpening("수업 열기"))
+            {
+                return;
+            }
+
             var dialog = new OpenFileDialog
             {
                 Title = "수업 ZIP 열기",
@@ -630,7 +653,8 @@ namespace Local_Judge
         {
             if (_currentContest is not null)
             {
-                CloseCurrentContest(showLog: false);
+                AppendTerminal("[Contest] 대회가 열려 있는 동안에는 수업을 열 수 없습니다.");
+                return;
             }
 
             _currentLesson = lesson;
@@ -672,6 +696,11 @@ namespace Local_Judge
 
         private void CreateContestMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (!EnsureContestSessionAllowsOpening("대회 만들기"))
+            {
+                return;
+            }
+
             var editor = new ContestCreatorWindow(_jsonOptions, _userSettings.ProblemSaveDirectory)
             {
                 Owner = this
@@ -690,6 +719,11 @@ namespace Local_Judge
 
         private async void OpenContestMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (!EnsureContestSessionAllowsOpening("대회 열기"))
+            {
+                return;
+            }
+
             var dialog = new OpenFileDialog
             {
                 Title = "대회 ZIP 열기",
@@ -1482,12 +1516,20 @@ namespace Local_Judge
             bool hasProblem = _currentProblem is not null;
             bool isLessonProblem = ResolveCurrentLessonProblem() is not null;
             bool isContestProblem = ResolveCurrentContestProblem() is not null;
+            bool isContestOpen = _currentContest is not null;
             bool isContestProblemRunnable = !isContestProblem || IsContestActive();
             bool isJudgeRuntimeReady = _isPythonConnected
                                        && _benchmarkResult?.Succeeded == true
                                        && !_isBenchmarkRunning
                                        && !_pythonRunner.IsRunning;
 
+            NewProblemMenuItem.IsEnabled = !isContestOpen;
+            NewProblemButton.IsEnabled = !isContestOpen;
+            LoadProblemMenuItem.IsEnabled = !isContestOpen;
+            LoadProblemButton.IsEnabled = !isContestOpen;
+            OpenLessonMenuItem.IsEnabled = !isContestOpen;
+            CreateContestMenuItem.IsEnabled = !isContestOpen;
+            OpenContestMenuItem.IsEnabled = !isContestOpen;
             RunCodeMenuItem.IsEnabled = isJudgeRuntimeReady;
             RunCodeButton.IsEnabled = isJudgeRuntimeReady;
             EditProblemMenuItem.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
@@ -1747,6 +1789,11 @@ namespace Local_Judge
 
         private void NewProblemMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (!EnsureContestSessionAllowsOpening("새 문제 만들기"))
+            {
+                return;
+            }
+
             var editor = new ProblemEditorWindow(defaultProblemSaveDirectory: _userSettings.ProblemSaveDirectory)
             {
                 Owner = this
@@ -1797,6 +1844,11 @@ namespace Local_Judge
 
         private void LoadProblemMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            if (!EnsureContestSessionAllowsOpening("문제 불러오기"))
+            {
+                return;
+            }
+
             var dialog = new OpenFileDialog
             {
                 Title = "문제 JSON 불러오기",

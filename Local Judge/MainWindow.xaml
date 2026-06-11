@@ -62,11 +62,15 @@
         <!-- 상단 메뉴바 -->
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="_파일">
-                <MenuItem Header="새 문제 만들기..." Click="NewProblemMenuItem_Click" />
+                <MenuItem x:Name="NewProblemMenuItem"
+                          Header="새 문제 만들기..."
+                          Click="NewProblemMenuItem_Click" />
                 <MenuItem x:Name="EditProblemMenuItem"
                           Header="문제 수정..."
                           Click="EditProblemMenuItem_Click" />
-                <MenuItem Header="문제 불러오기..." Click="LoadProblemMenuItem_Click" />
+                <MenuItem x:Name="LoadProblemMenuItem"
+                          Header="문제 불러오기..."
+                          Click="LoadProblemMenuItem_Click" />
                 <MenuItem Header="문제 저장" Click="SaveProblemMenuItem_Click" />
                 <MenuItem Header="다른 이름으로 문제 저장..." Click="SaveProblemAsMenuItem_Click" />
                 <Separator />
@@ -117,7 +121,8 @@
             </MenuItem>
 
             <MenuItem Header="_대회">
-                <MenuItem Header="대회 만들기..."
+                <MenuItem x:Name="CreateContestMenuItem"
+                          Header="대회 만들기..."
                           Click="CreateContestMenuItem_Click" />
                 <Separator />
                 <MenuItem x:Name="OpenContestMenuItem"
@@ -220,7 +225,8 @@
                             <StackPanel DockPanel.Dock="Right"
                                         Orientation="Horizontal"
                                         VerticalAlignment="Center">
-                                <Button Content="새 문제"
+                                <Button x:Name="NewProblemButton"
+                                        Content="새 문제"
                                         Width="70"
                                         Height="26"
                                         Margin="0,0,6,0"
@@ -231,7 +237,8 @@
                                         Height="26"
                                         Margin="0,0,6,0"
                                         Click="EditProblemMenuItem_Click" />
-                                <Button Content="불러오기"
+                                <Button x:Name="LoadProblemButton"
+                                        Content="불러오기"
                                         Width="78"
                                         Height="26"
                                         Click="LoadProblemMenuItem_Click" />
