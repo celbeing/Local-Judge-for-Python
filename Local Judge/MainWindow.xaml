@@ -12,7 +12,9 @@
         MinHeight="650"
         MinWidth="1000"
         WindowStartupLocation="CenterScreen"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI"
+        LocationChanged="MainWindow_LocationChanged"
+        StateChanged="MainWindow_StateChanged">
 
     <Window.Resources>
         <SolidColorBrush x:Key="PanelBorderBrush" Color="#D0D7DE" />
@@ -53,6 +55,8 @@
         </Style>
     </Window.Resources>
 
+    <Grid x:Name="MainWindowRoot"
+          SizeChanged="MainWindowRoot_SizeChanged">
     <DockPanel LastChildFill="True">
 
         <!-- 상단 메뉴바 -->
@@ -123,6 +127,10 @@
                           Header="대회 닫기"
                           IsEnabled="False"
                           Click="CloseContestMenuItem_Click" />
+                <MenuItem x:Name="ShowContestInfoMenuItem"
+                          Header="대회 정보 보기"
+                          IsEnabled="False"
+                          Click="ShowContestInfoMenuItem_Click" />
                 <Separator />
                 <MenuItem x:Name="ExportContestResultMenuItem"
                           Header="대회 결과 내보내기..."
@@ -441,6 +449,144 @@
                     </TabControl>
                 </Border>
             </Grid>
+
         </Grid>
     </DockPanel>
+
+        <Popup x:Name="ContestInfoPopup"
+               PlacementTarget="{Binding ElementName=MainWindowRoot}"
+               Placement="Relative"
+               HorizontalOffset="0"
+               VerticalOffset="0"
+               AllowsTransparency="True"
+               StaysOpen="True"
+               Focusable="True"
+               PopupAnimation="Fade">
+            <Grid x:Name="ContestInfoPopupSizingGrid"
+                  Width="{Binding ActualWidth, ElementName=MainWindowRoot}"
+                  Height="{Binding ActualHeight, ElementName=MainWindowRoot}"
+                  Background="#80000000"
+                  Focusable="True">
+                <Border x:Name="ContestInfoBox"
+                        Background="#FFFFFF"
+                        BorderBrush="{StaticResource PanelBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="54" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="56" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0"
+                                BorderBrush="{StaticResource PanelBorderBrush}"
+                                BorderThickness="0,0,0,1"
+                                Background="{StaticResource PanelHeaderBrush}"
+                                CornerRadius="6,6,0,0">
+                            <DockPanel Margin="18,0" LastChildFill="False">
+                                <TextBlock Text="대회 정보"
+                                           FontSize="18"
+                                           FontWeight="SemiBold"
+                                           VerticalAlignment="Center" />
+                                <TextBlock x:Name="ContestInfoCloseStateTextBlock"
+                                           DockPanel.Dock="Right"
+                                           Foreground="#57606A"
+                                           VerticalAlignment="Center"
+                                           TextWrapping="Wrap" />
+                            </DockPanel>
+                        </Border>
+
+                        <ScrollViewer x:Name="ContestInfoScrollViewer"
+                                      Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <Grid Margin="28"
+                                  HorizontalAlignment="Center">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <TextBlock x:Name="ContestInfoTitleTextBlock"
+                                           Grid.Row="0"
+                                           FontSize="24"
+                                           FontWeight="SemiBold"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                                <TextBlock x:Name="ContestInfoStatusTextBlock"
+                                           Grid.Row="1"
+                                           Margin="0,8,0,0"
+                                           Foreground="#57606A"
+                                           FontWeight="SemiBold"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+                                <TextBlock x:Name="ContestInfoTimeTextBlock"
+                                           Grid.Row="2"
+                                           Margin="0,6,0,18"
+                                           Foreground="#57606A"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap" />
+
+                                <ItemsControl x:Name="ContestInfoItemsControl"
+                                              Grid.Row="3">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,10">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="120" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding Label}"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="#24292F"
+                                                           TextWrapping="Wrap" />
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding Text}"
+                                                           Foreground="#24292F"
+                                                           TextWrapping="Wrap" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Border Grid.Row="4"
+                                        Margin="0,14,0,0"
+                                        Padding="12"
+                                        Background="#F6F8FA"
+                                        BorderBrush="{StaticResource PanelBorderBrush}"
+                                        BorderThickness="1">
+                                    <TextBlock x:Name="ContestInfoNoticeTextBlock"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"
+                                               Foreground="#57606A" />
+                                </Border>
+                            </Grid>
+                        </ScrollViewer>
+
+                        <Border Grid.Row="2"
+                                BorderBrush="{StaticResource PanelBorderBrush}"
+                                BorderThickness="0,1,0,0"
+                                Background="{StaticResource PanelHeaderBrush}"
+                                CornerRadius="0,0,6,6"
+                                Padding="12">
+                            <Button x:Name="ContestInfoCloseButton"
+                                    Content="닫기"
+                                    Width="96"
+                                    Height="30"
+                                    HorizontalAlignment="Right"
+                                    Click="ContestInfoCloseButton_Click" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Popup>
+    </Grid>
 </Window>

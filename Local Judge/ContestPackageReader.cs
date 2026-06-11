@@ -50,6 +50,30 @@ namespace Local_Judge
             return ReadFolder(contestRootPath, zipFilePath);
         }
 
+        public ContestManifestDocument ReadManifestFromZip(string zipFilePath)
+        {
+            try
+            {
+                using ZipArchive archive = ZipFile.OpenRead(zipFilePath);
+                ZipArchiveEntry manifestEntry = FindContestManifestEntry(archive)
+                    ?? throw new InvalidOperationException("contest.json 파일을 찾지 못했습니다.");
+
+                using Stream stream = manifestEntry.Open();
+                ContestManifestDocument manifest = JsonSerializer.Deserialize<ContestManifestDocument>(stream, _jsonOptions)
+                    ?? throw new InvalidOperationException("contest.json을 읽을 수 없습니다.");
+                ValidateContestManifest(manifest);
+                return manifest;
+            }
+            catch (JsonException ex)
+            {
+                throw new InvalidOperationException("contest.json 형식이 올바르지 않습니다.", ex);
+            }
+            catch (InvalidDataException ex)
+            {
+                throw new InvalidOperationException("대회 ZIP 파일을 열 수 없습니다.", ex);
+            }
+        }
+
         public ContestContext ReadFolder(string contestRootPath, string? sourceZipPath = null)
         {
             if (!Directory.Exists(contestRootPath))
@@ -113,6 +137,20 @@ namespace Local_Judge
             {
                 throw new InvalidOperationException("contest.json 형식이 올바르지 않습니다.", ex);
             }
+        }
+
+        private static ZipArchiveEntry? FindContestManifestEntry(ZipArchive archive)
+        {
+            ZipArchiveEntry? rootEntry = archive.GetEntry("contest.json");
+            if (rootEntry is not null)
+            {
+                return rootEntry;
+            }
+
+            return archive.Entries
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.Name))
+                .FirstOrDefault(entry =>
+                    string.Equals(Path.GetFileName(entry.FullName), "contest.json", StringComparison.OrdinalIgnoreCase));
         }
 
         private static void ValidateContestManifest(ContestManifestDocument manifest)

@@ -77,6 +77,7 @@ namespace Local_Judge
         private bool _contestAutoExportCompleted;
         private bool _contestAutoExportFailed;
         private bool _isContestAutoExporting;
+        private bool _isContestInfoLockedUntilStart;
         private bool _terminalEndsWithLineBreak = true;
         private bool _isProblemViewerReady;
         private readonly DispatcherTimer _contestTimer;
@@ -701,18 +702,30 @@ namespace Local_Judge
                 return;
             }
 
+            bool shouldRestoreIdleStatus = true;
             try
             {
                 OpenContestMenuItem.IsEnabled = false;
                 SetStatus("대회 여는 중", isWorking: true);
                 AppendTerminal($"[Contest] 대회 ZIP을 여는 중입니다: {dialog.FileName}");
 
+                ContestManifestDocument manifest = await Task.Run(() => _contestPackageReader.ReadManifestFromZip(dialog.FileName));
+                if (DateTimeOffset.Now > manifest.EndsAt)
+                {
+                    SetStatus("종료된 대회", isError: true);
+                    AppendTerminal("[Contest] 이미 종료된 대회는 열 수 없습니다.");
+                    shouldRestoreIdleStatus = false;
+                    MessageBox.Show(
+                        "이미 종료된 대회는 열 수 없습니다.",
+                        "대회 열기",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
                 ContestContext contest = await Task.Run(() => _contestPackageReader.OpenZip(dialog.FileName));
                 SetCurrentContest(contest);
                 AppendTerminal($"[Contest] 대회를 열었습니다: {contest.Title}");
-                AppendTerminal($"[Contest] 작업 폴더: {contest.RootPath}");
-                AppendTerminal($"[Contest] 시작: {contest.StartsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss} / 종료: {contest.EndsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss}");
-                AppendContestInfo(contest);
 
                 if (IsContestProblemOpenAllowed())
                 {
@@ -726,11 +739,13 @@ namespace Local_Judge
                 {
                     ResetProblemView();
                     CurrentProblemStatusTextBlock.Text = $"현재 대회: {contest.Title} | 시작 전";
-                    AppendTerminal("[Contest] 대회 시작 전에는 문항을 열 수 없습니다.");
+                    ShowContestInfo(lockUntilStart: true);
                 }
             }
             catch (Exception ex)
             {
+                shouldRestoreIdleStatus = false;
+                SetStatus("대회 열기 실패", isError: true);
                 AppendTerminal("[Contest] 대회를 여는 중 오류가 발생했습니다.");
                 AppendTerminal(ex.Message);
                 MessageBox.Show(
@@ -742,7 +757,7 @@ namespace Local_Judge
             finally
             {
                 OpenContestMenuItem.IsEnabled = true;
-                if (!_isBenchmarkRunning && !_pythonRunner.IsRunning)
+                if (shouldRestoreIdleStatus && !_isBenchmarkRunning && !_pythonRunner.IsRunning)
                 {
                     SetStatus("채점 대기");
                 }
@@ -756,19 +771,155 @@ namespace Local_Judge
             CloseCurrentContest();
         }
 
-        private void AppendContestInfo(ContestContext contest)
+        private void ShowContestInfoMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            if (contest.AdditionalInfo.Count == 0)
+            ShowContestInfo(lockUntilStart: false);
+        }
+
+        private void MainWindowRoot_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateContestInfoPopupLayout();
+        }
+
+        private void MainWindow_LocationChanged(object? sender, EventArgs e)
+        {
+            UpdateContestInfoPopupLayout();
+        }
+
+        private void MainWindow_StateChanged(object? sender, EventArgs e)
+        {
+            Dispatcher.BeginInvoke(UpdateContestInfoPopupLayout, DispatcherPriority.Loaded);
+        }
+
+        private void ShowContestInfo(bool lockUntilStart)
+        {
+            if (_currentContest is null)
             {
                 return;
             }
 
-            foreach (ContestInfoDocument item in contest.AdditionalInfo)
+            _isContestInfoLockedUntilStart = lockUntilStart || DateTimeOffset.Now < _currentContest.StartsAt;
+            UpdateContestInfoPopupLayout();
+            UpdateContestInfoPopup();
+            ContestInfoPopup.IsOpen = true;
+            Dispatcher.BeginInvoke(() =>
             {
-                string label = string.IsNullOrWhiteSpace(item.Label) ? "정보" : item.Label.Trim();
-                string text = string.IsNullOrWhiteSpace(item.Text) ? "-" : item.Text.Trim();
-                AppendTerminal($"[Contest] {label}: {text}");
+                UpdateContestInfoPopupLayout();
+                ContestInfoPopupSizingGrid.Focus();
+            }, DispatcherPriority.Loaded);
+        }
+
+        private void HideContestInfo()
+        {
+            _isContestInfoLockedUntilStart = false;
+            ContestInfoPopup.IsOpen = false;
+        }
+
+        private void ContestInfoCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!ContestInfoCloseButton.IsEnabled)
+            {
+                return;
             }
+
+            HideContestInfo();
+        }
+
+        private void UpdateContestInfoPopup()
+        {
+            if (_currentContest is null)
+            {
+                return;
+            }
+
+            DateTimeOffset now = DateTimeOffset.Now;
+            string statusText;
+            string noticeText;
+            bool canClose;
+            if (now < _currentContest.StartsAt)
+            {
+                statusText = $"대회 시작 전 | 시작까지 {FormatDuration(_currentContest.StartsAt - now)}";
+                noticeText = "대회 시작 전에는 이 화면을 닫거나 문항을 열 수 없습니다. 시작 시간이 되면 닫기 버튼이 활성화됩니다.";
+                canClose = false;
+            }
+            else if (now <= _currentContest.EndsAt)
+            {
+                statusText = $"대회 진행 중 | 남은 시간 {FormatDuration(_currentContest.EndsAt - now)}";
+                noticeText = "대회 정보는 진행 중 언제든 다시 확인할 수 있습니다.";
+                canClose = true;
+            }
+            else
+            {
+                statusText = "대회 종료";
+                noticeText = "대회가 종료되었습니다.";
+                canClose = true;
+            }
+
+            List<ContestInfoDisplayItem> infoItems = _currentContest.AdditionalInfo
+                .Select(item => new ContestInfoDisplayItem(
+                    string.IsNullOrWhiteSpace(item.Label) ? "정보" : item.Label.Trim(),
+                    string.IsNullOrWhiteSpace(item.Text) ? "-" : item.Text.Trim()))
+                .ToList();
+            if (infoItems.Count == 0)
+            {
+                infoItems.Add(new ContestInfoDisplayItem("추가 정보", "-"));
+            }
+
+            bool closeEnabled = canClose && !_isContestInfoLockedUntilStart;
+            ContestInfoTitleTextBlock.Text = _currentContest.Title;
+            ContestInfoStatusTextBlock.Text = statusText;
+            ContestInfoTimeTextBlock.Text =
+                $"시작: {_currentContest.StartsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss} / 종료: {_currentContest.EndsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss}";
+            ContestInfoItemsControl.ItemsSource = infoItems;
+            ContestInfoNoticeTextBlock.Text = noticeText;
+            ContestInfoCloseButton.IsEnabled = closeEnabled;
+            ContestInfoCloseStateTextBlock.Text = closeEnabled
+                ? "대회 정보를 닫고 문항을 확인할 수 있습니다."
+                : "대회 시작 전에는 닫을 수 없습니다.";
+        }
+
+        private void UpdateContestInfoPopupLayout()
+        {
+            if (MainWindowRoot.ActualWidth <= 0 || MainWindowRoot.ActualHeight <= 0)
+            {
+                return;
+            }
+
+            double width = MainWindowRoot.ActualWidth;
+            double height = MainWindowRoot.ActualHeight;
+            SetFixedElementSize(ContestInfoPopupSizingGrid, width, height);
+            ContestInfoPopup.Width = width;
+            ContestInfoPopup.Height = height;
+            ContestInfoBox.Width = Math.Min(820, Math.Max(560, width - 140));
+            ContestInfoBox.MaxHeight = Math.Max(360, height - 120);
+            ContestInfoScrollViewer.MaxHeight = Math.Max(220, height - 230);
+            ContestInfoPopupSizingGrid.UpdateLayout();
+        }
+
+        private static void SetFixedElementSize(FrameworkElement element, double width, double height)
+        {
+            width = Math.Max(1, width);
+            height = Math.Max(1, height);
+
+            element.Width = width;
+            element.MinWidth = width;
+            element.MaxWidth = width;
+            element.Height = height;
+            element.MinHeight = height;
+            element.MaxHeight = height;
+        }
+
+        private sealed class ContestInfoDisplayItem
+        {
+            public ContestInfoDisplayItem(string label, string text)
+            {
+                Label = label;
+                Text = text;
+            }
+
+            public string Label { get; }
+
+            public string Text { get; }
         }
 
         private void SetCurrentContest(ContestContext contest)
@@ -787,6 +938,7 @@ namespace Local_Judge
             _currentContestProblem = null;
             _contestAutoExportCompleted = false;
             _contestAutoExportFailed = false;
+            _isContestInfoLockedUntilStart = false;
 
             LessonExplorerRow.Height = new GridLength(190);
             LessonExplorerSplitterRow.Height = new GridLength(6);
@@ -794,6 +946,7 @@ namespace Local_Judge
             LessonExplorerGroupBox.Header = "대회";
             LessonExplorerGridSplitter.Visibility = Visibility.Visible;
             CloseContestMenuItem.IsEnabled = true;
+            ShowContestInfoMenuItem.IsEnabled = true;
             ExportContestResultMenuItem.IsEnabled = true;
 
             LessonTitleTextBlock.Text = $"{contest.Title} | 문항 {contest.Problems.Count}개";
@@ -811,6 +964,7 @@ namespace Local_Judge
             _contestAutoExportCompleted = false;
             _contestAutoExportFailed = false;
             _isContestAutoExporting = false;
+            _isContestInfoLockedUntilStart = false;
 
             LessonTreeView.Items.Clear();
             LessonTitleTextBlock.Text = string.Empty;
@@ -819,12 +973,14 @@ namespace Local_Judge
             LessonExplorerRow.Height = new GridLength(0);
             LessonExplorerSplitterRow.Height = new GridLength(0);
             CloseContestMenuItem.IsEnabled = false;
+            ShowContestInfoMenuItem.IsEnabled = false;
             ExportContestResultMenuItem.IsEnabled = false;
 
             _currentProblem = null;
             _currentProblemFilePath = null;
             _pendingProblemAssetWorkspacePath = null;
             _isProblemDirty = false;
+            HideContestInfo();
             ResetProblemView();
             UpdateContestStatus();
 
@@ -960,7 +1116,7 @@ namespace Local_Judge
             if (!IsContestProblemOpenAllowed())
             {
                 SetStatus("대회 시작 전", isError: true);
-                AppendTerminal("[Contest] 대회 시작 전에는 문항을 열 수 없습니다.");
+                ShowContestInfo(lockUntilStart: true);
                 RefreshContestExplorer(_currentContestProblem?.RelativePath);
                 return;
             }
@@ -972,6 +1128,7 @@ namespace Local_Judge
             _isProblemDirty = false;
 
             DisplayProblem(contestProblem.Problem);
+            HideContestInfo();
             RefreshContestExplorer(contestProblem.RelativePath);
             AppendTerminal($"[Contest] 문항을 열었습니다: {FormatContestProblemName(contestProblem)}");
         }
@@ -1347,6 +1504,20 @@ namespace Local_Judge
         private void ContestTimer_Tick(object? sender, EventArgs e)
         {
             UpdateContestStatus();
+
+            if (_currentContest is not null
+                && _isContestInfoLockedUntilStart
+                && IsContestProblemOpenAllowed())
+            {
+                _isContestInfoLockedUntilStart = false;
+            }
+
+            if (ContestInfoPopup.IsOpen)
+            {
+                UpdateContestInfoPopupLayout();
+                UpdateContestInfoPopup();
+            }
+
             RefreshContestExplorer(_currentContestProblem?.RelativePath);
             UpdateProblemCommandState();
 
