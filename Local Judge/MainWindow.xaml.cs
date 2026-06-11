@@ -19,7 +19,8 @@ namespace Local_Judge
 {
     public partial class MainWindow : Window
     {
-        private string _latestEditorCode = "";
+        private const string DefaultPythonCode = "import sys\n\n\ndef main():\n    pass\n\n\nif __name__ == \"__main__\":\n    main()\n";
+        private string _latestEditorCode = DefaultPythonCode;
         private TaskCompletionSource<string>? _editorCodeRequest;
         private string? _editorCodeRequestId;
 
@@ -78,6 +79,8 @@ namespace Local_Judge
         private bool _contestAutoExportFailed;
         private bool _isContestAutoExporting;
         private bool _isContestInfoLockedUntilStart;
+        private string? _activeEditorCodeScopeKey;
+        private readonly Dictionary<string, string> _scopedEditorCodeBuffers = new(StringComparer.OrdinalIgnoreCase);
         private bool _terminalEndsWithLineBreak = true;
         private bool _isProblemViewerReady;
         private readonly DispatcherTimer _contestTimer;
@@ -277,12 +280,14 @@ namespace Local_Judge
                 {
                     case "editorReady":
                         AppendTerminal("[Editor] Monaco Editor가 준비되었습니다.");
+                        SetEditorCode(_latestEditorCode);
                         break;
 
                     case "codeChanged":
                         if (root.TryGetProperty("code", out JsonElement codeElement))
                         {
                             _latestEditorCode = codeElement.GetString() ?? "";
+                            StoreLatestEditorCodeForActiveScope();
                         }
                         break;
 
@@ -295,6 +300,7 @@ namespace Local_Judge
                                 : null;
 
                             _latestEditorCode = code;
+                            StoreLatestEditorCodeForActiveScope();
 
                             TaskCompletionSource<string>? pendingRequest = _editorCodeRequest;
                             if (pendingRequest is not null
@@ -358,6 +364,7 @@ namespace Local_Judge
         private void SetEditorCode(string code)
         {
             _latestEditorCode = code;
+            StoreLatestEditorCodeForActiveScope();
 
             if (CodeEditorWebView.CoreWebView2 == null)
             {
@@ -371,6 +378,42 @@ namespace Local_Judge
             });
 
             CodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
+        }
+
+        private void StoreLatestEditorCodeForActiveScope()
+        {
+            if (string.IsNullOrWhiteSpace(_activeEditorCodeScopeKey))
+            {
+                return;
+            }
+
+            _scopedEditorCodeBuffers[_activeEditorCodeScopeKey] = _latestEditorCode;
+        }
+
+        private void ActivateEditorCodeScope(string scopeKey)
+        {
+            StoreLatestEditorCodeForActiveScope();
+            _activeEditorCodeScopeKey = scopeKey;
+            string code = _scopedEditorCodeBuffers.TryGetValue(scopeKey, out string? bufferedCode)
+                ? bufferedCode
+                : DefaultPythonCode;
+            SetEditorCode(code);
+        }
+
+        private void DeactivateEditorCodeScope()
+        {
+            StoreLatestEditorCodeForActiveScope();
+            _activeEditorCodeScopeKey = null;
+        }
+
+        private static string CreateLessonEditorCodeScopeKey(LessonContext lesson, LessonProblemItem problem)
+        {
+            return $"lesson:{lesson.LessonId}:{problem.RelativePath}";
+        }
+
+        private static string CreateContestEditorCodeScopeKey(ContestContext contest, ContestProblemItem problem)
+        {
+            return $"contest:{contest.ContestId}:{problem.RelativePath}";
         }
 
         private void SetStatus(string message, bool isWorking = false, bool isError = false)
@@ -675,6 +718,7 @@ namespace Local_Judge
 
         private void CloseCurrentLesson()
         {
+            DeactivateEditorCodeScope();
             _currentLesson = null;
             _currentLessonProblem = null;
             LessonTreeView.Items.Clear();
@@ -992,6 +1036,7 @@ namespace Local_Judge
 
         private void CloseCurrentContest(bool showLog = true)
         {
+            DeactivateEditorCodeScope();
             _contestTimer.Stop();
             _currentContest = null;
             _currentContestProblem = null;
@@ -1134,6 +1179,11 @@ namespace Local_Judge
 
         private void OpenLessonProblem(LessonProblemItem lessonProblem)
         {
+            if (_currentLesson is not null)
+            {
+                ActivateEditorCodeScope(CreateLessonEditorCodeScopeKey(_currentLesson, lessonProblem));
+            }
+
             _currentLessonProblem = lessonProblem;
             _currentProblem = lessonProblem.Problem;
             _currentProblemFilePath = lessonProblem.FilePath;
@@ -1153,6 +1203,11 @@ namespace Local_Judge
                 ShowContestInfo(lockUntilStart: true);
                 RefreshContestExplorer(_currentContestProblem?.RelativePath);
                 return;
+            }
+
+            if (_currentContest is not null)
+            {
+                ActivateEditorCodeScope(CreateContestEditorCodeScopeKey(_currentContest, contestProblem));
             }
 
             _currentContestProblem = contestProblem;
@@ -1875,6 +1930,7 @@ namespace Local_Judge
 
                 NormalizeProblemDocument(problem, defaultToMarkdownLatex: false);
 
+                DeactivateEditorCodeScope();
                 _currentProblem = problem;
                 _currentProblemFilePath = dialog.FileName;
                 _pendingProblemAssetWorkspacePath = null;
