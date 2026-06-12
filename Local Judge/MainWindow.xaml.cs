@@ -34,6 +34,8 @@ namespace Local_Judge
         private readonly LessonResultInspectionReader _lessonResultInspectionReader;
         private readonly LessonPackageReader _lessonPackageReader;
         private readonly ContestPackageReader _contestPackageReader;
+        private readonly ContestProblemNavigator _contestProblemNavigator;
+        private readonly ContestResultExporter _contestResultExporter;
         private readonly LocalJudgeSettingsStore _settingsStore;
         private const string ApplicationVersion = "v1.0";
         private const string ApplicationAuthor = "김명서";
@@ -68,8 +70,7 @@ namespace Local_Judge
         private string? _pendingProblemAssetWorkspacePath;
         private LessonContext? _currentLesson;
         private LessonProblemItem? _currentLessonProblem;
-        private ContestContext? _currentContest;
-        private ContestProblemItem? _currentContestProblem;
+        private readonly ContestSessionService _contestSession = new();
         private LocalJudgeUserSettings _userSettings = new();
         private bool _isPythonConnected;
         private bool _isRefreshingLessonExplorer;
@@ -78,10 +79,12 @@ namespace Local_Judge
         private JudgeEnvironmentBenchmarkResult? _benchmarkResult;
         private bool _isBenchmarkRunning;
         private bool _isSubmitting;
-        private bool _contestAutoExportCompleted;
-        private bool _contestAutoExportFailed;
-        private bool _isContestAutoExporting;
-        private bool _isContestInfoLockedUntilStart;
+        private ContestContext? _currentContest => _contestSession.CurrentContest;
+        private ContestProblemItem? _currentContestProblem => _contestSession.CurrentProblem;
+        private bool _contestAutoExportCompleted => _contestSession.AutoExportCompleted;
+        private bool _contestAutoExportFailed => _contestSession.AutoExportFailed;
+        private bool _isContestAutoExporting => _contestSession.IsAutoExporting;
+        private bool _isContestInfoLockedUntilStart => _contestSession.IsInfoLockedUntilStart;
         private string? _activeEditorCodeScopeKey;
         private readonly Dictionary<string, string> _scopedEditorCodeBuffers = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, EditorDraftTarget> _editorCodeDraftTargets = new(StringComparer.OrdinalIgnoreCase);
@@ -103,6 +106,8 @@ namespace Local_Judge
             _lessonResultInspectionReader = new LessonResultInspectionReader(_jsonOptions);
             _lessonPackageReader = new LessonPackageReader(_jsonOptions);
             _contestPackageReader = new ContestPackageReader(_jsonOptions);
+            _contestProblemNavigator = new ContestProblemNavigator(_jsonOptions);
+            _contestResultExporter = new ContestResultExporter(_submissionHistoryExporter, _contestProblemNavigator);
             _settingsStore = new LocalJudgeSettingsStore(_jsonOptions);
 
             InitializeComponent();
@@ -479,7 +484,7 @@ namespace Local_Judge
             return new EditorDraftTarget(
                 CreateSessionDraftFilePath(contest.RootPath, problem.SubmissionKey),
                 CreateStableDraftFilePath("Contests", CreateContestDraftContextKey(contest), problem.SubmissionKey),
-                FormatContestProblemName(problem));
+                ContestProblemNavigator.FormatProblemName(problem));
         }
 
         private void SaveDraftForActiveScope(bool force, bool logOnSuccess)
@@ -1206,12 +1211,12 @@ namespace Local_Judge
 
         private void ShowContestInfo(bool lockUntilStart)
         {
-            if (_currentContest is null)
+            if (!_contestSession.IsOpen)
             {
                 return;
             }
 
-            _isContestInfoLockedUntilStart = lockUntilStart || DateTimeOffset.Now < _currentContest.StartsAt;
+            _contestSession.SetInfoLockUntilStart(lockUntilStart, DateTimeOffset.Now);
             UpdateContestInfoPopupLayout();
             UpdateContestInfoPopup();
             ContestInfoPopup.IsOpen = true;
@@ -1224,7 +1229,7 @@ namespace Local_Judge
 
         private void HideContestInfo()
         {
-            _isContestInfoLockedUntilStart = false;
+            _contestSession.ClearInfoLock();
             ContestInfoPopup.IsOpen = false;
         }
 
@@ -1245,19 +1250,21 @@ namespace Local_Judge
                 return;
             }
 
+            ContestContext contest = _currentContest!;
             DateTimeOffset now = DateTimeOffset.Now;
             string statusText;
             string noticeText;
             bool canClose;
-            if (now < _currentContest.StartsAt)
+            ContestSessionPhase phase = _contestSession.GetPhase(now);
+            if (phase == ContestSessionPhase.BeforeStart)
             {
-                statusText = $"대회 시작 전 | 시작까지 {FormatDuration(_currentContest.StartsAt - now)}";
+                statusText = $"대회 시작 전 | 시작까지 {FormatDuration(contest.StartsAt - now)}";
                 noticeText = "대회 시작 전에는 이 화면을 닫거나 문항을 열 수 없습니다. 시작 시간이 되면 닫기 버튼이 활성화됩니다.";
                 canClose = false;
             }
-            else if (now <= _currentContest.EndsAt)
+            else if (phase == ContestSessionPhase.Active)
             {
-                statusText = $"대회 진행 중 | 남은 시간 {FormatDuration(_currentContest.EndsAt - now)}";
+                statusText = $"대회 진행 중 | 남은 시간 {FormatDuration(contest.EndsAt - now)}";
                 noticeText = "대회 정보는 진행 중 언제든 다시 확인할 수 있습니다.";
                 canClose = true;
             }
@@ -1268,7 +1275,7 @@ namespace Local_Judge
                 canClose = true;
             }
 
-            List<ContestInfoDisplayItem> infoItems = _currentContest.AdditionalInfo
+            List<ContestInfoDisplayItem> infoItems = contest.AdditionalInfo
                 .Select(item => new ContestInfoDisplayItem(
                     string.IsNullOrWhiteSpace(item.Label) ? "정보" : item.Label.Trim(),
                     string.IsNullOrWhiteSpace(item.Text) ? "-" : item.Text.Trim()))
@@ -1279,10 +1286,10 @@ namespace Local_Judge
             }
 
             bool closeEnabled = canClose && !_isContestInfoLockedUntilStart;
-            ContestInfoTitleTextBlock.Text = _currentContest.Title;
+            ContestInfoTitleTextBlock.Text = contest.Title;
             ContestInfoStatusTextBlock.Text = statusText;
             ContestInfoTimeTextBlock.Text =
-                $"시작: {_currentContest.StartsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss} / 종료: {_currentContest.EndsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss}";
+                $"시작: {contest.StartsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss} / 종료: {contest.EndsAt.LocalDateTime:yyyy-MM-dd HH:mm:ss}";
             ContestInfoItemsControl.ItemsSource = infoItems;
             ContestInfoNoticeTextBlock.Text = noticeText;
             ContestInfoCloseButton.IsEnabled = closeEnabled;
@@ -1347,11 +1354,7 @@ namespace Local_Judge
                 CloseCurrentLesson();
             }
 
-            _currentContest = contest;
-            _currentContestProblem = null;
-            _contestAutoExportCompleted = false;
-            _contestAutoExportFailed = false;
-            _isContestInfoLockedUntilStart = false;
+            _contestSession.Open(contest);
 
             LessonExplorerRow.Height = new GridLength(190);
             LessonExplorerSplitterRow.Height = new GridLength(6);
@@ -1373,12 +1376,7 @@ namespace Local_Judge
         {
             DeactivateEditorCodeScope();
             _contestTimer.Stop();
-            _currentContest = null;
-            _currentContestProblem = null;
-            _contestAutoExportCompleted = false;
-            _contestAutoExportFailed = false;
-            _isContestAutoExporting = false;
-            _isContestInfoLockedUntilStart = false;
+            _contestSession.Close();
 
             LessonTreeView.Items.Clear();
             LessonTitleTextBlock.Text = string.Empty;
@@ -1417,16 +1415,10 @@ namespace Local_Judge
             {
                 LessonTreeView.Items.Clear();
 
-                foreach (ContestProblemItem problem in _currentContest.Problems)
+                foreach (TreeViewItem problemItem in _contestProblemNavigator.CreateProblemTreeItems(
+                             _currentContest,
+                             selectedProblemRelativePath))
                 {
-                    UpdateContestProblemStatus(problem);
-                    var problemItem = new TreeViewItem
-                    {
-                        Header = CreateContestProblemTreeHeader(problem),
-                        Tag = problem,
-                        IsSelected = string.Equals(problem.RelativePath, selectedProblemRelativePath, StringComparison.OrdinalIgnoreCase)
-                    };
-
                     LessonTreeView.Items.Add(problemItem);
                 }
             }
@@ -1549,7 +1541,7 @@ namespace Local_Judge
                     CreateContestEditorDraftTarget(_currentContest, contestProblem));
             }
 
-            _currentContestProblem = contestProblem;
+            _contestSession.SelectProblem(contestProblem);
             _currentProblem = contestProblem.Problem;
             _currentProblemFilePath = contestProblem.FilePath;
             _pendingProblemAssetWorkspacePath = null;
@@ -1558,7 +1550,7 @@ namespace Local_Judge
             DisplayProblem(contestProblem.Problem);
             HideContestInfo();
             RefreshContestExplorer(contestProblem.RelativePath);
-            AppendTerminal($"[Contest] 문항을 열었습니다: {FormatContestProblemName(contestProblem)}");
+            AppendTerminal($"[Contest] 문항을 열었습니다: {ContestProblemNavigator.FormatProblemName(contestProblem)}");
         }
 
         private void UpdateLessonProblemStatus(LessonProblemItem problem)
@@ -1611,18 +1603,6 @@ namespace Local_Judge
                 .ToList();
         }
 
-        private void UpdateContestProblemStatus(ContestProblemItem problem)
-        {
-            IReadOnlyList<SubmissionAttemptHistoryItem> attempts = LoadContestAttempts(problem);
-            problem.AttemptCount = attempts.Count;
-            problem.HasAccepted = attempts.Any(item => string.Equals(item.Attempt.Verdict, "AC", StringComparison.OrdinalIgnoreCase));
-            problem.LastVerdict = attempts
-                .OrderBy(item => item.Attempt.SubmittedAt)
-                .LastOrDefault()
-                ?.Attempt
-                .Verdict ?? string.Empty;
-        }
-
         private IReadOnlyList<SubmissionAttemptHistoryItem> LoadContestAttempts(ContestProblemItem problem)
         {
             if (_currentContest is null)
@@ -1630,52 +1610,7 @@ namespace Local_Judge
                 return Array.Empty<SubmissionAttemptHistoryItem>();
             }
 
-            var attempts = new List<SubmissionAttemptHistoryItem>();
-            var seenAttemptKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (string submissionsRoot in GetContestSubmissionRoots(_currentContest))
-            {
-                string problemDirectory = Path.Combine(submissionsRoot, problem.SubmissionKey);
-                if (!Directory.Exists(problemDirectory))
-                {
-                    continue;
-                }
-
-                foreach (string filePath in Directory.EnumerateFiles(problemDirectory, "*.json"))
-                {
-                    try
-                    {
-                        string json = File.ReadAllText(filePath);
-                        SubmissionAttemptDocument? attempt = JsonSerializer.Deserialize<SubmissionAttemptDocument>(json, _jsonOptions);
-                        if (attempt is null)
-                        {
-                            continue;
-                        }
-
-                        attempt.ContestId = _currentContest.ContestId;
-                        attempt.ContestTitle = _currentContest.Title;
-                        attempt.ContestProblemLabel = problem.Label;
-                        attempt.ContestProblemRelativePath = problem.RelativePath;
-
-                        string attemptKey = string.IsNullOrWhiteSpace(attempt.AttemptId)
-                            ? Path.GetFileNameWithoutExtension(filePath)
-                            : attempt.AttemptId;
-                        if (!seenAttemptKeys.Add(attemptKey))
-                        {
-                            continue;
-                        }
-
-                        attempts.Add(new SubmissionAttemptHistoryItem(filePath, attempt));
-                    }
-                    catch
-                    {
-                        // Ignore malformed contest submission files.
-                    }
-                }
-            }
-
-            return attempts
-                .OrderByDescending(item => item.Attempt.SubmittedAt)
-                .ToList();
+            return _contestProblemNavigator.LoadAttempts(_currentContest, problem);
         }
 
         private static string FormatLessonProblemTreeText(LessonProblemItem problem)
@@ -1706,93 +1641,6 @@ namespace Local_Judge
             return problem.AttemptCount > 0
                 ? Brushes.Firebrick
                 : Brushes.Black;
-        }
-
-        private static string FormatContestProblemTreeText(ContestProblemItem problem)
-        {
-            string name = FormatContestProblemName(problem);
-            if (problem.HasAccepted)
-            {
-                return $"{name} (AC)";
-            }
-
-            if (problem.AttemptCount == 0 || string.IsNullOrWhiteSpace(problem.LastVerdict))
-            {
-                return name;
-            }
-
-            return $"{name} ({problem.LastVerdict})";
-        }
-
-        private static string FormatContestProblemName(ContestProblemItem problem)
-        {
-            string title = string.IsNullOrWhiteSpace(problem.Problem.Id)
-                ? problem.Problem.Title
-                : $"[{problem.Problem.Id}] {problem.Problem.Title}";
-            return $"{problem.Label}. {title}";
-        }
-
-        private static StackPanel CreateContestProblemTreeHeader(ContestProblemItem problem)
-        {
-            return new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Children =
-                {
-                    new System.Windows.Shapes.Ellipse
-                    {
-                        Width = 10,
-                        Height = 10,
-                        Fill = GetContestBalloonBrush(problem),
-                        Stroke = Brushes.DimGray,
-                        StrokeThickness = 0.5,
-                        Margin = new Thickness(0, 0, 6, 0),
-                        VerticalAlignment = VerticalAlignment.Center,
-                        ToolTip = "풍선 색"
-                    },
-                    new TextBlock
-                    {
-                        Text = FormatContestProblemTreeText(problem),
-                        Foreground = GetContestProblemBrush(problem),
-                        VerticalAlignment = VerticalAlignment.Center
-                    }
-                }
-            };
-        }
-
-        private static Brush GetContestProblemBrush(ContestProblemItem problem)
-        {
-            if (problem.HasAccepted)
-            {
-                return Brushes.ForestGreen;
-            }
-
-            return problem.AttemptCount > 0
-                ? Brushes.Firebrick
-                : Brushes.Black;
-        }
-
-        private static Brush GetContestBalloonBrush(ContestProblemItem problem)
-        {
-            string colorText = string.IsNullOrWhiteSpace(problem.BalloonColor)
-                ? "#7F8C8D"
-                : problem.BalloonColor.Trim();
-
-            try
-            {
-                if (ColorConverter.ConvertFromString(colorText) is Color color)
-                {
-                    var brush = new SolidColorBrush(color);
-                    brush.Freeze();
-                    return brush;
-                }
-            }
-            catch
-            {
-                // Invalid contest metadata falls back to a neutral color.
-            }
-
-            return Brushes.Gray;
         }
 
         private void RenderProblemView()
@@ -1956,14 +1804,10 @@ namespace Local_Judge
 
         private void ContestTimer_Tick(object? sender, EventArgs e)
         {
+            DateTimeOffset now = DateTimeOffset.Now;
             UpdateContestStatus();
 
-            if (_currentContest is not null
-                && _isContestInfoLockedUntilStart
-                && IsContestProblemOpenAllowed())
-            {
-                _isContestInfoLockedUntilStart = false;
-            }
+            _contestSession.ReleaseInfoLockIfProblemOpenAllowed(now);
 
             if (ContestInfoPopup.IsOpen)
             {
@@ -1974,13 +1818,7 @@ namespace Local_Judge
             RefreshContestExplorer(_currentContestProblem?.RelativePath);
             UpdateProblemCommandState();
 
-            if (_currentContest is not null
-                && IsContestEnded()
-                && !_contestAutoExportCompleted
-                && !_contestAutoExportFailed
-                && !_isContestAutoExporting
-                && !_isSubmitting
-                && !_pythonRunner.IsRunning)
+            if (_contestSession.ShouldAutoExport(now, _isSubmitting, _pythonRunner.IsRunning))
             {
                 TryAutoExportContestResult();
             }
@@ -1988,22 +1826,24 @@ namespace Local_Judge
 
         private void UpdateContestStatus()
         {
-            if (_currentContest is null)
+            ContestContext? contest = _currentContest;
+            if (contest is null)
             {
                 ContestStatusTextBlock.Text = "대회: 없음";
                 return;
             }
 
             DateTimeOffset now = DateTimeOffset.Now;
-            if (now < _currentContest.StartsAt)
+            ContestSessionPhase phase = _contestSession.GetPhase(now);
+            if (phase == ContestSessionPhase.BeforeStart)
             {
-                ContestStatusTextBlock.Text = $"대회: 시작 전 | 시작까지 {FormatDuration(_currentContest.StartsAt - now)}";
+                ContestStatusTextBlock.Text = $"대회: 시작 전 | 시작까지 {FormatDuration(contest.StartsAt - now)}";
                 return;
             }
 
-            if (now <= _currentContest.EndsAt)
+            if (phase == ContestSessionPhase.Active)
             {
-                ContestStatusTextBlock.Text = $"대회: 진행 중 | 남은 시간 {FormatDuration(_currentContest.EndsAt - now)}";
+                ContestStatusTextBlock.Text = $"대회: 진행 중 | 남은 시간 {FormatDuration(contest.EndsAt - now)}";
                 return;
             }
 
@@ -2027,23 +1867,17 @@ namespace Local_Judge
 
         private bool IsContestProblemOpenAllowed()
         {
-            return _currentContest is not null && DateTimeOffset.Now >= _currentContest.StartsAt;
+            return _contestSession.CanOpenProblem(DateTimeOffset.Now);
         }
 
         private bool IsContestActive()
         {
-            if (_currentContest is null)
-            {
-                return false;
-            }
-
-            DateTimeOffset now = DateTimeOffset.Now;
-            return now >= _currentContest.StartsAt && now <= _currentContest.EndsAt;
+            return _contestSession.IsActive(DateTimeOffset.Now);
         }
 
         private bool IsContestEnded()
         {
-            return _currentContest is not null && DateTimeOffset.Now > _currentContest.EndsAt;
+            return _contestSession.IsEnded(DateTimeOffset.Now);
         }
 
         private async Task StartEnvironmentBenchmarkAsync(bool isManual)
@@ -3012,33 +2846,17 @@ namespace Local_Judge
                 return null;
             }
 
-            if (_currentContestProblem is not null
-                && IsSamePath(_currentContestProblem.FilePath, _currentProblemFilePath))
+            ContestProblemItem? resolvedProblem = _contestProblemNavigator.ResolveCurrentProblem(
+                _currentContest,
+                _currentContestProblem,
+                _currentProblem,
+                _currentProblemFilePath);
+            if (resolvedProblem is not null)
             {
-                return _currentContestProblem;
+                _contestSession.SelectProblem(resolvedProblem);
             }
 
-            if (!string.IsNullOrWhiteSpace(_currentProblemFilePath))
-            {
-                ContestProblemItem? pathMatch = _currentContest.Problems.FirstOrDefault(problem =>
-                    IsSamePath(problem.FilePath, _currentProblemFilePath));
-                if (pathMatch is not null)
-                {
-                    _currentContestProblem = pathMatch;
-                    return pathMatch;
-                }
-            }
-
-            List<ContestProblemItem> documentMatches = _currentContest.Problems
-                .Where(problem => ReferenceEquals(problem.Problem, _currentProblem))
-                .ToList();
-            if (documentMatches.Count == 1)
-            {
-                _currentContestProblem = documentMatches[0];
-                return documentMatches[0];
-            }
-
-            return null;
+            return resolvedProblem;
         }
 
         private static bool IsSamePath(string? left, string? right)
@@ -3091,60 +2909,16 @@ namespace Local_Judge
             ContestContext contest,
             ContestProblemItem contestProblem)
         {
-            attempt.ContestId = contest.ContestId;
-            attempt.ContestTitle = contest.Title;
-            attempt.ContestProblemLabel = contestProblem.Label;
-            attempt.ContestProblemRelativePath = contestProblem.RelativePath;
-
-            string attemptId = string.IsNullOrWhiteSpace(attempt.AttemptId)
-                ? SubmissionHistoryStore.CreateAttemptId(attempt.SubmittedAt)
-                : Regex.Replace(attempt.AttemptId, @"[\\/:*?""<>|]+", "_");
-            string json = JsonSerializer.Serialize(attempt, _jsonOptions);
-            string? primarySavedPath = null;
-            var failures = new List<string>();
-
-            foreach (string submissionsRoot in GetContestSubmissionRoots(contest))
-            {
-                try
-                {
-                    string problemDirectory = Path.Combine(submissionsRoot, contestProblem.SubmissionKey);
-                    Directory.CreateDirectory(problemDirectory);
-
-                    string filePath = Path.Combine(problemDirectory, attemptId + ".json");
-                    File.WriteAllText(filePath, json);
-                    primarySavedPath ??= filePath;
-                }
-                catch (Exception ex)
-                {
-                    failures.Add($"{submissionsRoot}: {ex.Message}");
-                }
-            }
-
-            if (primarySavedPath is null)
-            {
-                throw new InvalidOperationException("대회 제출 이력을 저장하지 못했습니다.\n" + string.Join("\n", failures));
-            }
-
-            foreach (string failure in failures)
+            ContestSubmissionSaveResult saveResult = _contestProblemNavigator.SaveSubmissionAttempt(
+                attempt,
+                contest,
+                contestProblem);
+            foreach (string failure in saveResult.Failures)
             {
                 AppendTerminal($"[Submit] 대회 제출 이력 복사본 저장 실패: {failure}");
             }
 
-            return primarySavedPath;
-        }
-
-        private static IEnumerable<string> GetContestSubmissionRoots(ContestContext contest)
-        {
-            if (!string.IsNullOrWhiteSpace(contest.SubmissionsRoot))
-            {
-                yield return contest.SubmissionsRoot;
-            }
-
-            if (!string.IsNullOrWhiteSpace(contest.SessionSubmissionsRoot)
-                && !string.Equals(contest.SessionSubmissionsRoot, contest.SubmissionsRoot, StringComparison.OrdinalIgnoreCase))
-            {
-                yield return contest.SessionSubmissionsRoot;
-            }
+            return saveResult.FilePath;
         }
 
         private void StopRunButton_Click(object sender, RoutedEventArgs e)
@@ -3325,11 +3099,7 @@ namespace Local_Judge
                 _isSubmitting = false;
                 UpdateProblemCommandState();
 
-                if (_currentContest is not null
-                    && IsContestEnded()
-                    && !_contestAutoExportCompleted
-                    && !_contestAutoExportFailed
-                    && !_isContestAutoExporting)
+                if (_contestSession.ShouldAutoExport(DateTimeOffset.Now, _isSubmitting, _pythonRunner.IsRunning))
                 {
                     TryAutoExportContestResult();
                 }
@@ -3607,7 +3377,7 @@ namespace Local_Judge
                 Title = "대회 결과 내보내기",
                 Filter = "ZIP 파일 (*.zip)|*.zip|모든 파일 (*.*)|*.*",
                 DefaultExt = ".zip",
-                FileName = CreateDefaultContestResultExportFileName(_currentContest)
+                FileName = ContestResultExporter.CreateDefaultExportFileName(_currentContest)
             };
             ApplyInitialDirectory(dialog, _userSettings.SubmissionHistoryExportDirectory);
 
@@ -3622,68 +3392,53 @@ namespace Local_Judge
 
         private void TryAutoExportContestResult()
         {
-            if (_currentContest is null || _contestAutoExportCompleted || _contestAutoExportFailed || _isContestAutoExporting)
+            if (!_contestSession.ShouldAutoExport(DateTimeOffset.Now, _isSubmitting, _pythonRunner.IsRunning))
             {
                 return;
             }
 
+            ContestContext contest = _currentContest!;
             string destinationFilePath;
             try
             {
-                string exportDirectory = GetContestAutoExportDirectory(_currentContest);
+                string exportDirectory = _contestResultExporter.GetAutoExportDirectory(
+                    contest,
+                    _userSettings.SubmissionHistoryExportDirectory);
                 destinationFilePath = Path.Combine(
                     exportDirectory,
-                    CreateDefaultContestResultExportFileName(_currentContest));
+                    ContestResultExporter.CreateDefaultExportFileName(contest));
             }
             catch (Exception ex)
             {
-                _contestAutoExportFailed = true;
+                _contestSession.FailExport(markAutoExportFailed: true);
                 UpdateContestStatus();
                 AppendTerminal("[Contest] 대회 종료 결과 자동 내보내기 경로를 준비하지 못했습니다.");
                 AppendTerminal(ex.Message);
                 return;
             }
 
-            ExportContestResult(_currentContest, destinationFilePath, isAutomatic: true);
+            ExportContestResult(contest, destinationFilePath, isAutomatic: true);
         }
 
         private void ExportContestResult(ContestContext contest, string destinationFilePath, bool isAutomatic)
         {
+            if (!_contestSession.CanStartExport())
+            {
+                AppendTerminal("[Contest] 대회 결과 내보내기가 이미 진행 중입니다.");
+                return;
+            }
+
             try
             {
-                _isContestAutoExporting = true;
-                var request = new SubmissionHistoryExportRequest
-                {
-                    DestinationFilePath = destinationFilePath,
-                    ExportKind = "Contest",
-                    ExportName = contest.Title,
-                    ContestSettings = new SubmissionHistoryContestSettings
-                    {
-                        PenaltyMode = "ICPC",
-                        WrongSubmissionPenaltyMinutes = contest.WrongSubmissionPenaltyMinutes,
-                        CountWrongBeforeAcceptedOnly = true,
-                        ContestStartedAt = contest.StartsAt
-                    }
-                };
-
-                foreach (ContestProblemItem problem in contest.Problems)
-                {
-                    request.Problems.Add(new SubmissionHistoryExportProblem
-                    {
-                        ProblemKey = problem.SubmissionKey,
-                        DisplayName = FormatContestProblemName(problem),
-                        Problem = problem.SubmissionProblem,
-                        ProblemFilePath = problem.FilePath,
-                        Score = problem.Score,
-                        Attempts = LoadContestAttempts(problem)
-                    });
-                }
-
-                SubmissionHistoryExportResult exportResult = _submissionHistoryExporter.Export(request);
+                _contestSession.BeginExport();
+                SubmissionHistoryExportResult exportResult = _contestResultExporter.Export(contest, destinationFilePath);
                 if (isAutomatic || DateTimeOffset.Now > contest.EndsAt)
                 {
-                    _contestAutoExportCompleted = true;
-                    _contestAutoExportFailed = false;
+                    _contestSession.CompleteExport(markAutoExportCompleted: true);
+                }
+                else
+                {
+                    _contestSession.CompleteExport(markAutoExportCompleted: false);
                 }
 
                 UpdateContestStatus();
@@ -3708,8 +3463,12 @@ namespace Local_Judge
                 AppendTerminal(ex.Message);
                 if (isAutomatic)
                 {
-                    _contestAutoExportFailed = true;
+                    _contestSession.FailExport(markAutoExportFailed: true);
                     UpdateContestStatus();
+                }
+                else
+                {
+                    _contestSession.FailExport(markAutoExportFailed: false);
                 }
 
                 if (!isAutomatic)
@@ -3723,31 +3482,8 @@ namespace Local_Judge
             }
             finally
             {
-                _isContestAutoExporting = false;
                 UpdateProblemCommandState();
             }
-        }
-
-        private string GetContestAutoExportDirectory(ContestContext contest)
-        {
-            if (!string.IsNullOrWhiteSpace(_userSettings.SubmissionHistoryExportDirectory))
-            {
-                Directory.CreateDirectory(_userSettings.SubmissionHistoryExportDirectory);
-                return _userSettings.SubmissionHistoryExportDirectory;
-            }
-
-            return Directory.GetParent(contest.RootPath)?.FullName ?? contest.RootPath;
-        }
-
-        private static string CreateDefaultContestResultExportFileName(ContestContext contest)
-        {
-            string baseName = Regex.Replace(contest.Title, @"[\\/:*?""<>|]+", "_").Trim();
-            if (string.IsNullOrWhiteSpace(baseName))
-            {
-                baseName = "contest";
-            }
-
-            return $"{baseName}_result_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
         }
 
         private void InspectLessonResultMenuItem_Click(object sender, RoutedEventArgs e)
