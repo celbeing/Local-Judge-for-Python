@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Local_Judge
 {
@@ -18,6 +19,9 @@ namespace Local_Judge
         public List<ProblemAssetDocument> Assets { get; set; } = new();
         public List<SampleCaseDocument> Samples { get; set; } = new();
         public List<TestCaseDocument> TestCases { get; set; } = new();
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public EncryptedTestCasesDocument? EncryptedTestCases { get; set; }
     }
 
     public static class ProblemStatementFormats
@@ -44,5 +48,15 @@ namespace Local_Judge
     {
         public string Input { get; set; } = string.Empty;
         public string Output { get; set; } = string.Empty;
+    }
+
+    public sealed class EncryptedTestCasesDocument
+    {
+        public string Scheme { get; set; } = string.Empty;
+        public string Kdf { get; set; } = string.Empty;
+        public int Iterations { get; set; }
+        public string Salt { get; set; } = string.Empty;
+        public string Nonce { get; set; } = string.Empty;
+        public string CipherText { get; set; } = string.Empty;
     }
 }

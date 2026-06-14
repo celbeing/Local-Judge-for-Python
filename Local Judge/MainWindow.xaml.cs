@@ -1120,6 +1120,18 @@ namespace Local_Judge
                 return;
             }
 
+            var passwordWindow = new ContestPasswordWindow
+            {
+                Owner = this
+            };
+            bool? passwordResult = passwordWindow.ShowDialog();
+            if (passwordResult != true)
+            {
+                AppendTerminal("[Contest] 대회 열기를 취소했습니다.");
+                return;
+            }
+
+            string testCasePassword = passwordWindow.Password;
             bool shouldRestoreIdleStatus = true;
             try
             {
@@ -1141,9 +1153,15 @@ namespace Local_Judge
                     return;
                 }
 
-                ContestContext contest = await Task.Run(() => _contestPackageReader.OpenZip(dialog.FileName));
+                ContestContext contest = await Task.Run(() => _contestPackageReader.OpenZip(dialog.FileName, testCasePassword));
                 SetCurrentContest(contest);
                 AppendTerminal($"[Contest] 대회를 열었습니다: {contest.Title}");
+                int decryptionFailureCount = contest.Problems.Count(problem => problem.TestCasesDecryptionFailed);
+                if (decryptionFailureCount > 0)
+                {
+                    AppendTerminal($"[Contest] 채점 테스트케이스 복호화 실패: {decryptionFailureCount}개 문항");
+                    AppendTerminal("[Contest] 대회 암호가 맞지 않으면 문제 확인은 가능하지만 제출 채점은 진행할 수 없습니다.");
+                }
 
                 if (IsContestProblemOpenAllowed())
                 {
@@ -3011,6 +3029,19 @@ namespace Local_Judge
 
             ProblemDocument problem = _currentProblem;
             string? problemFilePath = _currentProblemFilePath;
+
+            if (activeContestProblem?.TestCasesDecryptionFailed == true)
+            {
+                SetStatus("채점 테스트 복호화 실패", isError: true);
+                AppendTerminal("[Contest] 채점 테스트케이스를 복호화할 수 없습니다.");
+                AppendTerminal("[Contest] 대회 암호를 확인한 뒤 대회를 다시 열어 주세요.");
+                MessageBox.Show(
+                    "채점 테스트케이스를 복호화할 수 없습니다.\n대회 암호를 확인한 뒤 대회를 다시 열어 주세요.",
+                    "대회 암호",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
 
             if (problem.TestCases.Count == 0)
             {

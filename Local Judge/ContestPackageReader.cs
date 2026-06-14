@@ -19,7 +19,7 @@ namespace Local_Judge
             _jsonOptions = jsonOptions;
         }
 
-        public ContestContext OpenZip(string zipFilePath)
+        public ContestContext OpenZip(string zipFilePath, string? testCasePassword = null)
         {
             string contestRootBase = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -47,7 +47,7 @@ namespace Local_Judge
             }
 
             string contestRootPath = ResolveContestRootPath(extractRootPath);
-            return ReadFolder(contestRootPath, zipFilePath);
+            return ReadFolder(contestRootPath, zipFilePath, testCasePassword);
         }
 
         public ContestManifestDocument ReadManifestFromZip(string zipFilePath)
@@ -74,7 +74,7 @@ namespace Local_Judge
             }
         }
 
-        public ContestContext ReadFolder(string contestRootPath, string? sourceZipPath = null)
+        public ContestContext ReadFolder(string contestRootPath, string? sourceZipPath = null, string? testCasePassword = null)
         {
             if (!Directory.Exists(contestRootPath))
             {
@@ -90,7 +90,7 @@ namespace Local_Judge
             ContestManifestDocument manifest = ReadContestManifest(contestManifestPath);
             ValidateContestManifest(manifest);
 
-            List<ContestProblemItem> problems = ReadProblems(contestRootPath, manifest);
+            List<ContestProblemItem> problems = ReadProblems(contestRootPath, manifest, testCasePassword);
             if (problems.Count == 0)
             {
                 throw new InvalidOperationException("대회에서 문제 JSON 파일을 찾지 못했습니다.");
@@ -207,7 +207,10 @@ namespace Local_Judge
             });
         }
 
-        private List<ContestProblemItem> ReadProblems(string contestRootPath, ContestManifestDocument manifest)
+        private List<ContestProblemItem> ReadProblems(
+            string contestRootPath,
+            ContestManifestDocument manifest,
+            string? testCasePassword)
         {
             List<string> orderedRelativePaths = GetProblemRelativePaths(contestRootPath, manifest);
             var problems = new List<ContestProblemItem>();
@@ -224,6 +227,24 @@ namespace Local_Judge
                     if (problem is null || string.IsNullOrWhiteSpace(problem.Title))
                     {
                         continue;
+                    }
+
+                    bool testCasesDecryptionFailed = false;
+                    if (problem.EncryptedTestCases is not null)
+                    {
+                        if (ContestTestCaseCrypto.TryDecrypt(
+                                problem.EncryptedTestCases,
+                                testCasePassword,
+                                _jsonOptions,
+                                out List<TestCaseDocument> decryptedTestCases))
+                        {
+                            problem.TestCases = decryptedTestCases;
+                        }
+                        else
+                        {
+                            problem.TestCases = new();
+                            testCasesDecryptionFailed = true;
+                        }
                     }
 
                     NormalizeProblem(problem);
@@ -249,7 +270,8 @@ namespace Local_Judge
                         Score = problemManifest?.Score > 0 ? problemManifest.Score : 1,
                         BalloonColor = string.IsNullOrWhiteSpace(problemManifest?.BalloonColor)
                             ? GetDefaultBalloonColor(i)
-                            : problemManifest!.BalloonColor.Trim()
+                            : problemManifest!.BalloonColor.Trim(),
+                        TestCasesDecryptionFailed = testCasesDecryptionFailed
                     });
                 }
                 catch
@@ -433,7 +455,7 @@ namespace Local_Judge
 
                     ContestManifestDocument manifest = ReadContestManifest(manifestPath);
                     ValidateContestManifest(manifest);
-                    List<ContestProblemItem> problems = ReadProblems(candidateRootPath, manifest);
+                    List<ContestProblemItem> problems = ReadProblems(candidateRootPath, manifest, testCasePassword: null);
                     if (problems.Count == 0)
                     {
                         continue;
@@ -589,6 +611,7 @@ namespace Local_Judge
         public int AttemptCount { get; set; }
         public bool HasAccepted { get; set; }
         public string LastVerdict { get; set; } = string.Empty;
+        public bool TestCasesDecryptionFailed { get; set; }
     }
 
     public sealed class NaturalStringComparer : IComparer<string>

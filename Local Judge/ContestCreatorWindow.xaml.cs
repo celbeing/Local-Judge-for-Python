@@ -239,6 +239,18 @@ namespace Local_Judge
                 return false;
             }
 
+            string testCasePassword = TestCasePasswordBox.Password.Trim();
+            if (!ContestTestCaseCrypto.IsValidPin(testCasePassword))
+            {
+                MessageBox.Show(
+                    "채점 테스트케이스 암호는 4자리 숫자로 입력해 주세요.",
+                    "대회 만들기",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                TestCasePasswordBox.Focus();
+                return false;
+            }
+
             if (!TryReadDateTime(
                     StartDatePicker,
                     StartHourComboBox,
@@ -313,6 +325,7 @@ namespace Local_Judge
                     .Where(item => !string.IsNullOrWhiteSpace(item.Label)
                                    || !string.IsNullOrWhiteSpace(item.Text))
                     .ToList(),
+                TestCasePassword = testCasePassword,
                 Problems = problems
             };
             return true;

@@ -76,15 +76,38 @@
                 <GroupBox Header="대회 정보" Padding="12" Margin="0,0,0,12">
                     <StackPanel>
                         <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="90" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Column="0" Text="대회명" Style="{StaticResource FieldLabelStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="대회명" Style="{StaticResource FieldLabelStyle}" />
                             <TextBox x:Name="TitleTextBox"
+                                     Grid.Row="0"
                                      Grid.Column="1"
                                      Style="{StaticResource InputTextBoxStyle}" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="TC 암호" Style="{StaticResource FieldLabelStyle}" />
+                            <PasswordBox x:Name="TestCasePasswordBox"
+                                         Grid.Row="1"
+                                         Grid.Column="1"
+                                         Height="30"
+                                         Margin="0,0,0,4"
+                                         Padding="8,4"
+                                         VerticalContentAlignment="Center"
+                                         MaxLength="4" />
+
+                            <TextBlock Grid.Row="2"
+                                       Grid.Column="1"
+                                       Text="4자리 숫자입니다. 대회 참가자는 대회 열기 시 이 암호를 입력해야 채점 테스트케이스를 사용할 수 있습니다."
+                                       Foreground="#57606A"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,8" />
                         </Grid>
 
                         <DockPanel LastChildFill="False" Margin="0,2,0,8">

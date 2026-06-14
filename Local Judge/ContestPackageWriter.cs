@@ -19,6 +19,11 @@ namespace Local_Judge
 
         public ContestPackageWriteResult WriteZip(ContestPackageWriteRequest request)
         {
+            if (!ContestTestCaseCrypto.IsValidPin(request.TestCasePassword))
+            {
+                throw new InvalidOperationException("대회 채점 테스트케이스 암호는 4자리 숫자여야 합니다.");
+            }
+
             string? destinationDirectory = Path.GetDirectoryName(request.DestinationFilePath);
             if (!string.IsNullOrWhiteSpace(destinationDirectory))
             {
@@ -69,7 +74,7 @@ namespace Local_Judge
             int fileCount = 1;
             foreach (ContestProblemPackageEntry entry in problemEntries)
             {
-                AddFileEntry(archive, entry.EntryName, entry.Problem.SourceFilePath);
+                AddEncryptedProblemEntry(archive, entry.EntryName, entry.Problem.SourceFilePath, request.TestCasePassword, _jsonOptions);
                 fileCount++;
                 fileCount += AddProblemAssets(archive, entry);
             }
@@ -146,6 +151,24 @@ namespace Local_Judge
             sourceStream.CopyTo(entryStream);
         }
 
+        private static void AddEncryptedProblemEntry(
+            ZipArchive archive,
+            string entryName,
+            string sourceFilePath,
+            string testCasePassword,
+            JsonSerializerOptions jsonOptions)
+        {
+            string json = File.ReadAllText(sourceFilePath);
+            ProblemDocument problem = JsonSerializer.Deserialize<ProblemDocument>(json, jsonOptions)
+                ?? throw new InvalidOperationException($"문제 JSON을 읽을 수 없습니다: {sourceFilePath}");
+
+            problem.TestCases ??= new();
+            problem.EncryptedTestCases = ContestTestCaseCrypto.Encrypt(problem.TestCases, testCasePassword, jsonOptions);
+            problem.TestCases = new();
+
+            AddTextEntry(archive, entryName, JsonSerializer.Serialize(problem, jsonOptions));
+        }
+
         private static void AddTextEntry(ZipArchive archive, string entryName, string text)
         {
             ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
@@ -167,6 +190,7 @@ namespace Local_Judge
         public DateTimeOffset EndsAt { get; set; }
         public List<ContestInfoDocument> AdditionalInfo { get; set; } = new();
         public int WrongSubmissionPenaltyMinutes { get; set; } = 20;
+        public string TestCasePassword { get; set; } = string.Empty;
         public List<ContestPackageProblemSource> Problems { get; set; } = new();
     }
 
