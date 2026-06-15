@@ -1127,23 +1127,17 @@ namespace Local_Judge
                 SetStatus("대회 여는 중", isWorking: true);
                 AppendTerminal($"[Contest] 대회 ZIP을 여는 중입니다: {dialog.FileName}");
 
-                ContestManifestDocument manifest = await Task.Run(() => _contestPackageReader.ReadManifestFromZip(dialog.FileName));
-                if (DateTimeOffset.Now > manifest.EndsAt)
-                {
-                    SetStatus("종료된 대회", isError: true);
-                    AppendTerminal("[Contest] 이미 종료된 대회는 열 수 없습니다.");
-                    shouldRestoreIdleStatus = false;
-                    MessageBox.Show(
-                        "이미 종료된 대회는 열 수 없습니다.",
-                        "대회 열기",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information);
-                    return;
-                }
-
                 ContestContext contest = await Task.Run(() => _contestPackageReader.OpenZip(dialog.FileName));
-                SetCurrentContest(contest);
+                bool openedAfterEnd = DateTimeOffset.Now > contest.EndsAt;
+                SetCurrentContest(contest, suppressAutoExport: openedAfterEnd);
                 AppendTerminal($"[Contest] 대회를 열었습니다: {contest.Title}");
+                if (openedAfterEnd)
+                {
+                    shouldRestoreIdleStatus = false;
+                    SetStatus("대회 종료");
+                    AppendTerminal("[Contest] 종료된 대회를 열었습니다. 종료 이후에는 제출할 수 없습니다.");
+                    AppendTerminal("[Contest] 필요한 경우 [저지] > [대회 결과 내보내기]에서 결과를 내보내세요.");
+                }
 
                 if (IsContestProblemOpenAllowed())
                 {
@@ -1342,7 +1336,7 @@ namespace Local_Judge
             public string Text { get; }
         }
 
-        private void SetCurrentContest(ContestContext contest)
+        private void SetCurrentContest(ContestContext contest, bool suppressAutoExport = false)
         {
             if (_currentContest is not null)
             {
@@ -1354,7 +1348,7 @@ namespace Local_Judge
                 CloseCurrentLesson();
             }
 
-            _contestSession.Open(contest);
+            _contestSession.Open(contest, suppressAutoExport);
 
             LessonExplorerRow.Height = new GridLength(190);
             LessonExplorerSplitterRow.Height = new GridLength(6);
@@ -1776,7 +1770,8 @@ namespace Local_Judge
             bool isLessonProblem = ResolveCurrentLessonProblem() is not null;
             bool isContestProblem = ResolveCurrentContestProblem() is not null;
             bool isContestOpen = _currentContest is not null;
-            bool isContestProblemRunnable = !isContestProblem || IsContestActive();
+            bool isContestProblemOpen = !isContestProblem || IsContestProblemOpenAllowed();
+            bool isContestProblemSubmittable = !isContestProblem || IsContestActive();
             bool isJudgeRuntimeReady = _isPythonConnected
                                        && _benchmarkResult?.Succeeded == true
                                        && !_isBenchmarkRunning
@@ -1793,10 +1788,10 @@ namespace Local_Judge
             RunCodeButton.IsEnabled = isJudgeRuntimeReady;
             EditProblemMenuItem.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
             EditProblemButton.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
-            RunSampleMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemRunnable;
-            RunSampleButton.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemRunnable;
-            SubmitMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemRunnable;
-            SubmitButton.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemRunnable;
+            RunSampleMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemOpen;
+            RunSampleButton.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemOpen;
+            SubmitMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemSubmittable;
+            SubmitButton.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemSubmittable;
             SubmissionHistoryMenuItem.IsEnabled = hasProblem;
             ExportSubmissionHistoryMenuItem.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
             BenchmarkMenuItem.IsEnabled = !_isBenchmarkRunning && !_pythonRunner.IsRunning;

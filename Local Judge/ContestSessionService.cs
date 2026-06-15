@@ -14,17 +14,20 @@ namespace Local_Judge
 
         public bool IsAutoExporting { get; private set; }
 
+        public bool IsAutoExportSuppressed { get; private set; }
+
         public bool IsInfoLockedUntilStart { get; private set; }
 
         public bool IsOpen => CurrentContest is not null;
 
-        public void Open(ContestContext contest)
+        public void Open(ContestContext contest, bool suppressAutoExport = false)
         {
             CurrentContest = contest ?? throw new ArgumentNullException(nameof(contest));
             CurrentProblem = null;
             AutoExportCompleted = false;
             AutoExportFailed = false;
             IsAutoExporting = false;
+            IsAutoExportSuppressed = suppressAutoExport;
             IsInfoLockedUntilStart = false;
         }
 
@@ -35,6 +38,7 @@ namespace Local_Judge
             AutoExportCompleted = false;
             AutoExportFailed = false;
             IsAutoExporting = false;
+            IsAutoExportSuppressed = false;
             IsInfoLockedUntilStart = false;
         }
 
@@ -105,6 +109,7 @@ namespace Local_Judge
                    && !AutoExportCompleted
                    && !AutoExportFailed
                    && !IsAutoExporting
+                   && !IsAutoExportSuppressed
                    && !isSubmitting
                    && !isRunnerRunning;
         }
