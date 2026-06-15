@@ -1139,26 +1139,23 @@ namespace Local_Judge
                 SetStatus("대회 여는 중", isWorking: true);
                 AppendTerminal($"[Contest] 대회 ZIP을 여는 중입니다: {dialog.FileName}");
 
-                ContestContext contest = await Task.Run(() => _contestPackageReader.OpenZip(dialog.FileName));
+                ContestContext contest = await Task.Run(() => _contestPackageReader.OpenZip(dialog.FileName, testCasePassword));
                 bool openedAfterEnd = DateTimeOffset.Now > contest.EndsAt;
                 SetCurrentContest(contest, suppressAutoExport: openedAfterEnd);
-                AppendTerminal($"[Contest] 대회를 열었습니다: {contest.Title}");
-                if (openedAfterEnd)
-                {
-                    shouldRestoreIdleStatus = false;
-                    SetStatus("대회 종료");
-                    AppendTerminal("[Contest] 종료된 대회를 열었습니다. 종료 이후에는 제출할 수 없습니다.");
-                    AppendTerminal("[Contest] 필요한 경우 [저지] > [대회 결과 내보내기]에서 결과를 내보내세요.");
-                }
-
-                ContestContext contest = await Task.Run(() => _contestPackageReader.OpenZip(dialog.FileName, testCasePassword));
-                SetCurrentContest(contest);
                 AppendTerminal($"[Contest] 대회를 열었습니다: {contest.Title}");
                 int decryptionFailureCount = contest.Problems.Count(problem => problem.TestCasesDecryptionFailed);
                 if (decryptionFailureCount > 0)
                 {
                     AppendTerminal($"[Contest] 채점 테스트케이스 복호화 실패: {decryptionFailureCount}개 문항");
                     AppendTerminal("[Contest] 대회 암호가 맞지 않으면 문제 확인은 가능하지만 제출 채점은 진행할 수 없습니다.");
+                }
+
+                if (openedAfterEnd)
+                {
+                    shouldRestoreIdleStatus = false;
+                    SetStatus("대회 종료");
+                    AppendTerminal("[Contest] 종료된 대회를 열었습니다. 종료 이후에는 제출할 수 없습니다.");
+                    AppendTerminal("[Contest] 필요한 경우 [저지] > [대회 결과 내보내기]에서 결과를 내보내세요.");
                 }
 
                 if (IsContestProblemOpenAllowed())
