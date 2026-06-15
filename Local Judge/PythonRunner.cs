@@ -14,7 +14,7 @@ namespace Local_Judge
         private Process? _runningProcess;
         private bool _stopRequested;
 
-        public string PythonExecutablePath { get; set; } = "python";
+        public string PythonExecutablePath { get; set; } = EmbeddedPythonRuntime.ResolveDefaultExecutablePath();
 
         public bool IsRunning
         {
@@ -261,6 +261,7 @@ namespace Local_Judge
             startInfo.ArgumentList.Add(scriptPath);
             startInfo.Environment["PYTHONIOENCODING"] = "utf-8";
             startInfo.Environment["PYTHONUNBUFFERED"] = "1";
+            startInfo.Environment["PYTHONUTF8"] = "1";
 
             return new Process
             {

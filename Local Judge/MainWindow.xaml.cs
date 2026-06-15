@@ -140,12 +140,36 @@ namespace Local_Judge
 
             if (string.IsNullOrWhiteSpace(_userSettings.PythonExecutablePath))
             {
-                AppendTerminal("[Settings] 저장된 Python 경로가 없습니다. 기본 python 명령으로 연결을 확인합니다.");
+                _pythonRunner.PythonExecutablePath = EmbeddedPythonRuntime.ResolveDefaultExecutablePath();
+                if (EmbeddedPythonRuntime.IsEmbeddedPath(_pythonRunner.PythonExecutablePath))
+                {
+                    AppendTerminal($"[Settings] 저장된 Python 경로가 없어 내장 Python을 사용합니다: {_pythonRunner.PythonExecutablePath}");
+                }
+                else
+                {
+                    AppendTerminal("[Settings] 저장된 Python 경로와 내장 Python이 없어 기본 python 명령으로 연결을 확인합니다.");
+                }
+
                 return;
             }
 
-            _pythonRunner.PythonExecutablePath = _userSettings.PythonExecutablePath;
-            AppendTerminal($"[Settings] 저장된 Python 경로를 불러왔습니다: {_pythonRunner.PythonExecutablePath}");
+            if (File.Exists(_userSettings.PythonExecutablePath))
+            {
+                _pythonRunner.PythonExecutablePath = _userSettings.PythonExecutablePath;
+                AppendTerminal($"[Settings] 저장된 Python 경로를 불러왔습니다: {_pythonRunner.PythonExecutablePath}");
+                return;
+            }
+
+            AppendTerminal($"[Settings] 저장된 Python 경로를 찾을 수 없습니다: {_userSettings.PythonExecutablePath}");
+            _pythonRunner.PythonExecutablePath = EmbeddedPythonRuntime.ResolveDefaultExecutablePath();
+            if (EmbeddedPythonRuntime.IsEmbeddedPath(_pythonRunner.PythonExecutablePath))
+            {
+                AppendTerminal($"[Settings] 내장 Python으로 전환합니다: {_pythonRunner.PythonExecutablePath}");
+            }
+            else
+            {
+                AppendTerminal("[Settings] 내장 Python을 찾을 수 없어 기본 python 명령으로 연결을 확인합니다.");
+            }
         }
 
         private void SaveUserSettings()
@@ -1919,7 +1943,7 @@ namespace Local_Judge
             AppendTerminal(isManual
                 ? "[Benchmark] 채점 환경 벤치마크를 다시 실행합니다."
                 : "[Benchmark] 프로그램 시작 필수 채점 환경 벤치마크를 실행합니다.");
-            AppendTerminal($"[Benchmark] Python: {_pythonRunner.PythonExecutablePath}");
+            AppendTerminal($"[Benchmark] Python: {FormatPythonRuntimeDisplayName()}");
 
             try
             {
@@ -1978,7 +2002,7 @@ namespace Local_Judge
                 }
 
                 _isPythonConnected = true;
-                AppendTerminal($"[Settings] Python 연결 확인: {versionText}");
+                AppendTerminal($"[Settings] Python 연결 확인: {versionText} / {FormatPythonRuntimeDisplayName()}");
                 return true;
             }
             catch (Exception ex)
@@ -1988,7 +2012,12 @@ namespace Local_Judge
 
                 SetStatus("Python 연결 필요", isError: true);
                 AppendTerminal("[Settings] Python 실행 파일을 확인할 수 없습니다.");
-                AppendTerminal($"[Settings] 현재 Python 실행 파일 설정: {_pythonRunner.PythonExecutablePath}");
+                AppendTerminal($"[Settings] 현재 Python 실행 파일 설정: {FormatPythonRuntimeDisplayName()}");
+                if (!EmbeddedPythonRuntime.IsAvailable())
+                {
+                    AppendTerminal($"[Settings] 내장 Python 폴더를 찾을 수 없습니다: {EmbeddedPythonRuntime.GetExecutablePath()}");
+                }
+
                 AppendTerminal("[Settings] [도구] > [Python 경로 설정]에서 python.exe를 선택하세요.");
                 AppendTerminal(ex.Message);
                 return false;
@@ -2478,7 +2507,7 @@ namespace Local_Judge
                 {
                     AppendTerminal("----------------------------------------");
                     AppendTerminal($"[Run] {runTitle} 시작");
-                    AppendTerminal($"[Run] Python: {_pythonRunner.PythonExecutablePath}");
+                    AppendTerminal($"[Run] Python: {FormatPythonRuntimeDisplayName()}");
                 }
 
                 if (showStartBanner)
@@ -2549,7 +2578,7 @@ namespace Local_Judge
                 SetStatus("Python 실행 실패", isError: true);
                 AppendTerminal("[Run] Python을 실행하지 못했습니다.");
                 AppendTerminal("[Run] Python이 설치되어 있고 PATH에 등록되어 있는지 확인하세요.");
-                AppendTerminal($"[Run] 현재 Python 실행 파일 설정: {_pythonRunner.PythonExecutablePath}");
+                AppendTerminal($"[Run] 현재 Python 실행 파일 설정: {FormatPythonRuntimeDisplayName()}");
                 return null;
             }
             catch (Exception ex)
@@ -3599,6 +3628,11 @@ namespace Local_Judge
             {
                 AppendTerminal("[Settings] Python 경로는 연결 확인과 벤치마크가 성공한 뒤 저장됩니다.");
             }
+        }
+
+        private string FormatPythonRuntimeDisplayName()
+        {
+            return EmbeddedPythonRuntime.FormatDisplayName(_pythonRunner.PythonExecutablePath);
         }
 
         private async void BenchmarkMenuItem_Click(object sender, RoutedEventArgs e)
