@@ -21,8 +21,7 @@ namespace Local_Judge
 {
     public partial class MainWindow : Window
     {
-        private const string DefaultPythonCode = "import sys\n\n\ndef main():\n    pass\n\n\nif __name__ == \"__main__\":\n    main()\n";
-        private string _latestEditorCode = DefaultPythonCode;
+        private string _latestEditorCode = LocalJudgeUserSettings.DefaultPythonEditorCode;
         private TaskCompletionSource<string>? _editorCodeRequest;
         private string? _editorCodeRequestId;
 
@@ -136,6 +135,7 @@ namespace Local_Judge
         private void LoadUserSettings()
         {
             _userSettings = _settingsStore.Load();
+            _latestEditorCode = GetConfiguredDefaultEditorCode();
             ApplyDraftAutoSaveSettings(logSetting: false);
 
             if (string.IsNullOrWhiteSpace(_userSettings.PythonExecutablePath))
@@ -450,28 +450,77 @@ namespace Local_Judge
             }
         }
 
-        private void ActivateEditorCodeScope(string scopeKey, EditorDraftTarget draftTarget)
+        private void ActivateEditorCodeScope(string scopeKey, EditorDraftTarget? draftTarget, ProblemDocument problem)
         {
             SaveDraftForActiveScope(force: false, logOnSuccess: false);
             StoreLatestEditorCodeForActiveScope();
             _activeEditorCodeScopeKey = scopeKey;
-            _editorCodeDraftTargets[scopeKey] = draftTarget;
+            if (draftTarget is not null)
+            {
+                _editorCodeDraftTargets[scopeKey] = draftTarget;
+            }
             _activeEditorDraftDirty = false;
 
-            string code;
+            string? existingCode = null;
+            string loadedDraftPath = string.Empty;
+            bool loadedFromDraft = false;
             if (_scopedEditorCodeBuffers.TryGetValue(scopeKey, out string? bufferedCode))
             {
-                code = bufferedCode;
+                existingCode = bufferedCode;
             }
-            else if (TryLoadEditorDraft(draftTarget, out string draftCode, out string loadedDraftPath))
+            else if (draftTarget is not null && TryLoadEditorDraft(draftTarget, out string draftCode, out string draftPath))
             {
-                code = draftCode;
-                _scopedEditorCodeBuffers[scopeKey] = code;
-                AppendTerminal($"[Draft] 임시 저장 코드를 불러왔습니다: {loadedDraftPath}");
+                existingCode = draftCode;
+                loadedDraftPath = draftPath;
+                loadedFromDraft = true;
+            }
+
+            string? problemInitialCode = problem.InitialCode;
+            bool hasProblemInitialCode = problemInitialCode is not null;
+            bool hasExistingCode = existingCode is not null;
+            bool shouldAskCodeChoice = hasProblemInitialCode
+                                       && hasExistingCode
+                                       && !string.Equals(existingCode, problemInitialCode, StringComparison.Ordinal);
+
+            string code;
+            if (shouldAskCodeChoice)
+            {
+                InitialCodeLoadChoice choice = AskInitialCodeLoadChoice();
+                if (choice == InitialCodeLoadChoice.ProblemInitialCode)
+                {
+                    code = problemInitialCode ?? string.Empty;
+                    if (draftTarget is not null)
+                    {
+                        _activeEditorDraftDirty = true;
+                    }
+
+                    AppendTerminal("[Editor] 문항에 저장된 기본 코드를 불러왔습니다.");
+                }
+                else
+                {
+                    code = existingCode ?? string.Empty;
+                    if (loadedFromDraft)
+                    {
+                        AppendTerminal($"[Draft] 임시 저장 코드를 불러왔습니다: {loadedDraftPath}");
+                    }
+                }
+            }
+            else if (hasExistingCode)
+            {
+                code = existingCode ?? string.Empty;
+                if (loadedFromDraft)
+                {
+                    AppendTerminal($"[Draft] 임시 저장 코드를 불러왔습니다: {loadedDraftPath}");
+                }
+            }
+            else if (hasProblemInitialCode)
+            {
+                code = problemInitialCode ?? string.Empty;
+                AppendTerminal("[Editor] 문항에 저장된 기본 코드를 불러왔습니다.");
             }
             else
             {
-                code = DefaultPythonCode;
+                code = GetEditorInitialCodeForProblem(problem);
             }
 
             SetEditorCode(code);
@@ -493,6 +542,44 @@ namespace Local_Judge
         private static string CreateContestEditorCodeScopeKey(ContestContext contest, ContestProblemItem problem)
         {
             return $"contest:{contest.ContestId}:{problem.RelativePath}";
+        }
+
+        private static string CreateLocalProblemEditorCodeScopeKey(ProblemDocument problem, string? filePath)
+        {
+            string identity = string.IsNullOrWhiteSpace(filePath)
+                ? $"{problem.Id}\n{problem.Title}"
+                : SafeFullPath(filePath);
+
+            return $"problem:{CreateShortHash(identity)}";
+        }
+
+        private string GetConfiguredDefaultEditorCode()
+        {
+            return _userSettings.EditorDefaultCode ?? LocalJudgeUserSettings.DefaultPythonEditorCode;
+        }
+
+        private string GetEditorInitialCodeForProblem(ProblemDocument? problem)
+        {
+            return problem?.InitialCode ?? GetConfiguredDefaultEditorCode();
+        }
+
+        private void ResetEditorCodeToDefault()
+        {
+            SetEditorCode(GetEditorInitialCodeForProblem(_currentProblem));
+            MarkActiveEditorDraftDirty();
+        }
+
+        private InitialCodeLoadChoice AskInitialCodeLoadChoice()
+        {
+            var window = new InitialCodeChoiceWindow
+            {
+                Owner = this
+            };
+
+            bool? result = window.ShowDialog();
+            return result == true
+                ? window.Choice
+                : InitialCodeLoadChoice.ExistingCode;
         }
 
         private EditorDraftTarget CreateLessonEditorDraftTarget(LessonContext lesson, LessonProblemItem problem)
@@ -1547,7 +1634,8 @@ namespace Local_Judge
             {
                 ActivateEditorCodeScope(
                     CreateLessonEditorCodeScopeKey(_currentLesson, lessonProblem),
-                    CreateLessonEditorDraftTarget(_currentLesson, lessonProblem));
+                    CreateLessonEditorDraftTarget(_currentLesson, lessonProblem),
+                    lessonProblem.Problem);
             }
 
             _currentLessonProblem = lessonProblem;
@@ -1575,7 +1663,8 @@ namespace Local_Judge
             {
                 ActivateEditorCodeScope(
                     CreateContestEditorCodeScopeKey(_currentContest, contestProblem),
-                    CreateContestEditorDraftTarget(_currentContest, contestProblem));
+                    CreateContestEditorDraftTarget(_currentContest, contestProblem),
+                    contestProblem.Problem);
             }
 
             _contestSession.SelectProblem(contestProblem);
@@ -1829,6 +1918,7 @@ namespace Local_Judge
             OpenContestMenuItem.IsEnabled = !isContestOpen;
             RunCodeMenuItem.IsEnabled = isJudgeRuntimeReady;
             RunCodeButton.IsEnabled = isJudgeRuntimeReady;
+            ResetCodeButton.IsEnabled = hasProblem;
             EditProblemMenuItem.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
             EditProblemButton.IsEnabled = hasProblem && !isLessonProblem && !isContestProblem;
             RunSampleMenuItem.IsEnabled = hasProblem && isJudgeRuntimeReady && isContestProblemOpen;
@@ -2082,7 +2172,9 @@ namespace Local_Judge
                 return;
             }
 
-            var editor = new ProblemEditorWindow(defaultProblemSaveDirectory: _userSettings.ProblemSaveDirectory)
+            var editor = new ProblemEditorWindow(
+                defaultProblemSaveDirectory: _userSettings.ProblemSaveDirectory,
+                defaultInitialCode: GetConfiguredDefaultEditorCode())
             {
                 Owner = this
             };
@@ -2108,7 +2200,10 @@ namespace Local_Judge
                 return;
             }
 
-            var editor = new ProblemEditorWindow(_currentProblem, _currentProblemFilePath)
+            var editor = new ProblemEditorWindow(
+                _currentProblem,
+                _currentProblemFilePath,
+                defaultInitialCode: GetConfiguredDefaultEditorCode())
             {
                 Owner = this
             };
@@ -2164,6 +2259,10 @@ namespace Local_Judge
                 NormalizeProblemDocument(problem, defaultToMarkdownLatex: false);
 
                 DeactivateEditorCodeScope();
+                ActivateEditorCodeScope(
+                    CreateLocalProblemEditorCodeScopeKey(problem, dialog.FileName),
+                    null,
+                    problem);
                 _currentProblem = problem;
                 _currentProblemFilePath = dialog.FileName;
                 _pendingProblemAssetWorkspacePath = null;
@@ -3638,6 +3737,51 @@ namespace Local_Judge
         private async void BenchmarkMenuItem_Click(object sender, RoutedEventArgs e)
         {
             await StartEnvironmentBenchmarkAsync(isManual: true);
+        }
+
+        private void DefaultCodeSettingsMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            string previousDefaultCode = GetConfiguredDefaultEditorCode();
+            var window = new DefaultCodeSettingsWindow(previousDefaultCode)
+            {
+                Owner = this
+            };
+
+            bool? result = window.ShowDialog();
+            if (result != true)
+            {
+                return;
+            }
+
+            _userSettings.EditorDefaultCode = window.DefaultCode;
+            SaveUserSettings();
+
+            AppendTerminal("[Settings] 기본 코드를 저장했습니다.");
+            AppendTerminal("[Settings] 저장된 기본 코드는 처음 여는 문항부터 적용됩니다.");
+        }
+
+        private void ResetCodeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentProblem is null)
+            {
+                AppendTerminal("[Editor] 코드를 초기화하려면 먼저 문항을 여세요.");
+                return;
+            }
+
+            MessageBoxResult result = MessageBox.Show(
+                this,
+                "코드를 초기화 하겠습니까?",
+                "코드 초기화",
+                MessageBoxButton.OKCancel,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.OK)
+            {
+                return;
+            }
+
+            ResetEditorCodeToDefault();
+            AppendTerminal("[Editor] 현재 문항의 코드를 기본 코드로 초기화했습니다.");
         }
 
         private async Task<string> GetPythonVersionTextAsync()

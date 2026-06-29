@@ -21,6 +21,9 @@ namespace Local_Judge
         public List<TestCaseDocument> TestCases { get; set; } = new();
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? InitialCode { get; set; }
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public EncryptedTestCasesDocument? EncryptedTestCases { get; set; }
     }
 

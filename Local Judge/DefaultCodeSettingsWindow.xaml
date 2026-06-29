@@ -1,0 +1,75 @@
+<Window x:Class="Local_Judge.DefaultCodeSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="기본 코드 설정"
+        Height="560"
+        Width="760"
+        MinHeight="420"
+        MinWidth="560"
+        WindowStartupLocation="CenterOwner"
+        FontFamily="Segoe UI">
+    <DockPanel LastChildFill="True" Background="#FFFFFF">
+        <Border DockPanel.Dock="Top"
+                Height="52"
+                BorderBrush="#D0D7DE"
+                BorderThickness="0,0,0,1"
+                Background="#F6F8FA">
+            <DockPanel Margin="18,0">
+                <TextBlock Text="기본 코드 설정"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
+                <Button Content="기본값 복원"
+                        DockPanel.Dock="Right"
+                        Width="100"
+                        Height="28"
+                        VerticalAlignment="Center"
+                        Click="ResetButton_Click" />
+            </DockPanel>
+        </Border>
+
+        <Border DockPanel.Dock="Bottom"
+                BorderBrush="#D0D7DE"
+                BorderThickness="0,1,0,0"
+                Background="#F6F8FA"
+                Padding="12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="확인"
+                        Width="84"
+                        Height="30"
+                        Margin="0,0,8,0"
+                        IsDefault="True"
+                        Click="OkButton_Click" />
+                <Button Content="취소"
+                        Width="84"
+                        Height="30"
+                        IsCancel="True" />
+            </StackPanel>
+        </Border>
+
+        <Grid Margin="18">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="문항을 처음 열 때 사용할 Python 코드"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,8" />
+
+            <TextBox x:Name="DefaultCodeTextBox"
+                     Grid.Row="1"
+                     AcceptsReturn="True"
+                     AcceptsTab="True"
+                     TextWrapping="NoWrap"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Auto"
+                     FontFamily="Consolas"
+                     FontSize="14"
+                     BorderBrush="#D0D7DE"
+                     Padding="10"
+                     SpellCheck.IsEnabled="False" />
+        </Grid>
+    </DockPanel>
+</Window>

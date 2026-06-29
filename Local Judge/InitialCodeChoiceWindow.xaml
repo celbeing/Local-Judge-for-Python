@@ -1,0 +1,45 @@
+<Window x:Class="Local_Judge.InitialCodeChoiceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="코드 불러오기"
+        Height="190"
+        Width="440"
+        MinHeight="190"
+        MinWidth="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        FontFamily="Segoe UI">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0"
+                    VerticalAlignment="Center">
+            <TextBlock Text="어떤 코드를 불러올까요?"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="이 문항에는 저장된 초기 코드와 기존에 작성 중이던 코드가 모두 있습니다."
+                       Foreground="#57606A"
+                       TextWrapping="Wrap"
+                       Margin="0,8,0,0" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button Content="기존에 작성중이던 코드"
+                    Width="150"
+                    Height="30"
+                    Margin="0,0,8,0"
+                    IsDefault="True"
+                    Click="ExistingCodeButton_Click" />
+            <Button Content="문항에 저장된 기본 코드"
+                    Width="160"
+                    Height="30"
+                    Click="ProblemInitialCodeButton_Click" />
+        </StackPanel>
+    </Grid>
+</Window>

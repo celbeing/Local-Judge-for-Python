@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -19,17 +20,25 @@ namespace Local_Judge
     {
         private const string ProblemViewerHostName = "localjudge.problem-viewer";
         private const string ProblemAssetsHostName = "localjudge.problem-assets";
+        private const string ProblemInitialCodeEditorHostName = "localjudge.problem-initial-code-editor";
 
         private readonly List<SampleEditorControls> _sampleEditors = new();
         private readonly List<ProblemAssetDocument> _assets = new();
         private readonly bool _isNewProblem;
         private readonly string? _sourceProblemFilePath;
         private readonly string? _defaultProblemSaveDirectory;
+        private readonly string _defaultInitialCode;
         private readonly string _assetWorkspacePath;
         private readonly DispatcherTimer _previewRefreshTimer;
         private List<TestCaseDocument> _testCases = new();
         private TextBox? _lastStatementTextBox;
         private bool _isPreviewReady;
+        private bool _isInitialCodeEditorReady;
+        private bool _isInitialCodeEditorInitialized;
+        private bool _isLoadingProblemToForm;
+        private string _initialCodeEditorCode = LocalJudgeUserSettings.DefaultPythonEditorCode;
+        private TaskCompletionSource<string>? _initialCodeRequest;
+        private string? _initialCodeRequestId;
 
         private readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -45,11 +54,13 @@ namespace Local_Judge
         public ProblemEditorWindow(
             ProblemDocument? problem = null,
             string? problemFilePath = null,
-            string? defaultProblemSaveDirectory = null)
+            string? defaultProblemSaveDirectory = null,
+            string? defaultInitialCode = null)
         {
             _isNewProblem = problem is null;
             _sourceProblemFilePath = problemFilePath;
             _defaultProblemSaveDirectory = defaultProblemSaveDirectory;
+            _defaultInitialCode = NormalizeCodeLineEndings(defaultInitialCode ?? LocalJudgeUserSettings.DefaultPythonEditorCode);
             _assetWorkspacePath = Path.Combine(
                 Path.GetTempPath(),
                 "LocalJudge",
@@ -70,6 +81,7 @@ namespace Local_Judge
             Directory.CreateDirectory(_assetWorkspacePath);
 
             Problem = CloneProblem(problem ?? CreateDefaultProblem());
+            _initialCodeEditorCode = NormalizeCodeLineEndings(Problem.InitialCode ?? _defaultInitialCode);
             _assets.AddRange(ProblemAssetUtilities.CloneAssets(Problem.Assets));
             CopyExistingAssetsToWorkspace();
 
@@ -77,7 +89,14 @@ namespace Local_Judge
             ConfigureAttributionFields();
             WirePreviewRefreshEvents();
 
-            Loaded += async (_, _) => await InitializePreviewAsync();
+            Loaded += async (_, _) =>
+            {
+                await InitializePreviewAsync();
+                if (InitialCodeCheckBox.IsChecked == true)
+                {
+                    await InitializeInitialCodeEditorAsync();
+                }
+            };
         }
 
         private static ProblemDocument CreateDefaultProblem()
@@ -116,7 +135,8 @@ namespace Local_Judge
                 OutputFormat = source.OutputFormat ?? string.Empty,
                 Assets = ProblemAssetUtilities.CloneAssets(source.Assets),
                 Samples = CloneSamples(source.Samples),
-                TestCases = CloneTestCases(source.TestCases)
+                TestCases = CloneTestCases(source.TestCases),
+                InitialCode = source.InitialCode
             };
         }
 
@@ -190,8 +210,166 @@ namespace Local_Judge
             }
         }
 
+        private async Task InitializeInitialCodeEditorAsync()
+        {
+            if (_isInitialCodeEditorInitialized)
+            {
+                if (_isInitialCodeEditorReady)
+                {
+                    SetInitialCodeEditorCode(_initialCodeEditorCode);
+                }
+
+                return;
+            }
+
+            try
+            {
+                await InitialCodeEditorWebView.EnsureCoreWebView2Async();
+
+                string editorFolderPath = Path.Combine(AppContext.BaseDirectory, "Editor");
+                if (!Directory.Exists(editorFolderPath))
+                {
+                    MessageBox.Show(
+                        $"초기 코드 편집기 리소스를 찾을 수 없습니다.\n\n{editorFolderPath}",
+                        "초기 코드 편집기 초기화 실패",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                InitialCodeEditorWebView.CoreWebView2.WebMessageReceived += InitialCodeEditorWebView_WebMessageReceived;
+                InitialCodeEditorWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                    ProblemInitialCodeEditorHostName,
+                    editorFolderPath,
+                    CoreWebView2HostResourceAccessKind.Allow);
+
+                _isInitialCodeEditorInitialized = true;
+                InitialCodeEditorWebView.Source = new Uri($"https://{ProblemInitialCodeEditorHostName}/index.html");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"초기 코드 편집기 초기화 중 오류가 발생했습니다.\n\n{ex.Message}",
+                    "초기 코드 편집기 초기화 실패",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+        }
+
+        private void InitialCodeEditorWebView_WebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(e.WebMessageAsJson);
+                JsonElement root = document.RootElement;
+
+                if (!root.TryGetProperty("type", out JsonElement typeElement))
+                {
+                    return;
+                }
+
+                switch (typeElement.GetString())
+                {
+                    case "editorReady":
+                        _isInitialCodeEditorReady = true;
+                        SetInitialCodeEditorCode(_initialCodeEditorCode);
+                        break;
+
+                    case "codeChanged":
+                        if (root.TryGetProperty("code", out JsonElement codeElement))
+                        {
+                            _initialCodeEditorCode = NormalizeCodeLineEndings(codeElement.GetString() ?? string.Empty);
+                        }
+                        break;
+
+                    case "currentCode":
+                        if (root.TryGetProperty("code", out JsonElement currentCodeElement))
+                        {
+                            string code = NormalizeCodeLineEndings(currentCodeElement.GetString() ?? string.Empty);
+                            string? responseRequestId = root.TryGetProperty("requestId", out JsonElement requestIdElement)
+                                ? requestIdElement.GetString()
+                                : null;
+
+                            _initialCodeEditorCode = code;
+                            TaskCompletionSource<string>? pendingRequest = _initialCodeRequest;
+                            if (pendingRequest is not null
+                                && (string.IsNullOrEmpty(_initialCodeRequestId)
+                                    || string.Equals(responseRequestId, _initialCodeRequestId, StringComparison.Ordinal)))
+                            {
+                                _initialCodeRequest = null;
+                                _initialCodeRequestId = null;
+                                pendingRequest.TrySetResult(code);
+                            }
+                        }
+                        break;
+                }
+            }
+            catch
+            {
+                // 초기 코드 편집기 메시지는 저장 시 로컬 캐시로 보완합니다.
+            }
+        }
+
+        private async Task<string> GetInitialCodeEditorCodeAsync()
+        {
+            if (InitialCodeEditorWebView.CoreWebView2 is null)
+            {
+                return _initialCodeEditorCode;
+            }
+
+            string requestId = Guid.NewGuid().ToString("N");
+            var pendingRequest = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            _initialCodeRequest = pendingRequest;
+            _initialCodeRequestId = requestId;
+
+            string script = JsonSerializer.Serialize(new
+            {
+                type = "getCode",
+                requestId
+            });
+
+            InitialCodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
+
+            Task completedTask = await Task.WhenAny(
+                pendingRequest.Task,
+                Task.Delay(1500));
+
+            if (completedTask == pendingRequest.Task)
+            {
+                return await pendingRequest.Task;
+            }
+
+            if (ReferenceEquals(_initialCodeRequest, pendingRequest))
+            {
+                _initialCodeRequest = null;
+                _initialCodeRequestId = null;
+            }
+
+            return _initialCodeEditorCode;
+        }
+
+        private void SetInitialCodeEditorCode(string code)
+        {
+            _initialCodeEditorCode = NormalizeCodeLineEndings(code);
+
+            if (!_isInitialCodeEditorReady || InitialCodeEditorWebView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            string script = JsonSerializer.Serialize(new
+            {
+                type = "setCode",
+                code = _initialCodeEditorCode
+            });
+
+            InitialCodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
+        }
+
         private void LoadProblemToForm(ProblemDocument problem)
         {
+            _isLoadingProblemToForm = true;
             ProblemIdTextBox.Text = problem.Id;
             TitleTextBox.Text = problem.Title;
             AuthorNameTextBox.Text = problem.AuthorName;
@@ -202,6 +380,12 @@ namespace Local_Judge
             InputDescriptionTextBox.Text = problem.InputFormat;
             OutputDescriptionTextBox.Text = problem.OutputFormat;
             _lastStatementTextBox = DescriptionTextBox;
+            _initialCodeEditorCode = NormalizeCodeLineEndings(problem.InitialCode ?? _defaultInitialCode);
+            InitialCodeCheckBox.IsChecked = problem.InitialCode is not null;
+            InitialCodeEditorPanel.Visibility = InitialCodeCheckBox.IsChecked == true
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            _isLoadingProblemToForm = false;
 
             _sampleEditors.Clear();
             SamplesPanel.Children.Clear();
@@ -221,6 +405,20 @@ namespace Local_Judge
 
             _testCases = CloneTestCases(problem.TestCases);
             UpdateTestCaseSummary();
+        }
+
+        private async void InitialCodeCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            InitialCodeEditorPanel.Visibility = InitialCodeCheckBox.IsChecked == true
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            if (_isLoadingProblemToForm || InitialCodeCheckBox.IsChecked != true)
+            {
+                return;
+            }
+
+            await InitializeInitialCodeEditorAsync();
         }
 
         private void ConfigureAttributionFields()
@@ -727,7 +925,7 @@ namespace Local_Judge
             TestCaseSummaryTextBlock.Text = $"채점 테스트 {_testCases.Count}개{sourceText}";
         }
 
-        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        private async void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             string id = ProblemIdTextBox.Text.Trim();
             string title = TitleTextBox.Text.Trim();
@@ -782,6 +980,10 @@ namespace Local_Judge
                 return;
             }
 
+            string? initialCode = InitialCodeCheckBox.IsChecked == true
+                ? await GetInitialCodeEditorCodeAsync()
+                : null;
+
             Problem = new ProblemDocument
             {
                 Version = ProblemAssetUtilities.CurrentProblemVersion,
@@ -797,7 +999,8 @@ namespace Local_Judge
                 OutputFormat = OutputDescriptionTextBox.Text,
                 Assets = ProblemAssetUtilities.CloneAssets(_assets),
                 Samples = samples,
-                TestCases = CloneTestCases(_testCases)
+                TestCases = CloneTestCases(_testCases),
+                InitialCode = initialCode
             };
 
             if (_isNewProblem && !SaveNewProblemWithDialog())
@@ -949,6 +1152,13 @@ namespace Local_Judge
                     Output = testCase.Output
                 })
                 .ToList();
+        }
+
+        private static string NormalizeCodeLineEndings(string text)
+        {
+            return (text ?? string.Empty)
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n');
         }
 
         private sealed record SampleEditorControls(

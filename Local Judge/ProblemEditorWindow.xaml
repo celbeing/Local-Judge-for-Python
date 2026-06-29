@@ -206,6 +206,22 @@
                                    Foreground="#57606A"
                                    VerticalAlignment="Center" />
                     </DockPanel>
+
+                    <CheckBox x:Name="InitialCodeCheckBox"
+                              Content="초기 코드 설정"
+                              Margin="0,8,0,8"
+                              Checked="InitialCodeCheckBox_Changed"
+                              Unchecked="InitialCodeCheckBox_Changed" />
+
+                    <Border x:Name="InitialCodeEditorPanel"
+                            Height="280"
+                            BorderBrush="{StaticResource PanelBorderBrush}"
+                            BorderThickness="1"
+                            Background="#1E1E1E"
+                            Visibility="Collapsed">
+                        <wv2:WebView2 x:Name="InitialCodeEditorWebView"
+                                      DefaultBackgroundColor="#1E1E1E" />
+                    </Border>
                 </StackPanel>
             </ScrollViewer>
 

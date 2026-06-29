@@ -63,6 +63,7 @@ namespace Local_Judge
 
     public sealed class LocalJudgeUserSettings
     {
+        public const string DefaultPythonEditorCode = "import sys\n\n\ndef main():\n    pass\n\n\nif __name__ == \"__main__\":\n    main()\n";
         public const int DefaultAutoSaveDraftIntervalSeconds = 30;
         public const int MinAutoSaveDraftIntervalSeconds = 5;
         public const int MaxAutoSaveDraftIntervalSeconds = 3600;
@@ -70,11 +71,14 @@ namespace Local_Judge
         public string PythonExecutablePath { get; set; } = string.Empty;
         public string ProblemSaveDirectory { get; set; } = string.Empty;
         public string SubmissionHistoryExportDirectory { get; set; } = string.Empty;
+        public string EditorDefaultCode { get; set; } = DefaultPythonEditorCode;
         public bool AutoSaveDraftsEnabled { get; set; } = true;
         public int AutoSaveDraftIntervalSeconds { get; set; } = DefaultAutoSaveDraftIntervalSeconds;
 
         public void Normalize()
         {
+            EditorDefaultCode ??= DefaultPythonEditorCode;
+
             if (AutoSaveDraftIntervalSeconds <= 0)
             {
                 AutoSaveDraftIntervalSeconds = DefaultAutoSaveDraftIntervalSeconds;
