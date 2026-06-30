@@ -28,6 +28,7 @@ namespace Local_Judge
         private readonly string? _sourceProblemFilePath;
         private readonly string? _defaultProblemSaveDirectory;
         private readonly string _defaultInitialCode;
+        private readonly string _editorTheme;
         private readonly string _assetWorkspacePath;
         private readonly DispatcherTimer _previewRefreshTimer;
         private List<TestCaseDocument> _testCases = new();
@@ -55,12 +56,14 @@ namespace Local_Judge
             ProblemDocument? problem = null,
             string? problemFilePath = null,
             string? defaultProblemSaveDirectory = null,
-            string? defaultInitialCode = null)
+            string? defaultInitialCode = null,
+            string? editorTheme = null)
         {
             _isNewProblem = problem is null;
             _sourceProblemFilePath = problemFilePath;
             _defaultProblemSaveDirectory = defaultProblemSaveDirectory;
             _defaultInitialCode = NormalizeCodeLineEndings(defaultInitialCode ?? LocalJudgeUserSettings.DefaultPythonEditorCode);
+            _editorTheme = LocalJudgeUserSettings.NormalizeEditorTheme(editorTheme);
             _assetWorkspacePath = Path.Combine(
                 Path.GetTempPath(),
                 "LocalJudge",
@@ -272,6 +275,7 @@ namespace Local_Judge
                 {
                     case "editorReady":
                         _isInitialCodeEditorReady = true;
+                        SetInitialCodeEditorTheme(_editorTheme);
                         SetInitialCodeEditorCode(_initialCodeEditorCode);
                         break;
 
@@ -362,6 +366,22 @@ namespace Local_Judge
             {
                 type = "setCode",
                 code = _initialCodeEditorCode
+            });
+
+            InitialCodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
+        }
+
+        private void SetInitialCodeEditorTheme(string theme)
+        {
+            if (!_isInitialCodeEditorReady || InitialCodeEditorWebView.CoreWebView2 is null)
+            {
+                return;
+            }
+
+            string script = JsonSerializer.Serialize(new
+            {
+                type = "setTheme",
+                theme = LocalJudgeUserSettings.NormalizeEditorTheme(theme)
             });
 
             InitialCodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);

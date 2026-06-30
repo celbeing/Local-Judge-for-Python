@@ -64,6 +64,8 @@ namespace Local_Judge
     public sealed class LocalJudgeUserSettings
     {
         public const string DefaultPythonEditorCode = "import sys\n\n\ndef main():\n    pass\n\n\nif __name__ == \"__main__\":\n    main()\n";
+        public const string DefaultEditorTheme = "localJudgeDark";
+        public const string MonacoThemesPrefix = "monaco-themes:";
         public const int DefaultAutoSaveDraftIntervalSeconds = 30;
         public const int MinAutoSaveDraftIntervalSeconds = 5;
         public const int MaxAutoSaveDraftIntervalSeconds = 3600;
@@ -72,12 +74,14 @@ namespace Local_Judge
         public string ProblemSaveDirectory { get; set; } = string.Empty;
         public string SubmissionHistoryExportDirectory { get; set; } = string.Empty;
         public string EditorDefaultCode { get; set; } = DefaultPythonEditorCode;
+        public string EditorTheme { get; set; } = DefaultEditorTheme;
         public bool AutoSaveDraftsEnabled { get; set; } = true;
         public int AutoSaveDraftIntervalSeconds { get; set; } = DefaultAutoSaveDraftIntervalSeconds;
 
         public void Normalize()
         {
             EditorDefaultCode ??= DefaultPythonEditorCode;
+            EditorTheme = NormalizeEditorTheme(EditorTheme);
 
             if (AutoSaveDraftIntervalSeconds <= 0)
             {
@@ -88,6 +92,25 @@ namespace Local_Judge
                 AutoSaveDraftIntervalSeconds,
                 MinAutoSaveDraftIntervalSeconds,
                 MaxAutoSaveDraftIntervalSeconds);
+        }
+
+        public static string NormalizeEditorTheme(string? theme)
+        {
+            string normalizedTheme = (theme ?? string.Empty).Trim();
+            if (normalizedTheme.StartsWith(MonacoThemesPrefix, StringComparison.Ordinal)
+                && normalizedTheme.Length > MonacoThemesPrefix.Length)
+            {
+                return normalizedTheme;
+            }
+
+            return normalizedTheme switch
+            {
+                "localJudgeLight" or "vs" => "localJudgeLight",
+                "localJudgeDark" or "vs-dark" => "localJudgeDark",
+                "hc-black" => "hc-black",
+                "hc-light" => "hc-light",
+                _ => DefaultEditorTheme
+            };
         }
     }
 }

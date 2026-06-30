@@ -9,6 +9,10 @@
     <UseWPF>true</UseWPF>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <ApplicationIcon>Assets\Icons\LocalJudge.ico</ApplicationIcon>
+    <Version>1.1</Version>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <InformationalVersion>1.1</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

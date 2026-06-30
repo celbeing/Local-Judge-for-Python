@@ -1,0 +1,292 @@
+﻿[
+    {
+        "id":  "localJudgeDark",
+        "label":  "어둡게",
+        "builtin":  true
+    },
+    {
+        "id":  "localJudgeLight",
+        "label":  "밝게",
+        "builtin":  true
+    },
+    {
+        "id":  "hc-black",
+        "label":  "고대비 검정",
+        "builtin":  true
+    },
+    {
+        "id":  "hc-light",
+        "label":  "고대비 밝게",
+        "builtin":  true
+    },
+    {
+        "id":  "monaco-themes:active4d",
+        "label":  "Active4D",
+        "file":  "Active4D.json"
+    },
+    {
+        "id":  "monaco-themes:all-hallows-eve",
+        "label":  "All Hallows Eve",
+        "file":  "All Hallows Eve.json"
+    },
+    {
+        "id":  "monaco-themes:amy",
+        "label":  "Amy",
+        "file":  "Amy.json"
+    },
+    {
+        "id":  "monaco-themes:birds-of-paradise",
+        "label":  "Birds of Paradise",
+        "file":  "Birds of Paradise.json"
+    },
+    {
+        "id":  "monaco-themes:blackboard",
+        "label":  "Blackboard",
+        "file":  "Blackboard.json"
+    },
+    {
+        "id":  "monaco-themes:brilliance-black",
+        "label":  "Brilliance Black",
+        "file":  "Brilliance Black.json"
+    },
+    {
+        "id":  "monaco-themes:brilliance-dull",
+        "label":  "Brilliance Dull",
+        "file":  "Brilliance Dull.json"
+    },
+    {
+        "id":  "monaco-themes:chrome-devtools",
+        "label":  "Chrome DevTools",
+        "file":  "Chrome DevTools.json"
+    },
+    {
+        "id":  "monaco-themes:clouds-midnight",
+        "label":  "Clouds Midnight",
+        "file":  "Clouds Midnight.json"
+    },
+    {
+        "id":  "monaco-themes:clouds",
+        "label":  "Clouds",
+        "file":  "Clouds.json"
+    },
+    {
+        "id":  "monaco-themes:cobalt",
+        "label":  "Cobalt",
+        "file":  "Cobalt.json"
+    },
+    {
+        "id":  "monaco-themes:cobalt2",
+        "label":  "Cobalt2",
+        "file":  "Cobalt2.json"
+    },
+    {
+        "id":  "monaco-themes:dawn",
+        "label":  "Dawn",
+        "file":  "Dawn.json"
+    },
+    {
+        "id":  "monaco-themes:dracula",
+        "label":  "Dracula",
+        "file":  "Dracula.json"
+    },
+    {
+        "id":  "monaco-themes:dreamweaver",
+        "label":  "Dreamweaver",
+        "file":  "Dreamweaver.json"
+    },
+    {
+        "id":  "monaco-themes:eiffel",
+        "label":  "Eiffel",
+        "file":  "Eiffel.json"
+    },
+    {
+        "id":  "monaco-themes:espresso-libre",
+        "label":  "Espresso Libre",
+        "file":  "Espresso Libre.json"
+    },
+    {
+        "id":  "monaco-themes:github-dark",
+        "label":  "GitHub Dark",
+        "file":  "GitHub Dark.json"
+    },
+    {
+        "id":  "monaco-themes:github-light",
+        "label":  "GitHub Light",
+        "file":  "GitHub Light.json"
+    },
+    {
+        "id":  "monaco-themes:github",
+        "label":  "GitHub",
+        "file":  "GitHub.json"
+    },
+    {
+        "id":  "monaco-themes:idle",
+        "label":  "IDLE",
+        "file":  "IDLE.json"
+    },
+    {
+        "id":  "monaco-themes:katzenmilch",
+        "label":  "Katzenmilch",
+        "file":  "Katzenmilch.json"
+    },
+    {
+        "id":  "monaco-themes:kuroir-theme",
+        "label":  "Kuroir Theme",
+        "file":  "Kuroir Theme.json"
+    },
+    {
+        "id":  "monaco-themes:lazy",
+        "label":  "LAZY",
+        "file":  "LAZY.json"
+    },
+    {
+        "id":  "monaco-themes:magicwb--amiga-",
+        "label":  "MagicWB (Amiga)",
+        "file":  "MagicWB (Amiga).json"
+    },
+    {
+        "id":  "monaco-themes:merbivore-soft",
+        "label":  "Merbivore Soft",
+        "file":  "Merbivore Soft.json"
+    },
+    {
+        "id":  "monaco-themes:merbivore",
+        "label":  "Merbivore",
+        "file":  "Merbivore.json"
+    },
+    {
+        "id":  "monaco-themes:monokai-bright",
+        "label":  "Monokai Bright",
+        "file":  "Monokai Bright.json"
+    },
+    {
+        "id":  "monaco-themes:monokai",
+        "label":  "Monokai",
+        "file":  "Monokai.json"
+    },
+    {
+        "id":  "monaco-themes:night-owl",
+        "label":  "Night Owl",
+        "file":  "Night Owl.json"
+    },
+    {
+        "id":  "monaco-themes:nord",
+        "label":  "Nord",
+        "file":  "Nord.json"
+    },
+    {
+        "id":  "monaco-themes:oceanic-next",
+        "label":  "Oceanic Next",
+        "file":  "Oceanic Next.json"
+    },
+    {
+        "id":  "monaco-themes:pastels-on-dark",
+        "label":  "Pastels on Dark",
+        "file":  "Pastels on Dark.json"
+    },
+    {
+        "id":  "monaco-themes:slush-and-poppies",
+        "label":  "Slush and Poppies",
+        "file":  "Slush and Poppies.json"
+    },
+    {
+        "id":  "monaco-themes:solarized-dark",
+        "label":  "Solarized-dark",
+        "file":  "Solarized-dark.json"
+    },
+    {
+        "id":  "monaco-themes:solarized-light",
+        "label":  "Solarized-light",
+        "file":  "Solarized-light.json"
+    },
+    {
+        "id":  "monaco-themes:spacecadet",
+        "label":  "SpaceCadet",
+        "file":  "SpaceCadet.json"
+    },
+    {
+        "id":  "monaco-themes:sunburst",
+        "label":  "Sunburst",
+        "file":  "Sunburst.json"
+    },
+    {
+        "id":  "monaco-themes:textmate--mac-classic-",
+        "label":  "Textmate (Mac Classic)",
+        "file":  "Textmate (Mac Classic).json"
+    },
+    {
+        "id":  "monaco-themes:tomorrow-night-blue",
+        "label":  "Tomorrow-Night-Blue",
+        "file":  "Tomorrow-Night-Blue.json"
+    },
+    {
+        "id":  "monaco-themes:tomorrow-night-bright",
+        "label":  "Tomorrow-Night-Bright",
+        "file":  "Tomorrow-Night-Bright.json"
+    },
+    {
+        "id":  "monaco-themes:tomorrow-night-eighties",
+        "label":  "Tomorrow-Night-Eighties",
+        "file":  "Tomorrow-Night-Eighties.json"
+    },
+    {
+        "id":  "monaco-themes:tomorrow-night",
+        "label":  "Tomorrow-Night",
+        "file":  "Tomorrow-Night.json"
+    },
+    {
+        "id":  "monaco-themes:tomorrow",
+        "label":  "Tomorrow",
+        "file":  "Tomorrow.json"
+    },
+    {
+        "id":  "monaco-themes:twilight",
+        "label":  "Twilight",
+        "file":  "Twilight.json"
+    },
+    {
+        "id":  "monaco-themes:upstream-sunburst",
+        "label":  "Upstream Sunburst",
+        "file":  "Upstream Sunburst.json"
+    },
+    {
+        "id":  "monaco-themes:vibrant-ink",
+        "label":  "Vibrant Ink",
+        "file":  "Vibrant Ink.json"
+    },
+    {
+        "id":  "monaco-themes:xcode-default",
+        "label":  "Xcode_default",
+        "file":  "Xcode_default.json"
+    },
+    {
+        "id":  "monaco-themes:zenburnesque",
+        "label":  "Zenburnesque",
+        "file":  "Zenburnesque.json"
+    },
+    {
+        "id":  "monaco-themes:iplastic",
+        "label":  "iPlastic",
+        "file":  "iPlastic.json"
+    },
+    {
+        "id":  "monaco-themes:idlefingers",
+        "label":  "idleFingers",
+        "file":  "idleFingers.json"
+    },
+    {
+        "id":  "monaco-themes:krtheme",
+        "label":  "krTheme",
+        "file":  "krTheme.json"
+    },
+    {
+        "id":  "monaco-themes:monoindustrial",
+        "label":  "monoindustrial",
+        "file":  "monoindustrial.json"
+    },
+    {
+        "id":  "monaco-themes:dominion-day",
+        "label":  "Dominion Day",
+        "file":  "Dominion Day.json"
+    }
+]

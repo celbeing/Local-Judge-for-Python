@@ -1,6 +1,6 @@
 {
   "name": "local-judge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "monaco-editor": "^0.55.1"
+    "monaco-editor": "^0.55.1",
+    "monaco-themes": "^0.4.8"
   }
 }

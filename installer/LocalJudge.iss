@@ -3,7 +3,7 @@
 ; dotnet publish "..\Local Judge\Local Judge.csproj" -p:PublishProfile=LocalJudge-win-x64-folder
 
 #define MyAppName "Local Judge"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.1"
 #define MyAppPublisher "celbeing"
 #define MyAppExeName "Local Judge.exe"
 #define PublishDir "..\Local Judge\bin\Release\net8.0-windows\win-x64\publish"

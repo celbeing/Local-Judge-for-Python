@@ -36,7 +36,7 @@ namespace Local_Judge
         private readonly ContestProblemNavigator _contestProblemNavigator;
         private readonly ContestResultExporter _contestResultExporter;
         private readonly LocalJudgeSettingsStore _settingsStore;
-        private const string ApplicationVersion = "v1.0";
+        private const string ApplicationVersion = "v1.1";
         private const string ApplicationAuthor = "김명서";
         private const string ApplicationIndischoolId = "전라남도교육지원청";
         private const string ApplicationTistoryUrl = "https://celbeing.tistory.com/";
@@ -321,6 +321,7 @@ namespace Local_Judge
                 {
                     case "editorReady":
                         AppendTerminal("[Editor] Monaco Editor가 준비되었습니다.");
+                        ApplyEditorTheme();
                         SetEditorCode(_latestEditorCode);
                         break;
 
@@ -428,6 +429,27 @@ namespace Local_Judge
             });
 
             _suppressedEditorCodeChangedCount++;
+            CodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
+        }
+
+        private void ApplyEditorTheme()
+        {
+            SetEditorTheme(GetConfiguredEditorTheme());
+        }
+
+        private void SetEditorTheme(string theme)
+        {
+            if (CodeEditorWebView.CoreWebView2 == null)
+            {
+                return;
+            }
+
+            string script = JsonSerializer.Serialize(new
+            {
+                type = "setTheme",
+                theme = LocalJudgeUserSettings.NormalizeEditorTheme(theme)
+            });
+
             CodeEditorWebView.CoreWebView2.PostWebMessageAsJson(script);
         }
 
@@ -556,6 +578,11 @@ namespace Local_Judge
         private string GetConfiguredDefaultEditorCode()
         {
             return _userSettings.EditorDefaultCode ?? LocalJudgeUserSettings.DefaultPythonEditorCode;
+        }
+
+        private string GetConfiguredEditorTheme()
+        {
+            return LocalJudgeUserSettings.NormalizeEditorTheme(_userSettings.EditorTheme);
         }
 
         private string GetEditorInitialCodeForProblem(ProblemDocument? problem)
@@ -2174,7 +2201,8 @@ namespace Local_Judge
 
             var editor = new ProblemEditorWindow(
                 defaultProblemSaveDirectory: _userSettings.ProblemSaveDirectory,
-                defaultInitialCode: GetConfiguredDefaultEditorCode())
+                defaultInitialCode: GetConfiguredDefaultEditorCode(),
+                editorTheme: GetConfiguredEditorTheme())
             {
                 Owner = this
             };
@@ -2203,7 +2231,8 @@ namespace Local_Judge
             var editor = new ProblemEditorWindow(
                 _currentProblem,
                 _currentProblemFilePath,
-                defaultInitialCode: GetConfiguredDefaultEditorCode())
+                defaultInitialCode: GetConfiguredDefaultEditorCode(),
+                editorTheme: GetConfiguredEditorTheme())
             {
                 Owner = this
             };
@@ -3742,7 +3771,7 @@ namespace Local_Judge
         private void DefaultCodeSettingsMenuItem_Click(object sender, RoutedEventArgs e)
         {
             string previousDefaultCode = GetConfiguredDefaultEditorCode();
-            var window = new DefaultCodeSettingsWindow(previousDefaultCode)
+            var window = new DefaultCodeSettingsWindow(previousDefaultCode, GetConfiguredEditorTheme())
             {
                 Owner = this
             };
@@ -3813,14 +3842,17 @@ namespace Local_Judge
 
             _userSettings.ProblemSaveDirectory = window.ProblemSaveDirectory;
             _userSettings.SubmissionHistoryExportDirectory = window.SubmissionHistoryExportDirectory;
+            _userSettings.EditorTheme = window.EditorTheme;
             _userSettings.AutoSaveDraftsEnabled = window.AutoSaveDraftsEnabled;
             _userSettings.AutoSaveDraftIntervalSeconds = window.AutoSaveDraftIntervalSeconds;
             SaveUserSettings();
             ApplyDraftAutoSaveSettings(logSetting: true);
+            ApplyEditorTheme();
 
             AppendTerminal("[Settings] 환경 설정을 적용했습니다.");
             AppendTerminal($"[Settings] 문항 저장 경로: {FormatConfiguredDirectory(_userSettings.ProblemSaveDirectory)}");
             AppendTerminal($"[Settings] 제출 이력 내보내기 경로: {FormatConfiguredDirectory(_userSettings.SubmissionHistoryExportDirectory)}");
+            AppendTerminal($"[Settings] 에디터 테마: {GetConfiguredEditorTheme()}");
         }
 
         private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
