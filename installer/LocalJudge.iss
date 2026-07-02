@@ -4,7 +4,7 @@
 
 #define MyAppName "Local Judge"
 #define MyAppVersion "1.1"
-#define MyAppPublisher "celbeing"
+#define MyAppPublisher "초등교사 김명서"
 #define MyAppExeName "Local Judge.exe"
 #define PublishDir "..\Local Judge\bin\Release\net8.0-windows\win-x64\publish"
 #define IconFile "..\Local Judge\Assets\Icons\LocalJudge.ico"
