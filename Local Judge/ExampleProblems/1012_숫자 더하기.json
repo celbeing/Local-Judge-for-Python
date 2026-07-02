@@ -1,0 +1,62 @@
+{
+  "version": 4,
+  "id": "1012",
+  "title": "\uC22B\uC790 \uB354\uD558\uAE30",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC22B\uC790\uB97C \uB354\uD558\uB294 \uBC29\uBC95\uC740 \uC5EC\uB7EC \uAC00\uC9C0\uAC00 \uC788\uB2E4. \uC22B\uC790\uB97C \uC774\uC5B4\uBD99\uC77C \uC218\uB3C4 \uC788\uACE0 \uC218\uAC00 \uAC00\uC9C4 \uC591\uC744 \uD569\uCE60 \uC218\uB3C4 \uC788\uB2E4. \uB450 \uAC00\uC9C0 \uBC29\uBC95\uC758 \uB367\uC148\uC744 \uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uB450 \uC790\uC5F0\uC218 $A , B$\uAC00 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $1 \\leq A , B \\leq 1,000$",
+  "outputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $A$\uC640 $B$\uB97C \uC774\uC5B4\uBD99\uC778 \uACB0\uACFC\uB97C \uCD9C\uB825\uD55C\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 $A$\uC640 $B$\uC758 \uD569\uC744 \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "12 34",
+      "output": "1234\r\n46"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "980 27\r\n",
+      "output": "98027\r\n1007\r\n"
+    },
+    {
+      "input": "459 473\r\n",
+      "output": "459473\r\n932\r\n"
+    },
+    {
+      "input": "498 123\r\n",
+      "output": "498123\r\n621\r\n"
+    },
+    {
+      "input": "257 742\r\n",
+      "output": "257742\r\n999\r\n"
+    },
+    {
+      "input": "930 270\r\n",
+      "output": "930270\r\n1200\r\n"
+    },
+    {
+      "input": "457 623\r\n",
+      "output": "457623\r\n1080\r\n"
+    },
+    {
+      "input": "544 164\r\n",
+      "output": "544164\r\n708\r\n"
+    },
+    {
+      "input": "621 89\r\n",
+      "output": "62189\r\n710\r\n"
+    },
+    {
+      "input": "377 225\r\n",
+      "output": "377225\r\n602\r\n"
+    },
+    {
+      "input": "761 682\r\n",
+      "output": "761682\r\n1443\r\n"
+    }
+  ]
+}

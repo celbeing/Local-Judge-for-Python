@@ -1,0 +1,62 @@
+{
+  "version": 4,
+  "id": "1005",
+  "title": "\uAC70\uB4ED\uC81C\uACF1",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC815\uC218 $A$\uC640 \uC790\uC5F0\uC218 $B$\uAC00 \uC8FC\uC5B4\uC84C\uC744 \uB54C, $A$\uC758 $B$\uC81C\uACF1\uC744 \uAD6C\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC815\uC218 $A$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uC790\uC5F0\uC218 $B$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $-100 \\leq A \\leq 100$\r\n- $ 1 \\leq B \\leq 10$",
+  "outputFormat": "\uD55C \uC904\uC5D0 $A$\uC758 $B$\uC81C\uACF1\uC744 \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "2\r\n3",
+      "output": "8"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "-73\r\n5\r\n",
+      "output": "-2073071593\r\n"
+    },
+    {
+      "input": "-20\r\n1\r\n",
+      "output": "-20\r\n"
+    },
+    {
+      "input": "3\r\n7\r\n",
+      "output": "2187\r\n"
+    },
+    {
+      "input": "96\r\n3\r\n",
+      "output": "884736\r\n"
+    },
+    {
+      "input": "-83\r\n1\r\n",
+      "output": "-83\r\n"
+    },
+    {
+      "input": "-84\r\n2\r\n",
+      "output": "7056\r\n"
+    },
+    {
+      "input": "91\r\n2\r\n",
+      "output": "8281\r\n"
+    },
+    {
+      "input": "-46\r\n1\r\n",
+      "output": "-46\r\n"
+    },
+    {
+      "input": "80\r\n8\r\n",
+      "output": "1677721600000000\r\n"
+    },
+    {
+      "input": "-13\r\n9\r\n",
+      "output": "-10604499373\r\n"
+    }
+  ]
+}

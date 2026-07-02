@@ -1,0 +1,26 @@
+{
+  "version": 4,
+  "id": "1006",
+  "title": "\uCD9C\uB825",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\u0060print()\u0060\uD568\uC218\uB97C \uC774\uC6A9\uD574 \uCD9C\uB825\uD574\uBCF4\uC790.",
+  "inputFormat": "\uC774 \uBB38\uC81C\uB294 \uC785\uB825\uC774 \uC8FC\uC5B4\uC9C0\uC9C0 \uC54A\uB294\uB2E4.",
+  "outputFormat": "\uD55C \uC904\uC5D0 **Hello, World**\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "(\uC5C6\uC74C)",
+      "output": "Hello, World"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "",
+      "output": "Hello, World\r\n"
+    }
+  ]
+}
