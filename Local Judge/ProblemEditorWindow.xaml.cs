@@ -27,6 +27,8 @@ namespace Local_Judge
         private readonly bool _isNewProblem;
         private readonly string? _sourceProblemFilePath;
         private readonly string? _defaultProblemSaveDirectory;
+        private readonly string _defaultProblemAuthorName;
+        private readonly string _defaultProblemSource;
         private readonly string _defaultInitialCode;
         private readonly string _editorTheme;
         private readonly string _assetWorkspacePath;
@@ -56,12 +58,16 @@ namespace Local_Judge
             ProblemDocument? problem = null,
             string? problemFilePath = null,
             string? defaultProblemSaveDirectory = null,
+            string? defaultProblemAuthorName = null,
+            string? defaultProblemSource = null,
             string? defaultInitialCode = null,
             string? editorTheme = null)
         {
             _isNewProblem = problem is null;
             _sourceProblemFilePath = problemFilePath;
             _defaultProblemSaveDirectory = defaultProblemSaveDirectory;
+            _defaultProblemAuthorName = (defaultProblemAuthorName ?? string.Empty).Trim();
+            _defaultProblemSource = (defaultProblemSource ?? string.Empty).Trim();
             _defaultInitialCode = NormalizeCodeLineEndings(defaultInitialCode ?? LocalJudgeUserSettings.DefaultPythonEditorCode);
             _editorTheme = LocalJudgeUserSettings.NormalizeEditorTheme(editorTheme);
             _assetWorkspacePath = Path.Combine(
@@ -83,7 +89,7 @@ namespace Local_Judge
 
             Directory.CreateDirectory(_assetWorkspacePath);
 
-            Problem = CloneProblem(problem ?? CreateDefaultProblem());
+            Problem = CloneProblem(problem ?? CreateDefaultProblem(_defaultProblemAuthorName, _defaultProblemSource));
             _initialCodeEditorCode = NormalizeCodeLineEndings(Problem.InitialCode ?? _defaultInitialCode);
             _assets.AddRange(ProblemAssetUtilities.CloneAssets(Problem.Assets));
             CopyExistingAssetsToWorkspace();
@@ -102,11 +108,15 @@ namespace Local_Judge
             };
         }
 
-        private static ProblemDocument CreateDefaultProblem()
+        private static ProblemDocument CreateDefaultProblem(
+            string defaultProblemAuthorName,
+            string defaultProblemSource)
         {
             return new ProblemDocument
             {
                 Version = ProblemAssetUtilities.CurrentProblemVersion,
+                AuthorName = defaultProblemAuthorName,
+                Source = defaultProblemSource,
                 StatementFormat = ProblemStatementFormats.MarkdownLatex,
                 TimeLimitMs = 2000,
                 MemoryLimitMb = 128,
@@ -1023,7 +1033,7 @@ namespace Local_Judge
                 InitialCode = initialCode
             };
 
-            if (_isNewProblem && !SaveNewProblemWithDialog())
+            if (_isNewProblem && !SaveNewProblem())
             {
                 return;
             }
@@ -1031,13 +1041,25 @@ namespace Local_Judge
             DialogResult = true;
         }
 
-        private bool SaveNewProblemWithDialog()
+        private bool SaveNewProblem()
+        {
+            string defaultFileName = CreateDefaultProblemFileName(Problem);
+            if (TryGetWritableExistingDirectory(_defaultProblemSaveDirectory, out string saveDirectory))
+            {
+                string filePath = CreateAvailableProblemFilePath(saveDirectory, defaultFileName);
+                return TrySaveNewProblemToFile(filePath);
+            }
+
+            return SaveNewProblemWithDialog(defaultFileName);
+        }
+
+        private bool SaveNewProblemWithDialog(string defaultFileName)
         {
             var dialog = new SaveFileDialog
             {
                 Title = "문제 JSON 저장",
                 Filter = "JSON 문제 파일 (*.json)|*.json|모든 파일 (*.*)|*.*",
-                FileName = CreateDefaultProblemFileName(Problem)
+                FileName = defaultFileName
             };
             ApplyInitialDirectory(dialog, _defaultProblemSaveDirectory);
 
@@ -1047,18 +1069,23 @@ namespace Local_Judge
                 return false;
             }
 
+            return TrySaveNewProblemToFile(dialog.FileName);
+        }
+
+        private bool TrySaveNewProblemToFile(string filePath)
+        {
             try
             {
                 string json = JsonSerializer.Serialize(Problem, _jsonOptions);
-                File.WriteAllText(dialog.FileName, json);
+                File.WriteAllText(filePath, json);
 
                 if (Directory.EnumerateFiles(_assetWorkspacePath).Any())
                 {
-                    string targetAssetFolderPath = ProblemAssetUtilities.GetAssetFolderPath(dialog.FileName);
+                    string targetAssetFolderPath = ProblemAssetUtilities.GetAssetFolderPath(filePath);
                     ProblemAssetUtilities.CopyAssetFolder(_assetWorkspacePath, targetAssetFolderPath);
                 }
 
-                SavedFilePath = dialog.FileName;
+                SavedFilePath = filePath;
                 return true;
             }
             catch (Exception ex)
@@ -1082,13 +1109,114 @@ namespace Local_Judge
             try
             {
                 string fullPath = Path.GetFullPath(directoryPath);
-                Directory.CreateDirectory(fullPath);
-                dialog.InitialDirectory = fullPath;
+                if (Directory.Exists(fullPath))
+                {
+                    dialog.InitialDirectory = fullPath;
+                }
             }
             catch
             {
                 // Invalid user settings should not block saving a new problem.
             }
+        }
+
+        private static bool TryGetWritableExistingDirectory(string? directoryPath, out string fullPath)
+        {
+            fullPath = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(directoryPath))
+            {
+                return false;
+            }
+
+            string? probePath = null;
+            try
+            {
+                fullPath = Path.GetFullPath(directoryPath);
+                if (!Directory.Exists(fullPath))
+                {
+                    fullPath = string.Empty;
+                    return false;
+                }
+
+                probePath = Path.Combine(fullPath, $".localjudge-write-test-{Guid.NewGuid():N}.tmp");
+                using (new FileStream(
+                    probePath,
+                    FileMode.CreateNew,
+                    FileAccess.Write,
+                    FileShare.None,
+                    bufferSize: 1,
+                    options: FileOptions.DeleteOnClose))
+                {
+                }
+
+                return true;
+            }
+            catch
+            {
+                fullPath = string.Empty;
+                return false;
+            }
+            finally
+            {
+                if (!string.IsNullOrWhiteSpace(probePath))
+                {
+                    try
+                    {
+                        if (File.Exists(probePath))
+                        {
+                            File.Delete(probePath);
+                        }
+                    }
+                    catch
+                    {
+                        // A failed write probe should fall back to the save dialog.
+                    }
+                }
+            }
+        }
+
+        private static string CreateAvailableProblemFilePath(string directoryPath, string defaultFileName)
+        {
+            string candidatePath = Path.Combine(directoryPath, defaultFileName);
+            while (File.Exists(candidatePath)
+                   || Directory.Exists(candidatePath)
+                   || Directory.Exists(ProblemAssetUtilities.GetAssetFolderPath(candidatePath)))
+            {
+                candidatePath = CreateNextNumberedFilePath(candidatePath);
+            }
+
+            return candidatePath;
+        }
+
+        private static string CreateNextNumberedFilePath(string filePath)
+        {
+            string directoryPath = Path.GetDirectoryName(filePath) ?? string.Empty;
+            string extension = Path.GetExtension(filePath);
+            string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+            Match match = Regex.Match(
+                fileNameWithoutExtension,
+                @"^(?<root>.*?)(?:\s*\((?<number>\d+)\))$",
+                RegexOptions.CultureInvariant);
+
+            string rootName = fileNameWithoutExtension;
+            int nextNumber = 1;
+            if (match.Success)
+            {
+                rootName = match.Groups["root"].Value.TrimEnd();
+                if (string.IsNullOrWhiteSpace(rootName))
+                {
+                    rootName = fileNameWithoutExtension;
+                }
+
+                if (int.TryParse(match.Groups["number"].Value, out int currentNumber)
+                    && currentNumber < int.MaxValue)
+                {
+                    nextNumber = currentNumber + 1;
+                }
+            }
+
+            return Path.Combine(directoryPath, $"{rootName} ({nextNumber}){extension}");
         }
 
         private static string CreateDefaultProblemFileName(ProblemDocument problem)

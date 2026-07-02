@@ -23,6 +23,8 @@ namespace Local_Judge
         private bool _isThemePreviewInitialized;
         private bool _isThemePreviewReady;
         private string _originalProblemSaveDirectory = string.Empty;
+        private string _originalDefaultProblemAuthorName = string.Empty;
+        private string _originalDefaultProblemSource = string.Empty;
         private string _originalSubmissionHistoryExportDirectory = string.Empty;
         private string _originalEditorTheme = LocalJudgeUserSettings.DefaultEditorTheme;
         private bool _originalAutoSaveDraftsEnabled = true;
@@ -35,6 +37,8 @@ namespace Local_Judge
 
             settings.Normalize();
             _originalProblemSaveDirectory = settings.ProblemSaveDirectory ?? string.Empty;
+            _originalDefaultProblemAuthorName = settings.DefaultProblemAuthorName ?? string.Empty;
+            _originalDefaultProblemSource = settings.DefaultProblemSource ?? string.Empty;
             _originalSubmissionHistoryExportDirectory = settings.SubmissionHistoryExportDirectory ?? string.Empty;
             _originalEditorTheme = settings.EditorTheme;
             _originalAutoSaveDraftsEnabled = settings.AutoSaveDraftsEnabled;
@@ -43,12 +47,16 @@ namespace Local_Judge
             EditorThemeComboBox.ItemsSource = _editorThemeOptions;
 
             ProblemSaveDirectoryTextBox.Text = _originalProblemSaveDirectory;
+            DefaultProblemAuthorNameTextBox.Text = _originalDefaultProblemAuthorName;
+            DefaultProblemSourceTextBox.Text = _originalDefaultProblemSource;
             SubmissionHistoryExportDirectoryTextBox.Text = _originalSubmissionHistoryExportDirectory;
             SelectEditorTheme(_originalEditorTheme);
             AutoSaveDraftsCheckBox.IsChecked = _originalAutoSaveDraftsEnabled;
             AutoSaveIntervalTextBox.Text = _originalAutoSaveDraftIntervalSeconds.ToString();
 
             ProblemSaveDirectoryTextBox.TextChanged += (_, _) => UpdateSaveButtonState();
+            DefaultProblemAuthorNameTextBox.TextChanged += (_, _) => UpdateSaveButtonState();
+            DefaultProblemSourceTextBox.TextChanged += (_, _) => UpdateSaveButtonState();
             SubmissionHistoryExportDirectoryTextBox.TextChanged += (_, _) => UpdateSaveButtonState();
             AutoSaveIntervalTextBox.TextChanged += (_, _) => UpdateSaveButtonState();
 
@@ -60,6 +68,8 @@ namespace Local_Judge
         }
 
         public string ProblemSaveDirectory { get; private set; } = string.Empty;
+        public string DefaultProblemAuthorName { get; private set; } = string.Empty;
+        public string DefaultProblemSource { get; private set; } = string.Empty;
         public string SubmissionHistoryExportDirectory { get; private set; } = string.Empty;
         public string EditorTheme { get; private set; } = LocalJudgeUserSettings.DefaultEditorTheme;
         public bool AutoSaveDraftsEnabled { get; private set; } = true;
@@ -108,6 +118,8 @@ namespace Local_Judge
             try
             {
                 ProblemSaveDirectory = NormalizeDirectoryPath(ProblemSaveDirectoryTextBox.Text);
+                DefaultProblemAuthorName = NormalizeOptionalText(DefaultProblemAuthorNameTextBox.Text);
+                DefaultProblemSource = NormalizeOptionalText(DefaultProblemSourceTextBox.Text);
                 SubmissionHistoryExportDirectory = NormalizeDirectoryPath(SubmissionHistoryExportDirectoryTextBox.Text);
                 EditorTheme = GetSelectedEditorTheme();
                 AutoSaveDraftsEnabled = AutoSaveDraftsCheckBox.IsChecked == true;
@@ -266,6 +278,8 @@ namespace Local_Judge
         private bool HasSettingsChanges()
         {
             return !string.Equals(ProblemSaveDirectoryTextBox.Text ?? string.Empty, _originalProblemSaveDirectory, StringComparison.Ordinal)
+                   || !string.Equals(NormalizeOptionalText(DefaultProblemAuthorNameTextBox.Text), _originalDefaultProblemAuthorName, StringComparison.Ordinal)
+                   || !string.Equals(NormalizeOptionalText(DefaultProblemSourceTextBox.Text), _originalDefaultProblemSource, StringComparison.Ordinal)
                    || !string.Equals(SubmissionHistoryExportDirectoryTextBox.Text ?? string.Empty, _originalSubmissionHistoryExportDirectory, StringComparison.Ordinal)
                    || !string.Equals(GetSelectedEditorTheme(), _originalEditorTheme, StringComparison.Ordinal)
                    || (AutoSaveDraftsCheckBox.IsChecked == true) != _originalAutoSaveDraftsEnabled
@@ -385,6 +399,11 @@ namespace Local_Judge
             string fullPath = Path.GetFullPath(trimmedPath);
             Directory.CreateDirectory(fullPath);
             return fullPath;
+        }
+
+        private static string NormalizeOptionalText(string text)
+        {
+            return (text ?? string.Empty).Trim();
         }
 
         private static int ParseAutoSaveIntervalSeconds(string text)

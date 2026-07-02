@@ -72,6 +72,8 @@ namespace Local_Judge
 
         public string PythonExecutablePath { get; set; } = string.Empty;
         public string ProblemSaveDirectory { get; set; } = string.Empty;
+        public string DefaultProblemAuthorName { get; set; } = string.Empty;
+        public string DefaultProblemSource { get; set; } = string.Empty;
         public string SubmissionHistoryExportDirectory { get; set; } = string.Empty;
         public string EditorDefaultCode { get; set; } = DefaultPythonEditorCode;
         public string EditorTheme { get; set; } = DefaultEditorTheme;
@@ -80,6 +82,8 @@ namespace Local_Judge
 
         public void Normalize()
         {
+            DefaultProblemAuthorName = (DefaultProblemAuthorName ?? string.Empty).Trim();
+            DefaultProblemSource = (DefaultProblemSource ?? string.Empty).Trim();
             EditorDefaultCode ??= DefaultPythonEditorCode;
             EditorTheme = NormalizeEditorTheme(EditorTheme);
 

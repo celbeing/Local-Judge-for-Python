@@ -2201,6 +2201,8 @@ namespace Local_Judge
 
             var editor = new ProblemEditorWindow(
                 defaultProblemSaveDirectory: _userSettings.ProblemSaveDirectory,
+                defaultProblemAuthorName: _userSettings.DefaultProblemAuthorName,
+                defaultProblemSource: _userSettings.DefaultProblemSource,
                 defaultInitialCode: GetConfiguredDefaultEditorCode(),
                 editorTheme: GetConfiguredEditorTheme())
             {
@@ -3841,6 +3843,8 @@ namespace Local_Judge
             }
 
             _userSettings.ProblemSaveDirectory = window.ProblemSaveDirectory;
+            _userSettings.DefaultProblemAuthorName = window.DefaultProblemAuthorName;
+            _userSettings.DefaultProblemSource = window.DefaultProblemSource;
             _userSettings.SubmissionHistoryExportDirectory = window.SubmissionHistoryExportDirectory;
             _userSettings.EditorTheme = window.EditorTheme;
             _userSettings.AutoSaveDraftsEnabled = window.AutoSaveDraftsEnabled;
