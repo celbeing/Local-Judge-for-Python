@@ -1,0 +1,98 @@
+{
+  "version": 4,
+  "id": "1008",
+  "title": "\uADF8\uB300\uB85C \uCD9C\uB825\uD558\uAE30",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC785\uB825\uC73C\uB85C \uC8FC\uC5B4\uC9C4 \uB370\uC774\uD130\uB97C \uADF8\uB300\uB85C \uCD9C\uB825\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uAE38\uC774 10\uC744 \uB118\uC9C0 \uC54A\uB294 \uC601\uC18C\uBB38\uC790\uB85C\uB9CC \uC774\uB8E8\uC5B4\uC9C4 \uBB38\uC790\uC5F4 $S$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $0 \u003C |S| \\leq 10$",
+  "outputFormat": "\uBB38\uC790\uC5F4 $S$\uB97C \uADF8\uB300\uB85C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "korea",
+      "output": "korea"
+    },
+    {
+      "input": "python",
+      "output": "python"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "bus\r\n",
+      "output": "bus\r\n"
+    },
+    {
+      "input": "python\r\n",
+      "output": "python\r\n"
+    },
+    {
+      "input": "torch\r\n",
+      "output": "torch\r\n"
+    },
+    {
+      "input": "cat\r\n",
+      "output": "cat\r\n"
+    },
+    {
+      "input": "board\r\n",
+      "output": "board\r\n"
+    },
+    {
+      "input": "summer\r\n",
+      "output": "summer\r\n"
+    },
+    {
+      "input": "cosmos\r\n",
+      "output": "cosmos\r\n"
+    },
+    {
+      "input": "block\r\n",
+      "output": "block\r\n"
+    },
+    {
+      "input": "hand\r\n",
+      "output": "hand\r\n"
+    },
+    {
+      "input": "bottle\r\n",
+      "output": "bottle\r\n"
+    },
+    {
+      "input": "class\r\n",
+      "output": "class\r\n"
+    },
+    {
+      "input": "coffee\r\n",
+      "output": "coffee\r\n"
+    },
+    {
+      "input": "computer\r\n",
+      "output": "computer\r\n"
+    },
+    {
+      "input": "lightbulb\r\n",
+      "output": "lightbulb\r\n"
+    },
+    {
+      "input": "pen\r\n",
+      "output": "pen\r\n"
+    },
+    {
+      "input": "dust\r\n",
+      "output": "dust\r\n"
+    },
+    {
+      "input": "mountain\r\n",
+      "output": "mountain\r\n"
+    },
+    {
+      "input": "check\r\n",
+      "output": "check\r\n"
+    }
+  ]
+}

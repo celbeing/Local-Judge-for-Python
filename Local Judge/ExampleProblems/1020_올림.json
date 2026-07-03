@@ -1,0 +1,66 @@
+{
+  "version": 4,
+  "id": "1020",
+  "title": "\uC62C\uB9BC",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC138 \uC218 $A , B , C$\uAC00 \uC8FC\uC5B4\uC84C\uC744 \uB54C, $\\frac{A}{B}$\uC640 \\frac{A}{C}$\uB97C \uAC01\uAC01 \uC62C\uB9BC\uD558\uC5EC \uC77C\uC758 \uC790\uB9AC\uAE4C\uC9C0 \uB098\uD0C0\uB0B8 \uC218\uB97C \uB354\uD574\uBCF4\uC790.",
+  "inputFormat": "\uC138 \uC218 $A , B , C$\uAC00 \uC138 \uC904\uC5D0 \uAC78\uCCD0 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nA\r\nB\r\nC\r\n\u0060\u0060\u0060",
+  "outputFormat": "$\\frac{A}{B}$\uC640 $\\frac{A}{C}$\uB97C \uC62C\uB9BC\uD558\uC5EC \uC77C\uC758 \uC790\uB9AC\uAE4C\uC9C0 \uB098\uD0C0\uB0B8 \uC218\uB97C \uB354\uD55C \uACB0\uACFC\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "5\r\n3\r\n8",
+      "output": "3"
+    },
+    {
+      "input": "8\r\n3\r\n4",
+      "output": "5"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "725022\r\n199842\r\n678678\r\n",
+      "output": "6\r\n"
+    },
+    {
+      "input": "570490\r\n284354\r\n73161\r\n",
+      "output": "11\r\n"
+    },
+    {
+      "input": "412406\r\n185579\r\n335686\r\n",
+      "output": "5\r\n"
+    },
+    {
+      "input": "206866\r\n166784\r\n71925\r\n",
+      "output": "5\r\n"
+    },
+    {
+      "input": "992236\r\n696824\r\n764731\r\n",
+      "output": "4\r\n"
+    },
+    {
+      "input": "711070\r\n566949\r\n453379\r\n",
+      "output": "4\r\n"
+    },
+    {
+      "input": "35848\r\n11398\r\n24299\r\n",
+      "output": "6\r\n"
+    },
+    {
+      "input": "499989\r\n220084\r\n120227\r\n",
+      "output": "8\r\n"
+    },
+    {
+      "input": "255712\r\n6465\r\n172677\r\n",
+      "output": "42\r\n"
+    },
+    {
+      "input": "109480\r\n61266\r\n71433\r\n",
+      "output": "4\r\n"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+{
+  "version": 4,
+  "id": "1004",
+  "title": "\uB450 \uC218\uC758 \uB098\uB217\uC148 (2)",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC815\uC218 $A$\uB97C \uC815\uC218 $B$\uB85C \uB098\uB208 \uBAAB\uACFC \uB098\uBA38\uC9C0\uB97C \uAD6C\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC815\uC218 $A$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uC815\uC218 $B$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $0 \\leq A \\leq 100,000,000$\r\n- $1 \\leq B \\leq A$",
+  "outputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $A$\uB97C $B$\uB85C \uB098\uB208 \uBAAB\uC744 \uCD9C\uB825\uD55C\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 $A$\uB97C $B$\uB85C \uB098\uB208 \uB098\uBA38\uC9C0\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "13\r\n5",
+      "output": "2\r\n3"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "78537411\r\n754288\r\n",
+      "output": "104.12125209469062\r\n"
+    },
+    {
+      "input": "22101576\r\n19889824\r\n",
+      "output": "1.1112001795491\r\n"
+    },
+    {
+      "input": "14210457\r\n3508\r\n",
+      "output": "4050.8714367160774\r\n"
+    },
+    {
+      "input": "76653784\r\n571551\r\n",
+      "output": "134.11538777816853\r\n"
+    },
+    {
+      "input": "79657988\r\n144802\r\n",
+      "output": "550.1166282233671\r\n"
+    },
+    {
+      "input": "23271804\r\n75964\r\n",
+      "output": "306.3530619767258\r\n"
+    },
+    {
+      "input": "90832536\r\n69005485\r\n",
+      "output": "1.3163089281960703\r\n"
+    },
+    {
+      "input": "92283923\r\n39862401\r\n",
+      "output": "2.315061829818028\r\n"
+    },
+    {
+      "input": "87589772\r\n32943691\r\n",
+      "output": "2.6587722668962623\r\n"
+    },
+    {
+      "input": "5711855\r\n3230715\r\n",
+      "output": "1.767984795935265\r\n"
+    }
+  ]
+}

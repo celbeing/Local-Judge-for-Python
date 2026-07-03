@@ -1,0 +1,26 @@
+{
+  "version": 4,
+  "id": "1014",
+  "title": "\uACE0\uC591\uC774",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uD14D\uC2A4\uD2B8\uC640 \uD2B9\uC218\uBB38\uC790\uB9CC\uC744 \uAC00\uC9C0\uACE0 \uADF8\uB9BC\uC744 \uD45C\uD604\uD558\uB294 \uAC83\uC744 **\uC544\uC2A4\uD0A4 \uC544\uD2B8(ASCII Art)**\uB77C\uACE0 \uD55C\uB2E4. \uC544\uC2A4\uD0A4 \uC544\uD2B8\uB85C \uC608\uC81C \uCD9C\uB825\uC5D0 \uC788\uB294 \uACE0\uC591\uC774\uB97C \uB611\uAC19\uC774 \uADF8\uB824\uBCF4\uC790.\r\n\u0060\uC774\uC2A4\uCF00\uC774\uD504 \uBB38\uC790\u0060\uB97C \uD65C\uC6A9\uD574 \u0060\uBC31\uC2AC\uB798\uC2DC\u0060, \u0060\uB530\uC634\uD45C\u0060 \uB4F1\uC758 \uBB38\uC790\uB97C \uCD9C\uB825\uD560 \uC218 \uC788\uB2E4.",
+  "inputFormat": "\uC774 \uBB38\uC81C\uB294 \uC785\uB825\uC774 \uC8FC\uC5B4\uC9C0\uC9C0 \uC54A\uB294\uB2E4.",
+  "outputFormat": "\uC608\uC81C \uCD9C\uB825 1\uACFC \uAC19\uC740 \uACE0\uC591\uC774\uB97C \uCD9C\uB825\uD55C\uB2E4.\r\n**\uB744\uC5B4\uC4F0\uAE30\uB97C \uBAA8\uB450 \uCD9C\uB825\uD574\uC57C \uD55C\uB2E4.**",
+  "assets": [],
+  "samples": [
+    {
+      "input": "(\uC5C6\uC74C)",
+      "output": "           |\\=/|\r\n           /6 6\\   _\r\n          =\\_Y_/= ((\r\n           / ^ \\   ))\r\n          /| | |\\ //\r\n         ( | | | )/\r\n          \u0060\u0022\u0022 \u0022\u0022\u0060"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "",
+      "output": "           |\\=/|\r\n           /6 6\\   _\r\n          =\\_Y_/= ((\r\n           / ^ \\   ))\r\n          /| | |\\ //\r\n         ( | | | )/\r\n          \u0060\u0022\u0022 \u0022\u0022\u0060\r\n"
+    }
+  ]
+}

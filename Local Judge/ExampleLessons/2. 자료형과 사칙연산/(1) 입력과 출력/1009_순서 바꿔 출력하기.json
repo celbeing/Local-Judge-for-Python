@@ -1,0 +1,62 @@
+{
+  "version": 4,
+  "id": "1009",
+  "title": "\uC21C\uC11C \uBC14\uAFD4 \uCD9C\uB825\uD558\uAE30",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC785\uB825\uC73C\uB85C \uC8FC\uC5B4\uC9C4 \uB450 \uBB38\uC790\uC5F4\uC744 \uC21C\uC11C\uB97C \uBC14\uAFD4 \uCD9C\uB825\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC601\uC18C\uBB38\uC790\uB85C\uB9CC \uC774\uB8E8\uC5B4\uC9C4 \uBB38\uC790\uC5F4 $S_1$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uC601\uC18C\uBB38\uC790\uB85C\uB9CC \uC774\uB8E8\uC5B4\uC9C4 \uBB38\uC790\uC5F4 $S_2$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $0 \u003C |S_1|, |S_2| \\leq 10$",
+  "outputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $S_2$\uB97C \uCD9C\uB825\uD55C\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 $S_1$\uC744 \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "apple\r\ncarrot",
+      "output": "carrot\r\napple"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "gsalfdiv\r\ncfgp\r\n",
+      "output": "cfgp\r\ngsalfdiv\r\n"
+    },
+    {
+      "input": "ugg\r\nudestrnli\r\n",
+      "output": "udestrnli\r\nugg\r\n"
+    },
+    {
+      "input": "vfpqdamdzp\r\ntwhsy\r\n",
+      "output": "twhsy\r\nvfpqdamdzp\r\n"
+    },
+    {
+      "input": "oqmhosmp\r\narruwvd\r\n",
+      "output": "arruwvd\r\noqmhosmp\r\n"
+    },
+    {
+      "input": "w\r\niu\r\n",
+      "output": "iu\r\nw\r\n"
+    },
+    {
+      "input": "jdzlk\r\nxtftzdftwr\r\n",
+      "output": "xtftzdftwr\r\njdzlk\r\n"
+    },
+    {
+      "input": "tictj\r\nccbfebjn\r\n",
+      "output": "ccbfebjn\r\ntictj\r\n"
+    },
+    {
+      "input": "xfsfuiauc\r\nsygub\r\n",
+      "output": "sygub\r\nxfsfuiauc\r\n"
+    },
+    {
+      "input": "zecvbkxlzv\r\nzjqj\r\n",
+      "output": "zjqj\r\nzecvbkxlzv\r\n"
+    },
+    {
+      "input": "ne\r\nfeix\r\n",
+      "output": "feix\r\nne\r\n"
+    }
+  ]
+}

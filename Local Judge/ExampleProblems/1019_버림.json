@@ -1,0 +1,66 @@
+{
+  "version": 4,
+  "id": "1019",
+  "title": "\uBC84\uB9BC",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC138 \uC218 $A , B , C$\uAC00 \uC8FC\uC5B4\uC84C\uC744 \uB54C $\\frac{A}{B}\u002B\\frac{A}{C}$\uB97C \uBC84\uB9BC\uD558\uC5EC \uC77C\uC758 \uC790\uB9AC\uAE4C\uC9C0 \uB098\uD0C0\uB0B4\uBCF4\uC790.",
+  "inputFormat": "\uC138 \uC218 $A , B , C$\uAC00 \uC138 \uC904\uC5D0 \uAC78\uCCD0 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nA\r\nB\r\nC\r\n\u0060\u0060\u0060",
+  "outputFormat": " $\\frac{A}{B}\u002B\\frac{A}{C}$\uB97C \uBC84\uB9BC\uD558\uC5EC \uC77C\uC758 \uC790\uB9AC\uAE4C\uC9C0 \uB098\uD0C0\uB0B8 \uACB0\uACFC\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "7\r\n5\r\n11",
+      "output": "2"
+    },
+    {
+      "input": "7\r\n5\r\n12",
+      "output": "1"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "170714\r\n72169\r\n2212\r\n",
+      "output": "79\r\n"
+    },
+    {
+      "input": "915824\r\n602823\r\n341043\r\n",
+      "output": "4\r\n"
+    },
+    {
+      "input": "689296\r\n266791\r\n578684\r\n",
+      "output": "3\r\n"
+    },
+    {
+      "input": "718924\r\n661181\r\n409730\r\n",
+      "output": "2\r\n"
+    },
+    {
+      "input": "557369\r\n322672\r\n222578\r\n",
+      "output": "4\r\n"
+    },
+    {
+      "input": "796643\r\n690292\r\n120192\r\n",
+      "output": "7\r\n"
+    },
+    {
+      "input": "782776\r\n581907\r\n643731\r\n",
+      "output": "2\r\n"
+    },
+    {
+      "input": "920197\r\n501541\r\n823915\r\n",
+      "output": "2\r\n"
+    },
+    {
+      "input": "351790\r\n287471\r\n81406\r\n",
+      "output": "5\r\n"
+    },
+    {
+      "input": "486729\r\n108417\r\n358380\r\n",
+      "output": "5\r\n"
+    }
+  ]
+}

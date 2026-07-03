@@ -1,0 +1,62 @@
+{
+  "version": 4,
+  "id": "1003",
+  "title": "\uB450 \uC218\uC758 \uB098\uB217\uC148",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC815\uC218 $A$\uB97C \uC815\uC218 $B$\uB85C \uB098\uB208 \uACB0\uACFC\uB97C \uAD6C\uD574\uBCF4\uC790.\r\n\uB098\uB217\uC148\uC758 \uACB0\uACFC\uB294 \u0060float\u0060\uD615\uC2DD\uC73C\uB85C \uD55C\uB2E4.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC815\uC218 $A$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uC815\uC218 $B$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $0 \\leq A \\leq 100,000,000$\r\n- $0 \u003C B \\leq A$",
+  "outputFormat": "$A$\uC5D0\uC11C $B$\uB97C \uB098\uB208 \uACB0\uACFC\uB97C \u0060float\u0060\uD615\uC2DD\uC73C\uB85C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "13\r\n7",
+      "output": "1.8571428571428572"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "81288925\r\n100482\r\n",
+      "output": "808\r\n99469\r\n"
+    },
+    {
+      "input": "21824331\r\n17854632\r\n",
+      "output": "1\r\n3969699\r\n"
+    },
+    {
+      "input": "81554919\r\n140110\r\n",
+      "output": "582\r\n10899\r\n"
+    },
+    {
+      "input": "1989397\r\n16660\r\n",
+      "output": "119\r\n6857\r\n"
+    },
+    {
+      "input": "43985668\r\n97887\r\n",
+      "output": "449\r\n34405\r\n"
+    },
+    {
+      "input": "77126887\r\n743045\r\n",
+      "output": "103\r\n593252\r\n"
+    },
+    {
+      "input": "80309313\r\n39053583\r\n",
+      "output": "2\r\n2202147\r\n"
+    },
+    {
+      "input": "53607183\r\n28447094\r\n",
+      "output": "1\r\n25160089\r\n"
+    },
+    {
+      "input": "43243439\r\n36469806\r\n",
+      "output": "1\r\n6773633\r\n"
+    },
+    {
+      "input": "67400750\r\n22398666\r\n",
+      "output": "3\r\n204752\r\n"
+    }
+  ]
+}

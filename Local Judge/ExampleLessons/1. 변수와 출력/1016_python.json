@@ -1,0 +1,26 @@
+{
+  "version": 4,
+  "id": "1016",
+  "title": "python",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "python\uC744 #\uC73C\uB85C \uCD9C\uB825\uD574\uBCF4\uC790.",
+  "inputFormat": "\uC774 \uBB38\uC81C\uB294 \uC785\uB825\uC774 \uC8FC\uC5B4\uC9C0\uC9C0 \uC54A\uB294\uB2E4.",
+  "outputFormat": "\uC608\uC81C \uCD9C\uB825\uACFC \uB3D9\uC77C\uD558\uAC8C #\uC73C\uB85C \uB9CC\uB4E4\uC5B4\uC9C4 python\uC744 \uCD9C\uB825\uD55C\uB2E4.\r\n**\uACF5\uBC31\uC5D0 \uC8FC\uC758**",
+  "assets": [],
+  "samples": [
+    {
+      "input": "(\uC5C6\uC74C)",
+      "output": "#####  #   # ##### #    #  ####  #    # \r\n#    #  # #    #   #    # #    # ##   # \r\n#    #   #     #   ###### #    # # #  # \r\n#####    #     #   #    # #    # #  # # \r\n#        #     #   #    # #    # #   ## \r\n#        #     #   #    #  ####  #    # "
+    }
+  ],
+  "testCases": [
+    {
+      "input": "",
+      "output": "#####  #   # ##### #    #  ####  #    # \r\n#    #  # #    #   #    # #    # ##   # \r\n#    #   #     #   ###### #    # # #  # \r\n#####    #     #   #    # #    # #  # # \r\n#        #     #   #    # #    # #   ## \r\n#        #     #   #    #  ####  #    # \r\n"
+    }
+  ]
+}

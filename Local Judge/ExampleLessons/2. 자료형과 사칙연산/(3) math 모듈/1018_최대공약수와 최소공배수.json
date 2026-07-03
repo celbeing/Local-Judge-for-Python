@@ -1,0 +1,66 @@
+{
+  "version": 4,
+  "id": "1018",
+  "title": "\uCD5C\uB300\uACF5\uC57D\uC218\uC640 \uCD5C\uC18C\uACF5\uBC30\uC218",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uD30C\uC774\uC36C\uC758 \u0060math\u0060\uBAA8\uB4C8\uC5D0\uB294 \uB2E4\uC591\uD55C \uACC4\uC0B0\uC744 \uC9C0\uC6D0\uD558\uB294 \uD568\uC218\uAC00 \uD3EC\uD568\uB418\uC5B4\uC788\uB2E4.\r\n\u0060math\u0060\uBAA8\uB4C8\uC744 \uC0AC\uC6A9\uD558\uB824\uBA74 \u0060import\u0060 \uD0A4\uC6CC\uB4DC\uB85C \u0060math\u0060\uBAA8\uB4C8\uC744 \uBD88\uB7EC\uC624\uBA74 \uB41C\uB2E4.\r\n\r\n\u0060\u0060\u0060\r\nimport math\r\na = math.gcd(10, 12)\r\nb = math.lcm(14, 35)\r\n\u0060\u0060\u0060\r\n\r\n\uB450 \uC790\uC5F0\uC218 $A$\uC640 $B$\uAC00 \uC8FC\uC5B4\uC84C\uC744 \uB54C \uB450 \uC218\uC758 \uCD5C\uB300\uACF5\uC57D\uC218\uC640 \uCD5C\uC18C\uACF5\uBC30\uC218\uB97C \uAC01\uAC01 \uAD6C\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC790\uC5F0\uC218 $A$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uC790\uC5F0\uC218 $B$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.",
+  "outputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $A$\uC640 $B$\uC758 \uCD5C\uB300\uACF5\uC57D\uC218\uB97C \uCD9C\uB825\uD55C\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 $A$\uC640 $B$\uC758 \uCD5C\uC18C\uACF5\uBC30\uC218\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "12\r\n15",
+      "output": "3\r\n60"
+    },
+    {
+      "input": "6\r\n8",
+      "output": "2\r\n24"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "575\r\n425\r\n",
+      "output": "25\r\n9775\r\n"
+    },
+    {
+      "input": "325\r\n125\r\n",
+      "output": "25\r\n1625\r\n"
+    },
+    {
+      "input": "140537294\r\n436134382\r\n",
+      "output": "314\r\n195201101486122\r\n"
+    },
+    {
+      "input": "390\r\n210\r\n",
+      "output": "30\r\n2730\r\n"
+    },
+    {
+      "input": "1240194833\r\n5488040983\r\n",
+      "output": "647\r\n10519690989812737\r\n"
+    },
+    {
+      "input": "8697980117\r\n7921852727\r\n",
+      "output": "941\r\n73224354420029999\r\n"
+    },
+    {
+      "input": "2067098175\r\n2114893575\r\n",
+      "output": "225\r\n19429745107563225\r\n"
+    },
+    {
+      "input": "26\r\n143\r\n",
+      "output": "13\r\n286\r\n"
+    },
+    {
+      "input": "6497745209\r\n7997693563\r\n",
+      "output": "941\r\n55225265708855887\r\n"
+    },
+    {
+      "input": "285\r\n255\r\n",
+      "output": "15\r\n4845\r\n"
+    }
+  ]
+}

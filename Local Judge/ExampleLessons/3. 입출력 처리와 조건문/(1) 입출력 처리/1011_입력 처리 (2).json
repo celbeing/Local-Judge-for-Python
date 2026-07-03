@@ -1,0 +1,62 @@
+{
+  "version": 4,
+  "id": "1011",
+  "title": "\uC785\uB825 \uCC98\uB9AC (2)",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC27C\uD45C(,)\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C0\uB294 \uBB38\uC790\uB97C \uBD84\uB9AC\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uAE38\uC774 10\uC744 \uB118\uC9C0 \uC54A\uB294 \uC601\uC18C\uBB38\uC790\uB85C\uB9CC \uC774\uB8E8\uC5B4\uC9C4 \uBB38\uC790\uC5F4 $S_1 , S_2 , S_3$\uAC00 \uC27D\uD45C(,)\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $0 \u003C |S_1| , |S_2| , |S_3| \\leq 10$",
+  "outputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $S_1$\uC744 \uCD9C\uB825\uD55C\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 $S_3$\uB97C \uCD9C\uB825\uD55C\uB2E4.\r\n**$S_2$\uB294 \uCD9C\uB825\uD558\uC9C0 \uC54A\uB294\uB2E4.**",
+  "assets": [],
+  "samples": [
+    {
+      "input": "one,two,three",
+      "output": "one\r\nthree"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "wn,ndcmsercmx,lvttfzand\r\n",
+      "output": "wn\r\nlvttfzand\r\n"
+    },
+    {
+      "input": "q,mefabonga,pudlucu\r\n",
+      "output": "q\r\npudlucu\r\n"
+    },
+    {
+      "input": "olpns,swq,ywubtv\r\n",
+      "output": "olpns\r\nywubtv\r\n"
+    },
+    {
+      "input": "xmm,fbbg,pmrgpo\r\n",
+      "output": "xmm\r\npmrgpo\r\n"
+    },
+    {
+      "input": "gps,quaecnkr,oqgdy\r\n",
+      "output": "gps\r\noqgdy\r\n"
+    },
+    {
+      "input": "zinbgnaepa,fwcir,d\r\n",
+      "output": "zinbgnaepa\r\nd\r\n"
+    },
+    {
+      "input": "tfojq,nj,yydb\r\n",
+      "output": "tfojq\r\nyydb\r\n"
+    },
+    {
+      "input": "wajehhanny,mquyiueot,himjkrgqg\r\n",
+      "output": "wajehhanny\r\nhimjkrgqg\r\n"
+    },
+    {
+      "input": "uuvs,fkjuingtbi,inbhmzsa\r\n",
+      "output": "uuvs\r\ninbhmzsa\r\n"
+    },
+    {
+      "input": "unidrapip,epjdscjud,oomge\r\n",
+      "output": "unidrapip\r\noomge\r\n"
+    }
+  ]
+}
