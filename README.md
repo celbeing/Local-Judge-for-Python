@@ -14,13 +14,13 @@ Python 풀이를 로컬 PC에서 실행하고 채점할 수 있는 Windows용 �
 | --- | --- | --- |
 |(1)|변수와 출력|[Download](https://github.com/celbeing/Local-Judge-for-Python/raw/refs/heads/main/Local%20Judge/ExampleLessons/1.%20%EB%B3%80%EC%88%98%EC%99%80%20%EC%B6%9C%EB%A0%A5.zip)|
 |(2)|자료형과 사칙연산|[Download](https://github.com/celbeing/Local-Judge-for-Python/raw/refs/heads/main/Local%20Judge/ExampleLessons/2.%20%EC%9E%90%EB%A3%8C%ED%98%95%EA%B3%BC%20%EC%82%AC%EC%B9%99%EC%97%B0%EC%82%B0.zip)|
-|(3)|입출력 처리와 조건문|[Preparing]()|
-|(4)|반복문 for, range|[Preparing]()|
-|(5)|반복과 조건 while|[Preparing]()|
-|(6)|리스트와 index|[Preparing]()|
-|(7)|정렬과 탐색|[Preparing]()|
-|(8)|브루트포스, DFS|[Preparing]()|
-|(9)|큐, BFS|[Preparing]()|
+|(3)|입출력 처리와 조건문|[Preparing]|
+|(4)|반복문 for, range|[Preparing]|
+|(5)|반복과 조건 while|[Preparing]|
+|(6)|리스트와 index|[Preparing]|
+|(7)|정렬과 탐색|[Preparing]|
+|(8)|브루트포스, DFS|[Preparing]|
+|(9)|큐, BFS|[Preparing]|
 
 ## 주요 기능
 
