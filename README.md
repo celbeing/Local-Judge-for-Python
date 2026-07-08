@@ -10,6 +10,8 @@ Python 풀이를 로컬 PC에서 실행하고 채점할 수 있는 Windows용 �
 | v1.1 | 2026-07-01 | [LocalJudgeSetup-v1.1.exe](https://github.com/celbeing/Local-Judge-for-Python/raw/refs/heads/main/installer/output/LocalJudgeSetup-v1.1.exe) | Monaco Editor 테마 추가, 초기 코드 설정 기능 추가 |
 
 ## Sample Problem Set
+|No|Subject|Download|
+| --- | --- | --- |
 |(1)|변수와 출력|[Download](https://github.com/celbeing/Local-Judge-for-Python/raw/refs/heads/main/Local%20Judge/ExampleLessons/1.%20%EB%B3%80%EC%88%98%EC%99%80%20%EC%B6%9C%EB%A0%A5.zip)|
 |(2)|자료형과 사칙연산|[Download](https://github.com/celbeing/Local-Judge-for-Python/raw/refs/heads/main/Local%20Judge/ExampleLessons/2.%20%EC%9E%90%EB%A3%8C%ED%98%95%EA%B3%BC%20%EC%82%AC%EC%B9%99%EC%97%B0%EC%82%B0.zip)|
 |(3)|입출력 처리와 조건문|[Preparing]()|
