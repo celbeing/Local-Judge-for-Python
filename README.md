@@ -1,4 +1,4 @@
-# Local Judge for Python
+# Local Judge for Python v1.1
 
 Python 풀이를 로컬 PC에서 실행하고 채점할 수 있는 Windows용 로컬 저지 프로그램입니다. 온라인 저지 환경을 그대로 대체하기보다는, 수업과 대회에서 사용할 수 있도록 문제 배포, 제출 기록 관리, 수업/대회 패키지 운영 기능을 함께 제공합니다.
 
