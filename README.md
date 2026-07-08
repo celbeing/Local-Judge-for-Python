@@ -33,6 +33,7 @@ Python 풀이를 로컬 PC에서 실행하고 채점할 수 있는 Windows용 �
 
 ### 문제 불러오기
 <img width="1186" height="793" alt="Image" src="https://github.com/user-attachments/assets/51ec6333-e7c5-47b5-9574-af781fd8a93e" />
+
 - 좌측 탭 상단의 `불러오기` 버튼으로  JSON 형식의 문제 파일을 불러올 수 있습니다.
 - 불러온 문제에 대해 우측 탭에 작성된 코드를 제출하거나 문제에 저장되어있는 예제를 실행해볼 수 있습니다.
 - 좌측 탭 하단의 `입력` 탭에 미리 입력 스트림을 준비해두고 `실행` 버튼을 누르면 편집기의 코드가 실행된 결과를 `터미널` 탭에서 확인할 수 있습니다.
@@ -40,11 +41,13 @@ Python 풀이를 로컬 PC에서 실행하고 채점할 수 있는 Windows용 �
 
 ### 제출 이력 확인
 <img width="986" height="673" alt="Image" src="https://github.com/user-attachments/assets/3a4d029f-2274-412e-a934-f58431890854" />
+
 - 상단 메뉴의 \[저지]-\[제출 이력 보기...]를 선택하면 현재 열려있는 문제의 제출 이력을 확인할 수 있습니다.
 - 제출했던 코드와 각 tc별 실행 시간과 메모리, 스트림 출력 결과, 에러 등을 확인할 수 있습니다.
 
 ### 문제 만들기
 <img width="1166" height="813" alt="Image" src="https://github.com/user-attachments/assets/eed87a3e-6ab8-4f6f-8f09-8dc1ae868e8b" />
+
 - 새 문제를 직접 만들 수 있습니다.
 - 시간 제한과 메모리 제한을 정할 수 있습니다.
 - 채점 테스트 케이스는 하단의 `ZIP 불러오기...` 버튼을 통해 불러올 수 있습니다. `{tc 번호}.in` 과 `{tc 번호}.out` 쌍으로 된 파일을 `.zip` 파일로 압축해 업로드하면 등록됩니다.
@@ -52,6 +55,7 @@ Python 풀이를 로컬 PC에서 실행하고 채점할 수 있는 Windows용 �
 
 ### 수업 만들기
 <img width="1186" height="793" alt="Image" src="https://github.com/user-attachments/assets/ecf67a68-4e5d-4ed3-81a9-71aed2b628ff" />
+
 - 폴더 구조를 만들어 JSON 문제 파일을 내부에 배치하고 최상위 폴더를 `.zip` 파일로 압축하여 수업을 만들 수 있습니다.
 - 상단 메뉴의 \[수업]-\[수업 열기...]를 선택하여 수업을 열어볼 수 있습니다.
 - 선택한 파일 내부의 폴더 구조에 따라 좌측 탭 상단에 문제들을 확인할 수 있습니다.
