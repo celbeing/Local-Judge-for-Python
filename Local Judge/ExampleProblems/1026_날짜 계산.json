@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1026",
+  "title": "\uB0A0\uC9DC \uACC4\uC0B0",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC624\uB298\uC740 $M$\uC6D4 $D$\uC77C\uC774\uB2E4. \uC624\uB298\uB85C\uBD80\uD130 $K$\uC77C \uD6C4\uC758 \uB0A0\uC9DC\uB97C \uC54C\uC544\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $M$\uACFC $D$, $K$\uAC00 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nM D K\r\n\u0060\u0060\u0060\r\n- $3 \\leq M \\leq 4$\r\n- $M$\uC774 3\uC774\uB77C\uBA74 $1 \\leq D \\leq 31$\r\n- $M$\uC774 4\uB77C\uBA74 $1 \\leq D \\leq 30$\r\n- $1 \\leq K \\leq 30$",
+  "outputFormat": "\uC624\uB298\uB85C\uBD80\uD130 $K$\uC77C \uD6C4\uC758 \uB0A0\uC9DC\uB97C \u0022**$M$\uC6D4 $D$\uC77C**\u0022 \uD615\uC2DD\uC73C\uB85C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "3 1 10",
+      "output": "3\uC6D4 11\uC77C"
+    },
+    {
+      "input": "4 20 13",
+      "output": "5\uC6D4 3\uC77C"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "3 13 20\r\n",
+      "output": "4\uC6D4 2\uC77C\r\n"
+    },
+    {
+      "input": "3 25 24\r\n",
+      "output": "4\uC6D4 18\uC77C\r\n"
+    },
+    {
+      "input": "3 19 7\r\n",
+      "output": "3\uC6D4 26\uC77C\r\n"
+    },
+    {
+      "input": "3 8 6\r\n",
+      "output": "3\uC6D4 14\uC77C\r\n"
+    },
+    {
+      "input": "4 12 16\r\n",
+      "output": "4\uC6D4 28\uC77C\r\n"
+    },
+    {
+      "input": "3 22 24\r\n",
+      "output": "4\uC6D4 15\uC77C\r\n"
+    },
+    {
+      "input": "4 7 14\r\n",
+      "output": "4\uC6D4 21\uC77C\r\n"
+    },
+    {
+      "input": "4 14 24\r\n",
+      "output": "5\uC6D4 8\uC77C\r\n"
+    },
+    {
+      "input": "3 21 18\r\n",
+      "output": "4\uC6D4 8\uC77C\r\n"
+    },
+    {
+      "input": "4 22 5\r\n",
+      "output": "4\uC6D4 27\uC77C\r\n"
+    },
+    {
+      "input": "4 13 2\r\n",
+      "output": "4\uC6D4 15\uC77C\r\n"
+    },
+    {
+      "input": "3 15 10\r\n",
+      "output": "3\uC6D4 25\uC77C\r\n"
+    },
+    {
+      "input": "3 27 13\r\n",
+      "output": "4\uC6D4 9\uC77C\r\n"
+    },
+    {
+      "input": "4 29 7\r\n",
+      "output": "5\uC6D4 6\uC77C\r\n"
+    },
+    {
+      "input": "3 26 11\r\n",
+      "output": "4\uC6D4 6\uC77C\r\n"
+    },
+    {
+      "input": "3 15 1\r\n",
+      "output": "3\uC6D4 16\uC77C\r\n"
+    },
+    {
+      "input": "4 10 30\r\n",
+      "output": "5\uC6D4 10\uC77C\r\n"
+    },
+    {
+      "input": "3 30 7\r\n",
+      "output": "4\uC6D4 6\uC77C\r\n"
+    },
+    {
+      "input": "4 18 22\r\n",
+      "output": "5\uC6D4 10\uC77C\r\n"
+    },
+    {
+      "input": "4 29 10\r\n",
+      "output": "5\uC6D4 9\uC77C\r\n"
+    }
+  ]
+}

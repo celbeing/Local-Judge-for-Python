@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1022",
+  "title": "N\uC758 \uBC30\uC218",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uB450 \uC790\uC5F0\uC218 $N$\uACFC $A$\uAC00 \uC8FC\uC5B4\uC84C\uC744 \uB54C, $A$\uAC00 $N$\uC758 \uBC30\uC218\uC778\uC9C0 \uD655\uC778\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC790\uC5F0\uC218 $N$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uC790\uC5F0\uC218 $A$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $1 \\leq N \\leq 10$\r\n- $1 \\leq A \\leq 100,00,000$\r\n\u0060\u0060\u0060\r\nN\r\nA\r\n\u0060\u0060\u0060",
+  "outputFormat": "$A$\uAC00 $N$\uC758 \uBC30\uC218\uB77C\uBA74 \u0022**Yes**\u0022\uB97C \uCD9C\uB825\uD558\uACE0 \uC544\uB2C8\uB77C\uBA74 \u0022**No**\u0022\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "4 400",
+      "output": "Yes"
+    },
+    {
+      "input": "5 369",
+      "output": "No"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "2\r\n74865396\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "2\r\n33884846\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "1\r\n45613865\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "5\r\n23822094\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "7\r\n61546165\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "2\r\n7493694\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "1\r\n92537684\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "4\r\n69073538\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "2\r\n9474912\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "3\r\n82600353\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "9\r\n18705281\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "10\r\n81021400\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "8\r\n78054103\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "10\r\n33312076\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "2\r\n91616654\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "9\r\n22786685\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "7\r\n62252866\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "8\r\n77999150\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "7\r\n54349677\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "2\r\n28430219\r\n",
+      "output": "No\r\n"
+    }
+  ]
+}

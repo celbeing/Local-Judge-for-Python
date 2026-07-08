@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1024",
+  "title": "\uB098\uC774 \uC81C\uD55C",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uD0A4\uC988 \uCE74\uD398\uB3C4 \uC785\uC7A5 \uB098\uC774 \uC81C\uD55C\uC774 \uC788\uB4EF\uC774 **\uCD08\uB871 \uC62C\uB4DC \uCE74\uD398**\uB3C4 \uC785\uC7A5 \uB098\uC774\uC5D0 \uC81C\uD55C\uC774 \uC788\uB2E4. \uB9CC $K$\uC138\uB97C \uB118\uC9C0 \uBABB\uD55C \uC0AC\uB78C\uC740 \uC785\uC7A5\uD560 \uC218 \uC5C6\uB2E4. \uCD08\uB871\uC774\uC758 \uB9CC \uB098\uC774 $N$\uC774 \uC8FC\uC5B4\uC84C\uC744 \uB54C \uCD08\uB871\uC774\uAC00 **\uCD08\uB871 \uC62C\uB4DC \uCE74\uD398**\uC5D0 \uC785\uC7A5\uD560 \uC218 \uC788\uB294\uC9C0 \uC54C\uC544\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uCD08\uB871\uC774\uC758 \uB9CC \uB098\uC774 $N$\uACFC **\uCD08\uB871 \uC62C\uB4DC \uCE74\uD398**\uC758 \uB098\uC774 \uC81C\uD55C $K$\uAC00 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nN K\r\n\u0060\u0060\u0060",
+  "outputFormat": "\uCD08\uB871\uC774\uAC00 **\uCD08\uB871 \uC62C\uB4DC \uCE74\uD398**\uC5D0 \uC785\uC7A5\uD560 \uC218 \uC788\uB2E4\uBA74 \u0022**Yes**\u0022\uB97C \uCD9C\uB825\uD558\uACE0 \uC785\uC7A5\uD560 \uC218 \uC5C6\uB2E4\uBA74 \u0022**No**\u0022\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "15 60",
+      "output": "No"
+    },
+    {
+      "input": "65 60",
+      "output": "Yes"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "54 74\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "100 23\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "86 2\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "3 24\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "68 4\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "66 15\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "56 5\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "12 71\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "39 38\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "7 79\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "52 27\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "55 30\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "75 10\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "15 11\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "29 60\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "55 77\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "26 51\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "52 80\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "31 79\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "40 23\r\n",
+      "output": "Yes\r\n"
+    }
+  ]
+}

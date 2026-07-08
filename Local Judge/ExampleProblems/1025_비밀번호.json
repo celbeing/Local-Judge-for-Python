@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1025",
+  "title": "\uBE44\uBC00\uBC88\uD638",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uCD08\uB871\uC774\uB294 \uC790\uC2E0\uC774 \uB9CC\uB4E0 \uC6F9 \uC0AC\uC774\uD2B8\uC5D0 \uB85C\uADF8\uC778 \uD558\uB824\uACE0 \uD55C\uB2E4. \uC544\uC774\uB514\uB294 \uAE30\uC5B5\uC774 \uB098\uC9C0\uB9CC \uBE44\uBC00\uBC88\uD638\uB294 \uD655\uC2E4\uD558\uAC8C \uAE30\uC5B5\uC774 \uB098\uC9C0 \uC54A\uB294\uB2E4. \uCD08\uB871\uC774\uAC00 \uAE30\uC5B5\uD558\uACE0 \uC788\uB294 \uBE44\uBC00\uBC88\uD638\uAC00 \uC815\uD655\uD55C\uC9C0 \uD655\uC778\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uCD08\uB871\uC774\uAC00 \uC785\uB825\uD55C \uBE44\uBC00\uBC88\uD638 $S1$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uCD08\uB871\uC774\uC758 \uC2E4\uC81C \uBE44\uBC00\uBC88\uD638 $S2$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nS1\r\nS2\r\n\u0060\u0060\u0060",
+  "outputFormat": "$S1$\uC774 $S2$\uC640 \uC77C\uCE58\uD55C\uB2E4\uBA74 \u0022**Yes**\u0022\uB97C \uCD9C\uB825\uD558\uACE0 \uC77C\uCE58\uD558\uC9C0 \uC54A\uB294\uB2E4\uBA74 \u0022**No**\u0022\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "abcd\r\nabcd",
+      "output": "Yes"
+    },
+    {
+      "input": "abcde\r\nAbcDe",
+      "output": "No"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "e!EBNJ\u00266Sk\r\nwWiL-yRK\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "M(*7\u0022\r\nM(*7\u0022\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "*RILZ=C3ch\r\nq\u003EiG6\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "lc\u0060uL81$$G\r\n%p:v,\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "RY7q\r\nRY7q\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "8\u0026kNF72@8\r\n$@-\u0027!qY\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "aI8\\\u003ErGW\r\n\u003C4XS\u003EI,\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "(Ob2b5oeZ9\r\nBi4%\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "aiPX=A\r\naiPX=A\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "^0s][u\r\nanYF7\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "\u0027M!0\r\n\u0060y/)\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "Anlln,\u0027\r\nd*w=W5J\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "s!8ft\r\n1;I;?\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "hv;(C4t#vS\r\nInpm7Uv^\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "e5g\u0022k\r\ne5g\u0022k\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "1jN7r6\r\n.@n7.L\u0026)\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "cBFA6!;f\r\ncBFA6!;f\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "sB.:m@\r\n\u003Cad!U93Q\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "D,wlr$\\[V\u0026\r\nD,wlr$\\[V\u0026\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "2E\u0026lp$=2\r\nZk=8y\r\n",
+      "output": "No\r\n"
+    }
+  ]
+}

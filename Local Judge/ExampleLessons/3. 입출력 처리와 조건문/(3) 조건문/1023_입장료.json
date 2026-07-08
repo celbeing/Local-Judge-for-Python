@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1023",
+  "title": "\uC785\uC7A5\uB8CC",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uAD50\uC0AC \uCD08\uB871\uC774\uB294 \uC790\uC2E0\uC758 \uD559\uAE09 \uD559\uC0DD $N$\uBA85\uC744 \uB370\uB9AC\uACE0 \uBC15\uBB3C\uAD00\uC5D0 \uC654\uB2E4. \uBC15\uBB3C\uAD00\uC740 \uC778\uC6D0 \uC218\uC5D0 \uB530\uB77C \uAC1C\uC778, \uB2E8\uCCB4\uB85C \uAD6C\uBD84\uD574 \uC785\uC7A5\uB8CC\uB97C \uBC1B\uACE0 \uC788\uB2E4.  \uC778\uC194\uC790\uB97C \uC81C\uC678\uD55C \uC785\uC7A5 \uC778\uC6D0\uC774 $K$\uBA85 \uC774\uC0C1\uC778 \uACBD\uC6B0, \uB2E8\uCCB4 \uC785\uC7A5\uB8CC\uAC00 \uC801\uC6A9\uB41C\uB2E4. \uADF8\uB9AC\uACE0 \uB2E8\uCCB4 \uAD00\uB78C\uC758 \uACBD\uC6B0, \uC778\uC194\uAD50\uC0AC\uB294 \uBB34\uB8CC\uB85C \uAD00\uB78C\uD560 \uC218 \uC788\uB2E4.\r\n\r\n\uCD08\uB871\uC774\uB124 \uD559\uAE09\uC758 \uD559\uC0DD \uC218 $N$\uACFC \uBC15\uBB3C\uAD00\uC758 \uB2E8\uCCB4 \uAD00\uB78C \uAE30\uC900 $K$\uBA85\uC774 \uC8FC\uC5B4\uC84C\uC744 \uB54C \uCD08\uB871\uC774\uAC00 \uC9C0\uBD88\uD574\uC57C \uD558\uB294 \uC785\uC7A5\uB8CC\uB97C \uC54C\uC544\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uCD08\uB871\uC774\uB124 \uD559\uAE09\uC758 \uD559\uC0DD \uC218 $N$\uACFC \uBC15\uBB3C\uAD00\uC758 \uB2E8\uCCB4 \uAD00\uB78C \uAE30\uC900 \uC778\uC6D0 $K$, \uBC15\uBB3C\uAD00\uC758 1\uC778\uB2F9 \uAC1C\uC778 \uC785\uC7A5\uB8CC $A$, \uB2E8\uCCB4 \uC785\uC7A5\uB8CC $B$\uAC00 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nN K A B\r\n\u0060\u0060\u0060\r\n- $1 \\leq N \\leq 100,000$\r\n- $2 \\leq K \\leq 1,000$\r\n- $1 \\leq B \u003C A \\leq 5,000$",
+  "outputFormat": "\uCD08\uB871\uC774\uAC00 \uC9C0\uBD88\uD574\uC57C \uD558\uB294 \uC785\uC7A5\uB8CC\uB97C \uCD9C\uB825\uD55C\uB2E4.\r\n**\uB2E8\uCCB4 \uAD00\uB78C\uC774 \uC544\uB2CC \uACBD\uC6B0, \uCD08\uB871\uC774\uB3C4 \uC785\uC7A5\uB8CC\uB97C \uB0B4\uC57C \uD55C\uB2E4.**",
+  "assets": [],
+  "samples": [
+    {
+      "input": "10 15 500 350",
+      "output": "5500"
+    },
+    {
+      "input": "20 15 500 350",
+      "output": "7000"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "45 62 3600 2400\r\n",
+      "output": "165600\r\n"
+    },
+    {
+      "input": "94 55 2800 2000\r\n",
+      "output": "188000\r\n"
+    },
+    {
+      "input": "26 6 2800 1100\r\n",
+      "output": "28600\r\n"
+    },
+    {
+      "input": "26 10 1300 1200\r\n",
+      "output": "31200\r\n"
+    },
+    {
+      "input": "68 35 4400 1000\r\n",
+      "output": "68000\r\n"
+    },
+    {
+      "input": "46 73 2100 1600\r\n",
+      "output": "98700\r\n"
+    },
+    {
+      "input": "26 13 3600 1800\r\n",
+      "output": "46800\r\n"
+    },
+    {
+      "input": "19 68 3000 1500\r\n",
+      "output": "60000\r\n"
+    },
+    {
+      "input": "76 36 4900 2100\r\n",
+      "output": "159600\r\n"
+    },
+    {
+      "input": "74 44 2100 1000\r\n",
+      "output": "74000\r\n"
+    },
+    {
+      "input": "68 50 4000 3900\r\n",
+      "output": "265200\r\n"
+    },
+    {
+      "input": "90 63 2800 2400\r\n",
+      "output": "216000\r\n"
+    },
+    {
+      "input": "53 17 3300 1600\r\n",
+      "output": "84800\r\n"
+    },
+    {
+      "input": "16 35 2600 1500\r\n",
+      "output": "44200\r\n"
+    },
+    {
+      "input": "38 46 1600 1200\r\n",
+      "output": "62400\r\n"
+    },
+    {
+      "input": "19 32 2900 2500\r\n",
+      "output": "58000\r\n"
+    },
+    {
+      "input": "50 6 2900 800\r\n",
+      "output": "40000\r\n"
+    },
+    {
+      "input": "26 74 1600 800\r\n",
+      "output": "43200\r\n"
+    },
+    {
+      "input": "70 22 1300 800\r\n",
+      "output": "56000\r\n"
+    },
+    {
+      "input": "15 55 2400 1300\r\n",
+      "output": "38400\r\n"
+    }
+  ]
+}
