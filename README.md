@@ -53,11 +53,9 @@ Python 풀이를 로컬 PC에서 실행하고 채점할 수 있는 Windows용 �
 - 채점 테스트 케이스는 하단의 `ZIP 불러오기...` 버튼을 통해 불러올 수 있습니다. `{tc 번호}.in` 과 `{tc 번호}.out` 쌍으로 된 파일을 `.zip` 파일로 압축해 업로드하면 등록됩니다.
 - 초기 코드 설정 체크박스를 선택하면 문항의 초기 코드를 설정할 수 있습니다. 문제를 열어볼 때 설정된 초기 코드가 작성되어있는 상태로 열리게 됩니다.
 
-### LaTex
-|Latex 수식|결과|
-|---|---|
-|`$1 \leq N \leq 100$`|$1 \leq N \leq 100$|
-|`$$ A_i = \frac{x_i}{2}$$`|$$A_i = \frac{x_i}{2}$$|
+### 수식 작성 방법
+
+
 ### 수업 만들기
 <img width="1186" height="793" alt="Image" src="https://github.com/user-attachments/assets/ecf67a68-4e5d-4ed3-81a9-71aed2b628ff" />
 
