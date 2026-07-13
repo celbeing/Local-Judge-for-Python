@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1027",
+  "title": "\uC131\uC801\uD45C",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uAD50\uC218\uAC00 \uB41C \uCD08\uB871\uC774\uB294 \uD559\uC0DD\uB4E4\uC758 \uC2DC\uD5D8 \uC810\uC218\uB97C 5\uB4F1\uAE09\uC73C\uB85C \uB098\uB204\uB824\uACE0 \uD55C\uB2E4. \uB4F1\uAE09\uC740 \uB2E4\uC74C\uACFC \uAC19\uC774 \uB098\uB204\uC5B4\uC9C4\uB2E4.\r\n- A : 90\uC810 \uC774\uC0C1\r\n- B : 90\uC810 \uBBF8\uB9CC 75\uC810 \uC774\uC0C1\r\n- C : 75\uC810 \uBBF8\uB9CC 60\uC810 \uC774\uC0C1\r\n- D : 60\uC810 \uBBF8\uB9CC 40\uC810 \uC774\uC0C1\r\n- F : 40\uC810 \uBBF8\uB9CC",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uD559\uC0DD\uC758 \uC131\uC801 $S$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $0 \\leq S \\leq 100$",
+  "outputFormat": "\uD559\uC0DD\uC758 \uB4F1\uAE09\uC744 \uB300\uBB38\uC790\uB85C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "100",
+      "output": "A"
+    },
+    {
+      "input": "70",
+      "output": "C"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "62\r\n",
+      "output": "C\r\n"
+    },
+    {
+      "input": "29\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "64\r\n",
+      "output": "C\r\n"
+    },
+    {
+      "input": "49\r\n",
+      "output": "D\r\n"
+    },
+    {
+      "input": "8\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "12\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "94\r\n",
+      "output": "A\r\n"
+    },
+    {
+      "input": "87\r\n",
+      "output": "B\r\n"
+    },
+    {
+      "input": "96\r\n",
+      "output": "A\r\n"
+    },
+    {
+      "input": "25\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "3\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "70\r\n",
+      "output": "C\r\n"
+    },
+    {
+      "input": "81\r\n",
+      "output": "B\r\n"
+    },
+    {
+      "input": "10\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "27\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "54\r\n",
+      "output": "D\r\n"
+    },
+    {
+      "input": "19\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "93\r\n",
+      "output": "A\r\n"
+    },
+    {
+      "input": "35\r\n",
+      "output": "F\r\n"
+    },
+    {
+      "input": "6\r\n",
+      "output": "F\r\n"
+    }
+  ]
+}
