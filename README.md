@@ -57,7 +57,7 @@ Python 풀이를 로컬 PC에서 실행하고 채점할 수 있는 Windows용 �
 |Latex 수식|결과|
 |---|---|
 |`$1 \leq N \leq 100$`|$1 \leq N \leq 100$|
-|`$$ A_i = \frac{x_i}{2}$$`|$$\nA_i = \frac{x_i}{2}\n$$|
+|`$$ A_i = \frac{x_i}{2}$$`|$$A_i = \frac{x_i}{2}$$|
 ### 수업 만들기
 <img width="1186" height="793" alt="Image" src="https://github.com/user-attachments/assets/ecf67a68-4e5d-4ed3-81a9-71aed2b628ff" />
 
