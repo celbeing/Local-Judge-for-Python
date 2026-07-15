@@ -1,0 +1,70 @@
+{
+  "version": 4,
+  "id": "1029",
+  "title": "\uD608\uC561\uD615",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uD608\uC561\uD615\uC744 \uD45C\uD604\uD558\uB294 \uB300\uD45C\uC801\uC778 \uBC29\uBC95\uC778 ABO\uB294 2\uAC1C\uC758 9\uBC88 \uC5FC\uC0C9\uCCB4\uC5D0 \uC788\uB294 \uC720\uC804\uC790\uC5D0 \uB530\uB77C \uD615\uC9C8\uC774 \uB098\uD0C0\uB098\uAC8C \uB41C\uB2E4. \uC720\uC804\uC790\uB294 \uAC01\uAC01 A, B, O \uC911 \uD558\uB098\uC774\uBA70 \uD45C\uD604\uB418\uB294 \uD615\uC9C8\uC740 \uB2E4\uC74C \uADDC\uCE59\uC744 \uB530\uB978\uB2E4.\r\n- O \uC720\uC804\uC790\uB294 \uB4DC\uB7EC\uB098\uB294 \uD615\uC9C8\uC774 \uC5C6\uB2E4.\r\n- A\uC640 B\uB294 \uAC01\uAC01 A, B \uD615\uC9C8\uC744 \uB4DC\uB7EC\uB0B8\uB2E4.\r\n- \uD615\uC9C8\uC774 \uB098\uD0C0\uB098\uB294 \uC720\uC804\uC790\uC758 \uD615\uC9C8\uC774 \uD608\uC561\uD615\uC73C\uB85C \uBAA8\uB450 \uB098\uD0C0\uB09C\uB2E4.\r\n\r\n\uB530\uB77C\uC11C \uB9CC\uC57D \uC5B4\uB5A4 \uC0AC\uB78C\uC758 ABO \uC720\uC804\uC790\uAC00 A\uC640 O\uC778 \uACBD\uC6B0, O\uB294 \uC544\uBB34 \uD615\uC9C8\uB3C4 \uD45C\uD604\uB418\uC9C0 \uC54A\uC9C0\uB9CC A\uAC00 \uD615\uC9C8\uC744 \uB098\uD0C0\uB0B4\uAC8C \uB418\uC5B4 A\uD615\uC774 \uB41C\uB2E4.\r\nB\uC640 O\uC778 \uACBD\uC6B0 \uC5ED\uC2DC B\uB9CC \uD615\uC9C8\uC774 \uB098\uD0C0\uB098\uAC8C \uB418\uC5B4 B\uD615\uC774 \uB41C\uB2E4.\r\n\uB450 \uC720\uC804\uC790\uAC00 \uBAA8\uB450 O\uC778 \uACBD\uC6B0\uB294 \uC544\uBB34 \uD615\uC9C8\uB3C4 \uB098\uD0C0\uB098\uC9C0 \uC54A\uC544 O\uD615\uC774 \uB41C\uB2E4.\r\n\uB9CC\uC57D A\uC640 B \uC720\uC804\uC790\uAC00 \uBAA8\uB450 \uC788\uB2E4\uBA74 \uB450 \uD615\uC9C8\uC774 \uBAA8\uB450 \uB098\uD0C0\uB098\uAC8C \uB418\uC5B4 AB\uD615\uC774 \uB41C\uB2E4.",
+  "inputFormat": "\uB450 \uC720\uC804\uC790 G1\uACFC G2\uAC00 $A , B , O$ \uC138 \uAC00\uC9C0 \uC911 \uD558\uB098\uC758 \uC54C\uD30C\uBCB3\uC73C\uB85C \uAC01\uAC01 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nG1 G2\r\n\u0060\u0060\u0060",
+  "outputFormat": "\uC720\uC804\uC790\uC5D0 \uB530\uB77C \uB4DC\uB7EC\uB09C \uD608\uC561\uD615\uC744 **A, B, O, AB** \uB137 \uC911 \uD558\uB098\uB85C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "A O",
+      "output": "A"
+    },
+    {
+      "input": "B O",
+      "output": "B"
+    },
+    {
+      "input": "O O",
+      "output": "O"
+    },
+    {
+      "input": "A B",
+      "output": "AB"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "O A\r\n",
+      "output": "A\r\n"
+    },
+    {
+      "input": "A A\r\n",
+      "output": "A\r\n"
+    },
+    {
+      "input": "A O\r\n",
+      "output": "A\r\n"
+    },
+    {
+      "input": "B A\r\n",
+      "output": "AB\r\n"
+    },
+    {
+      "input": "B B\r\n",
+      "output": "B\r\n"
+    },
+    {
+      "input": "O O\r\n",
+      "output": "O\r\n"
+    },
+    {
+      "input": "A B\r\n",
+      "output": "AB\r\n"
+    },
+    {
+      "input": "B O\r\n",
+      "output": "B\r\n"
+    },
+    {
+      "input": "O B\r\n",
+      "output": "B\r\n"
+    }
+  ]
+}

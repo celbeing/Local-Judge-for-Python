@@ -36,7 +36,7 @@ namespace Local_Judge
         private readonly ContestProblemNavigator _contestProblemNavigator;
         private readonly ContestResultExporter _contestResultExporter;
         private readonly LocalJudgeSettingsStore _settingsStore;
-        private const string ApplicationVersion = "v1.1";
+        private const string ApplicationVersion = "v1.11";
         private const string ApplicationAuthor = "김명서";
         private const string ApplicationIndischoolId = "전라남도교육지원청";
         private const string ApplicationTistoryUrl = "https://celbeing.tistory.com/";
@@ -2563,15 +2563,12 @@ namespace Local_Judge
                 SampleCaseDocument sample = _currentProblem.Samples[i];
                 int sampleNumber = i + 1;
 
-                AppendTerminal("----------------------------------------");
-                AppendTerminal($"[Sample {sampleNumber}] 입력:");
-                AppendTerminal(IndentMultiline(sample.Input));
-
                 PythonExecutionResult? result = await RunPythonCodeAsync(
                     code,
                     runTitle: $"예제 {sampleNumber} 실행",
                     inputText: sample.Input,
                     showStartBanner: false,
+                    streamOutput: false,
                     limits: CreateExecutionLimits(_currentProblem));
 
                 if (result is null)
@@ -2581,20 +2578,14 @@ namespace Local_Judge
 
                 bool passed = result.Succeeded
                               && CompareOutput(result.StandardOutput, sample.Output);
+                string sampleVerdict = GetSubmissionVerdict(result, passed);
 
                 if (passed)
                 {
                     passedCount++;
                 }
 
-                AppendTerminal($"[Sample {sampleNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
-
-                AppendExecutionResult(result, passed);
-
-                AppendTerminal("Expected:");
-                AppendTerminal(IndentMultiline(sample.Output));
-                AppendTerminal("Actual:");
-                AppendTerminal(IndentMultiline(result.StandardOutput));
+                AppendTerminal($"[Sample {FormatCaseNumber(sampleNumber, totalCount)}] {sampleVerdict} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
 
                 if (ShouldStopBatch(result))
                 {
@@ -2620,6 +2611,7 @@ namespace Local_Judge
             string runTitle,
             string inputText,
             bool showStartBanner = true,
+            bool streamOutput = true,
             PythonExecutionLimits? limits = null)
         {
             if (_pythonRunner.IsRunning)
@@ -2653,7 +2645,7 @@ namespace Local_Judge
                     code,
                     inputText,
                     executionLimits,
-                    AppendTerminalRaw,
+                    streamOutput ? AppendTerminalRaw : null,
                     () =>
                     {
                         SelectTerminalTab();
@@ -2765,6 +2757,12 @@ namespace Local_Judge
                 : $"{limits.OutputLimitBytes.Value / 1024} KB";
 
             return $"시간 {timeLimit} / 메모리 {memoryLimit} / 출력 {outputLimit}";
+        }
+
+        private static string FormatCaseNumber(int caseNumber, int totalCount)
+        {
+            int width = Math.Max(2, totalCount.ToString().Length);
+            return caseNumber.ToString("D" + width);
         }
 
         private static string FormatMemoryBytes(long bytes)
@@ -3228,6 +3226,7 @@ namespace Local_Judge
                         runTitle: $"테스트 {testCaseNumber} 채점",
                         inputText: testCase.Input,
                         showStartBanner: false,
+                        streamOutput: false,
                         limits: submissionLimits);
 
                     if (result is null)
@@ -3245,9 +3244,8 @@ namespace Local_Judge
                         passedCount++;
                     }
 
-                    AppendTerminal($"[Test {testCaseNumber}] {(passed ? "PASS" : "FAIL")} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
+                    AppendTerminal($"[Test {FormatCaseNumber(testCaseNumber, totalCount)}] {testVerdict} | {result.Elapsed.TotalMilliseconds:0} ms | 제한: {FormatExecutionLimits(result.Limits)}");
 
-                    AppendExecutionResult(result, passed);
                     testResults.Add(CreateSubmissionTestResult(testCaseNumber, result, testVerdict));
 
                     if (ShouldStopBatch(result))

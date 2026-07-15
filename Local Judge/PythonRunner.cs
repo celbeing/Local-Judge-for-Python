@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -252,10 +252,13 @@ namespace Local_Judge
                 RedirectStandardError = true,
                 CreateNoWindow = true,
                 WorkingDirectory = workingDirectory,
+                StandardInputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                 StandardOutputEncoding = Encoding.UTF8,
                 StandardErrorEncoding = Encoding.UTF8
             };
 
+            startInfo.ArgumentList.Add("-X");
+            startInfo.ArgumentList.Add("utf8");
             startInfo.ArgumentList.Add("-B");
             startInfo.ArgumentList.Add("-u");
             startInfo.ArgumentList.Add(scriptPath);

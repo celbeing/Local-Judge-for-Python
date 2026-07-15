@@ -1,0 +1,110 @@
+{
+  "version": 4,
+  "id": "1039",
+  "title": "\uD53C\uBCF4\uB098\uCE58 \uC218\uC5F4",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "2 \uC774\uC0C1\uC758 $N$\uC5D0 \uB300\uD558\uC5EC $N$\uBC88\uC9F8 \uD53C\uBCF4\uB098\uCE58 \uC218\uB294 \uADF8 \uC55E\uC758 \uB450 \uD53C\uBCF4\uB098\uCE58 \uC218\uC758 \uD569\uC73C\uB85C \uAD6C\uD560 \uC218 \uC788\uB2E4. $N$\uBC88\uC9F8 \uD53C\uBCF4\uB098\uCE58 \uC218\uB97C $fib(N)$\uC774\uB77C\uACE0 \uD558\uBA74 $fib(N) = fib(N-2)\u002Bfib(N-1)$\uC774\uB2E4.\r\n0\uBC88\uC9F8\uC640 1\uBC88\uC9F8 \uD53C\uBCF4\uB098\uCE58 \uC218\uB97C 1\uC774\uB77C\uACE0 \uD560 \uB54C, 1 \uC774\uC0C1\uC758 $N$\uC5D0 \uB300\uD558\uC5EC $fib(N)1\uC744 \uAD6C\uD574\uBCF4\uC790.\r\n**\uBCF4\uD1B5 \uD53C\uBCF4\uB098\uCE58 \uC218\uC758 0\uBC88\uD56D\uC740 0, 1\uBC88\uD56D\uC740 1\uB85C \uC815\uD558\uC9C0\uB9CC \uC774 \uBB38\uC81C\uC5D0\uC11C\uB294 0\uBC88 \uD56D\uC744 1\uB85C \uD55C\uB2E4.**",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $N$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $1 \\leq N \\leq 1,000$\r\n\u0060\u0060\u0060\r\nN\r\n\u0060\u0060\u0060",
+  "outputFormat": "$fib(N)$\uC744 \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "1",
+      "output": "1"
+    },
+    {
+      "input": "2",
+      "output": "2"
+    },
+    {
+      "input": "10",
+      "output": "89"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "1\r\n",
+      "output": "1\r\n"
+    },
+    {
+      "input": "10\r\n",
+      "output": "89\r\n"
+    },
+    {
+      "input": "20\r\n",
+      "output": "10946\r\n"
+    },
+    {
+      "input": "30\r\n",
+      "output": "1346269\r\n"
+    },
+    {
+      "input": "40\r\n",
+      "output": "165580141\r\n"
+    },
+    {
+      "input": "50\r\n",
+      "output": "20365011074\r\n"
+    },
+    {
+      "input": "75\r\n",
+      "output": "3416454622906707\r\n"
+    },
+    {
+      "input": "100\r\n",
+      "output": "573147844013817084101\r\n"
+    },
+    {
+      "input": "250\r\n",
+      "output": "12776523572924732586037033894655031898659556447352249\r\n"
+    },
+    {
+      "input": "500\r\n",
+      "output": "225591516161936330872512695036072072046011324913758190588638866418474627738686883405015987052796968498626\r\n"
+    },
+    {
+      "input": "750\r\n",
+      "output": "3983206532963909120418404757324525361518628307077248076132424727688912059360140985766913457277311357354018072741855874826116981382251922695786329432008306749\r\n"
+    },
+    {
+      "input": "2\r\n",
+      "output": "2\r\n"
+    },
+    {
+      "input": "1000\r\n",
+      "output": "70330367711422815821835254877183549770181269836358732742604905087154537118196933579742249494562611733487750449241765991088186363265450223647106012053374121273867339111198139373125598767690091902245245323403501\r\n"
+    },
+    {
+      "input": "3\r\n",
+      "output": "3\r\n"
+    },
+    {
+      "input": "4\r\n",
+      "output": "5\r\n"
+    },
+    {
+      "input": "5\r\n",
+      "output": "8\r\n"
+    },
+    {
+      "input": "6\r\n",
+      "output": "13\r\n"
+    },
+    {
+      "input": "7\r\n",
+      "output": "21\r\n"
+    },
+    {
+      "input": "8\r\n",
+      "output": "34\r\n"
+    },
+    {
+      "input": "9\r\n",
+      "output": "55\r\n"
+    }
+  ]
+}

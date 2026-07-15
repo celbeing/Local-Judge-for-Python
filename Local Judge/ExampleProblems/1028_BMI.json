@@ -1,0 +1,110 @@
+{
+  "version": 4,
+  "id": "1028",
+  "title": "BMI",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "BMi\uB294 \uBAB8\uBB34\uAC8C\uC640 \uD0A4\uB85C \uCCB4\uC9C8\uB7C9\uC9C0\uC218\uB97C \uC0B0\uCD9C\uD55C\uB2E4. \uC0B0\uCD9C\uC2DD\uC740 \uB2E4\uC74C\uACFC \uAC19\uB2E4.\r\n- $BMI = \\frac{\uBAB8\uBB34\uAC8C(kg)}{\uD0A4(m)\u00B2}$\r\nBMI \uC0B0\uCD9C \uACB0\uACFC\uC5D0 \uB530\uB77C \uBE44\uB9CC\uB3C4\uB97C \uB2E4\uC74C\uACFC \uAC19\uC774 \uBD84\uB958\uD55C\uB2E4.\r\n- 35 \uC774\uC0C1 : \uACE0\uB3C4\uBE44\uB9CC\r\n- 30 \uC774\uC0C1 35 \uBBF8\uB9CC : \uBE44\uB9CC\r\n- 25 \uC774\uC0C1 30 \uBBF8\uB9CC : \uACFC\uCCB4\uC911\r\n- 18.5 \uC774\uC0C1 25 \uBBF8\uB9CC : \uD45C\uC900\uCCB4\uC911\r\n- 18.5 \uBBF8\uB9CC : \uC800\uCCB4\uC911",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uD0A4(cm)\uC640 \uBAB8\uBB34\uAC8C(kg)\uAC00 \uC18C\uC218 \uCCAB\uC9F8 \uC790\uB9AC\uAE4C\uC9C0 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n**\uC785\uB825\uC73C\uB85C \uC8FC\uC5B4\uC9C0\uB294 \uD0A4\uB294 $cm$\uB2E8\uC704\uC774\uC9C0\uB9CC BMI \uC0B0\uCD9C\uC2DD\uC5D0 \uD544\uC694\uD55C \uD0A4\uB294 $m$\uB2E8\uC704\uC784\uC5D0 \uC8FC\uC758**\r\n\u0060\u0060\u0060\r\n\uD0A4 \uBAB8\uBB34\uAC8C\r\n\u0060\u0060\u0060",
+  "outputFormat": "\uD0A4\uC640 \uBAB8\uBB34\uAC8C\uB85C BMI \uAC12\uC744 \uC0B0\uCD9C\uD558\uACE0 \uBE44\uB9CC\uB3C4\uB97C \uBD84\uB958\uD55C \uACB0\uACFC\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "177.1 57.7",
+      "output": "\uC800\uCCB4\uC911"
+    },
+    {
+      "input": "168.5 66.4",
+      "output": "\uD45C\uC900\uCCB4\uC911"
+    },
+    {
+      "input": "147.5 75.7",
+      "output": "\uBE44\uB9CC"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "174.7 98.5\r\n",
+      "output": "\uBE44\uB9CC\r\n"
+    },
+    {
+      "input": "187.6 61.9\r\n",
+      "output": "\uC800\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "162.5 59.4\r\n",
+      "output": "\uD45C\uC900\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "171.8 78.2\r\n",
+      "output": "\uACFC\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "141.0 30.6\r\n",
+      "output": "\uC800\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "178.2 119.7\r\n",
+      "output": "\uACE0\uB3C4\uBE44\uB9CC\r\n"
+    },
+    {
+      "input": "163.6 99.5\r\n",
+      "output": "\uACE0\uB3C4\uBE44\uB9CC\r\n"
+    },
+    {
+      "input": "154.6 36.0\r\n",
+      "output": "\uC800\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "151.0 41.0\r\n",
+      "output": "\uC800\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "177.3 108.1\r\n",
+      "output": "\uBE44\uB9CC\r\n"
+    },
+    {
+      "input": "172.0 104.1\r\n",
+      "output": "\uACE0\uB3C4\uBE44\uB9CC\r\n"
+    },
+    {
+      "input": "198.5 98.8\r\n",
+      "output": "\uACFC\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "177.7 97.8\r\n",
+      "output": "\uBE44\uB9CC\r\n"
+    },
+    {
+      "input": "147.2 48.1\r\n",
+      "output": "\uD45C\uC900\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "145.4 63.2\r\n",
+      "output": "\uACFC\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "143.4 68.8\r\n",
+      "output": "\uBE44\uB9CC\r\n"
+    },
+    {
+      "input": "185.6 124.3\r\n",
+      "output": "\uACE0\uB3C4\uBE44\uB9CC\r\n"
+    },
+    {
+      "input": "180.9 72.9\r\n",
+      "output": "\uD45C\uC900\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "179.3 95.8\r\n",
+      "output": "\uACFC\uCCB4\uC911\r\n"
+    },
+    {
+      "input": "152.5 44.6\r\n",
+      "output": "\uD45C\uC900\uCCB4\uC911\r\n"
+    }
+  ]
+}

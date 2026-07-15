@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1040",
+  "title": "\uBC30\uC218 \uCC3E\uAE30",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "$A$ \uC774\uC0C1 $B$ \uC774\uD558\uC758 \uC218 \uC911\uC5D0 $K$\uC758 \uBC30\uC218\uAC00 \uBA87 \uAC1C\uC778\uC9C0 \uC138\uC5B4\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $A , B , K$\uAC00 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $1 \\leq A \u003C B \\leq 1,000,000$\r\n- $2 \\leq K \\leq 100$\r\n\u0060\u0060\u0060\r\nA B K\r\n\u0060\u0060\u0060",
+  "outputFormat": "$A$ \uC774\uC0C1 $B$ \uC774\uD558\uC758 \uBC94\uC704\uC5D0 $K$\uC758 \uBC30\uC218\uAC00 \uBA87 \uAC1C\uC778\uC9C0 \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "1 10 2",
+      "output": "5"
+    },
+    {
+      "input": "100 200 11",
+      "output": "9"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "1 2 2\r\n",
+      "output": "1\r\n"
+    },
+    {
+      "input": "100 1000 25\r\n",
+      "output": "37\r\n"
+    },
+    {
+      "input": "123 4567 13\r\n",
+      "output": "342\r\n"
+    },
+    {
+      "input": "999 9999 9\r\n",
+      "output": "1001\r\n"
+    },
+    {
+      "input": "1000 2000 37\r\n",
+      "output": "27\r\n"
+    },
+    {
+      "input": "12345 98765 99\r\n",
+      "output": "873\r\n"
+    },
+    {
+      "input": "54321 654321 17\r\n",
+      "output": "35294\r\n"
+    },
+    {
+      "input": "99900 99999 100\r\n",
+      "output": "1\r\n"
+    },
+    {
+      "input": "111111 222222 11\r\n",
+      "output": "10102\r\n"
+    },
+    {
+      "input": "400000 800000 64\r\n",
+      "output": "6251\r\n"
+    },
+    {
+      "input": "999998 999999 2\r\n",
+      "output": "1\r\n"
+    },
+    {
+      "input": "1 10 2\r\n",
+      "output": "5\r\n"
+    },
+    {
+      "input": "1 999999 100\r\n",
+      "output": "9999\r\n"
+    },
+    {
+      "input": "1 10 3\r\n",
+      "output": "3\r\n"
+    },
+    {
+      "input": "2 10 5\r\n",
+      "output": "2\r\n"
+    },
+    {
+      "input": "3 20 4\r\n",
+      "output": "5\r\n"
+    },
+    {
+      "input": "10 99 10\r\n",
+      "output": "9\r\n"
+    },
+    {
+      "input": "11 99 10\r\n",
+      "output": "8\r\n"
+    },
+    {
+      "input": "50 100 7\r\n",
+      "output": "7\r\n"
+    },
+    {
+      "input": "99 101 100\r\n",
+      "output": "1\r\n"
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1041",
+  "title": "\uC720\uD074\uB9AC\uB4DC\uC758 \uCD5C\uB300\uACF5\uC57D\uC218",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uB450 \uC218\uC758 \uCD5C\uB300\uACF5\uC57D\uC218\uB97C \uAD6C\uD558\uB294 \uBC29\uBC95\uC73C\uB85C \uB450 \uC218\uAC00 \uB354 \uC774\uC0C1 1\uC774 \uC544\uB2CC \uACF5\uC57D\uC218\uB97C \uAC16\uC9C0 \uC54A\uC744 \uB54C\uAE4C\uC9C0 \uB098\uB204\uB294 \uBC29\uBC95\uC774 \uC788\uB2E4. \uC624\uB798 \uC804 \uC218\uD559\uC790 \uC720\uD074\uB9AC\uB4DC\uB294 \uC2E0\uAE30\uD55C \uBC29\uBC95\uC73C\uB85C \uB450 \uC790\uC5F0\uC218 $A$\uC640 $B$\uC758 \uCD5C\uB300\uACF5\uC57D\uC218\uB97C \uAD6C\uD558\uB294 \uBC29\uBC95\uC744 \uBC1C\uACAC\uD588\uB2E4. \uADF8 \uACFC\uC815\uC740 \uB2E4\uC74C\uACFC \uAC19\uB2E4.\r\n1. $A$\uB97C $B$\uB85C, $B$\uB97C $A$\uB97C $B$\uB85C \uB098\uB208 \uB098\uBA38\uC9C0\uB85C \uBC14\uAFBC\uB2E4.\r\n2. $B$\uAC00 0\uC774 \uB420 \uB54C\uAE4C\uC9C0 1.\uC744 \uBC18\uBCF5\uD55C\uB2E4.\r\n\uC774 \uBC29\uBC95\uC744 \u0060\uC720\uD074\uB9AC\uB4DC \uD638\uC81C\uBC95\u0060\uC774\uB77C\uACE0 \uD55C\uB2E4.\r\n\u0060\uC720\uD074\uB9AC\uB4DC \uD638\uC81C\uBC95\u0060\uC73C\uB85C \uB450 \uC790\uC5F0\uC218 $A , B$\uC758 \uCD5C\uB300\uACF5\uC57D\uC218\uB97C \uAD6C\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 $A$\uC640 $B$\uAC00 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $1 \\leq A, B \\leq 1,000,000$\r\n\u0060\u0060\u0060\r\nA B\r\n\u0060\u0060\u0060",
+  "outputFormat": "\uC785\uB825\uC73C\uB85C \uC8FC\uC5B4\uC9C4 $A_0 , B_0$ \uBD80\uD130 \uC720\uD074\uB9AC\uB4DC \uD638\uC81C\uBC95\uC744 \uC801\uC6A9\uD574 \uB450 \uC218\uAC00 \uBC14\uB00C\uB294 \uACFC\uC815\uC744 \uD55C \uC904\uC5D0 \uD55C \uBC88\uC529 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uD558\uC5EC \uCD9C\uB825\uD55C\uB2E4.\r\n\u0060\u0060\u0060\r\nA_0 B_0\r\nA_1 B_1\r\nA_2 B_2\r\n...\r\nA_n B_n\r\n\u0060\u0060\u0060",
+  "assets": [],
+  "samples": [
+    {
+      "input": "10 15",
+      "output": "10 15\r\n15 10\r\n10 5\r\n5 0"
+    },
+    {
+      "input": "48 18",
+      "output": "48 18\r\n18 12\r\n12 6\r\n6 0"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "1 1\r\n",
+      "output": "1 1\r\n1 0\r\n"
+    },
+    {
+      "input": "270 192\r\n",
+      "output": "270 192\r\n192 78\r\n78 36\r\n36 6\r\n6 0\r\n"
+    },
+    {
+      "input": "1024 64\r\n",
+      "output": "1024 64\r\n64 0\r\n"
+    },
+    {
+      "input": "12345 54321\r\n",
+      "output": "12345 54321\r\n54321 12345\r\n12345 4941\r\n4941 2463\r\n2463 15\r\n15 3\r\n3 0\r\n"
+    },
+    {
+      "input": "99991 97\r\n",
+      "output": "99991 97\r\n97 81\r\n81 16\r\n16 1\r\n1 0\r\n"
+    },
+    {
+      "input": "100000 99999\r\n",
+      "output": "100000 99999\r\n99999 1\r\n1 0\r\n"
+    },
+    {
+      "input": "123456 789012\r\n",
+      "output": "123456 789012\r\n789012 123456\r\n123456 48276\r\n48276 26904\r\n26904 21372\r\n21372 5532\r\n5532 4776\r\n4776 756\r\n756 240\r\n240 36\r\n36 24\r\n24 12\r\n12 0\r\n"
+    },
+    {
+      "input": "999983 2\r\n",
+      "output": "999983 2\r\n2 1\r\n1 0\r\n"
+    },
+    {
+      "input": "1000000 1\r\n",
+      "output": "1000000 1\r\n1 0\r\n"
+    },
+    {
+      "input": "1000000 999999\r\n",
+      "output": "1000000 999999\r\n999999 1\r\n1 0\r\n"
+    },
+    {
+      "input": "832040 514229\r\n",
+      "output": "832040 514229\r\n514229 317811\r\n317811 196418\r\n196418 121393\r\n121393 75025\r\n75025 46368\r\n46368 28657\r\n28657 17711\r\n17711 10946\r\n10946 6765\r\n6765 4181\r\n4181 2584\r\n2584 1597\r\n1597 987\r\n987 610\r\n610 377\r\n377 233\r\n233 144\r\n144 89\r\n89 55\r\n55 34\r\n34 21\r\n21 13\r\n13 8\r\n8 5\r\n5 3\r\n3 2\r\n2 1\r\n1 0\r\n"
+    },
+    {
+      "input": "2 1\r\n",
+      "output": "2 1\r\n1 0\r\n"
+    },
+    {
+      "input": "999936 999744\r\n",
+      "output": "999936 999744\r\n999744 192\r\n192 0\r\n"
+    },
+    {
+      "input": "1 2\r\n",
+      "output": "1 2\r\n2 1\r\n1 0\r\n"
+    },
+    {
+      "input": "12 8\r\n",
+      "output": "12 8\r\n8 4\r\n4 0\r\n"
+    },
+    {
+      "input": "18 24\r\n",
+      "output": "18 24\r\n24 18\r\n18 6\r\n6 0\r\n"
+    },
+    {
+      "input": "21 13\r\n",
+      "output": "21 13\r\n13 8\r\n8 5\r\n5 3\r\n3 2\r\n2 1\r\n1 0\r\n"
+    },
+    {
+      "input": "48 18\r\n",
+      "output": "48 18\r\n18 12\r\n12 6\r\n6 0\r\n"
+    },
+    {
+      "input": "99 78\r\n",
+      "output": "99 78\r\n78 21\r\n21 15\r\n15 6\r\n6 3\r\n3 0\r\n"
+    },
+    {
+      "input": "100 10\r\n",
+      "output": "100 10\r\n10 0\r\n"
+    }
+  ]
+}

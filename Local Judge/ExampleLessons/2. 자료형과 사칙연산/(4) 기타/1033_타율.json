@@ -1,0 +1,102 @@
+{
+  "version": 4,
+  "id": "1033",
+  "title": "\uD0C0\uC728",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC57C\uAD6C \uC120\uC218 \uCD08\uB871\uC774\uB294 \uC790\uC2E0\uC758 \uD0C0\uC728\uC744 \uBD84\uC218\uB85C \uD45C\uD604\uD55C\uB2E4. \uC624\uB298 \uACBD\uAE30 \uACB0\uACFC\uB97C \uBCF4\uACE0 \uCD08\uB871\uC774\uC758 \uC0C8\uB85C\uC6B4 \uD0C0\uC728\uC744 \uACC4\uC0B0\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC624\uB298 \uACBD\uAE30 \uC774\uC804\uC758 \uCD08\uB871\uC774\uAC00 \uB193\uCE5C \uACF5\uC758 \uC218 $A$\uC640 \uCD08\uB871\uC774\uC758 \uC548\uD0C0 \uD69F\uC218 $B$\uAC00 \uACF5\uBC31\uC73C\uB85C \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uC624\uB298 \uACBD\uAE30\uC5D0\uC11C \uCD08\uB871\uC774\uAC00 \uB193\uCE5C \uACF5\uC758 \uC218 $C$\uC640 \uCD08\uB871\uC774\uC758 \uC548\uD0C0 \uD69F\uC218 $D$\uAC00 \uACF5\uBC31\uC73C\uB85C \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nA B\r\nC D\r\n\u0060\u0060\u0060",
+  "outputFormat": "\uCD08\uB871\uC774\uC758 \uD0C0\uC728\uC744 \uB2E4\uC74C\uACFC \uAC19\uC740 \uD615\uC2DD\uC73C\uB85C \uCD9C\uB825\uD55C\uB2E4.\r\n\u0060\u0060\u0060\r\n(\uC548\uD0C0 \uD69F\uC218)/(\uC804\uCCB4 \uD0C0\uC11D \uC218)\r\n\u0060\u0060\u0060",
+  "assets": [],
+  "samples": [
+    {
+      "input": "1 2\r\n3 4",
+      "output": "6/10"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "0 0\r\n1 0\r\n",
+      "output": "0/1\r\n"
+    },
+    {
+      "input": "20 0\r\n0 0\r\n",
+      "output": "0/20\r\n"
+    },
+    {
+      "input": "5 3\r\n7 0\r\n",
+      "output": "3/15\r\n"
+    },
+    {
+      "input": "7 0\r\n5 5\r\n",
+      "output": "5/17\r\n"
+    },
+    {
+      "input": "13 7\r\n29 11\r\n",
+      "output": "18/60\r\n"
+    },
+    {
+      "input": "88 44\r\n12 6\r\n",
+      "output": "50/150\r\n"
+    },
+    {
+      "input": "98 97\r\n1 1\r\n",
+      "output": "98/197\r\n"
+    },
+    {
+      "input": "99 1\r\n2 2\r\n",
+      "output": "3/104\r\n"
+    },
+    {
+      "input": "3 2\r\n99 50\r\n",
+      "output": "52/154\r\n"
+    },
+    {
+      "input": "42 21\r\n57 57\r\n",
+      "output": "78/177\r\n"
+    },
+    {
+      "input": "6 6\r\n6 0\r\n",
+      "output": "6/18\r\n"
+    },
+    {
+      "input": "1 0\r\n0 0\r\n",
+      "output": "0/1\r\n"
+    },
+    {
+      "input": "70 35\r\n0 0\r\n",
+      "output": "35/105\r\n"
+    },
+    {
+      "input": "1 1\r\n0 0\r\n",
+      "output": "1/2\r\n"
+    },
+    {
+      "input": "2 1\r\n3 2\r\n",
+      "output": "3/8\r\n"
+    },
+    {
+      "input": "99 0\r\n99 0\r\n",
+      "output": "0/198\r\n"
+    },
+    {
+      "input": "99 99\r\n99 99\r\n",
+      "output": "198/396\r\n"
+    },
+    {
+      "input": "50 25\r\n40 20\r\n",
+      "output": "45/135\r\n"
+    },
+    {
+      "input": "10 10\r\n0 0\r\n",
+      "output": "10/20\r\n"
+    },
+    {
+      "input": "0 0\r\n10 5\r\n",
+      "output": "5/15\r\n"
+    }
+  ]
+}

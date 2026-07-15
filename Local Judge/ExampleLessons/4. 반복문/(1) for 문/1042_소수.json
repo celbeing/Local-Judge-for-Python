@@ -1,0 +1,114 @@
+{
+  "version": 4,
+  "id": "1042",
+  "title": "\uC18C\uC218",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "1\uACFC \uC790\uAE30 \uC790\uC2E0 \uC774\uC678\uC5D0 \uC5B4\uB5A4 \uC57D\uC218\uB3C4 \uAC16\uC9C0 \uC54A\uB294 \uC218\uB97C **\uC18C\uC218**\uB77C\uACE0 \uD55C\uB2E4.\r\n\uC5B4\uB5A4 \uC218 $N$\uC774 \uC8FC\uC5B4\uC84C\uC744 \uB54C, \uC774 \uC218\uAC00 \uC18C\uC218\uC778\uC9C0 \uC544\uB2CC\uC9C0 \uC54C\uC544\uBCF4\uC790.\r\n**\uB2E8, 1\uC740 \uC18C\uC218\uAC00 \uC544\uB2C8\uB2E4.**\r\n**1\uACFC \uC790\uAE30 \uC790\uC2E0 \uC774\uC678\uC5D0 \uB2E4\uB978 \uC57D\uC218\uB97C \uAC16\uB294 \uC218\uB97C \u0060\uD569\uC131\uC218\u0060\uB77C\uACE0 \uD558\uC9C0\uB9CC**\r\n**1\uC740 \uC18C\uC218\uB3C4, \uD569\uC131\uC218\uB3C4 \uC544\uB2C8\uB2E4.**",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC790\uC5F0\uC218 $N$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $1 \\leq N \\leq 1,000,000$\r\n\u0060\u0060\u0060\r\nN\r\n\u0060\u0060\u0060",
+  "outputFormat": "$N$\uC774 \uC18C\uC218\uB77C\uBA74 \u0060Yes\u0060\uB97C \uCD9C\uB825\uD55C\uB2E4. \uC544\uB2C8\uB77C\uBA74 \u0060No\u0060\uB97C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "1",
+      "output": "No"
+    },
+    {
+      "input": "17",
+      "output": "Yes"
+    },
+    {
+      "input": "105",
+      "output": "No"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "1\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "104729\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "999983\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "4\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "6\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "9\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "25\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "49\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "121\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "1001\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "99999\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "2\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "999981\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "1000000\r\n",
+      "output": "No\r\n"
+    },
+    {
+      "input": "3\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "5\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "7\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "11\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "97\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "997\r\n",
+      "output": "Yes\r\n"
+    },
+    {
+      "input": "7919\r\n",
+      "output": "Yes\r\n"
+    }
+  ]
+}

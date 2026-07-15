@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1031",
+  "title": "\uC8FC\uCC28\uC7A5",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uCD08\uB871\uC774\uB294 \uB3C4\uB871 \uC8FC\uCC28\uC7A5\uC5D0 \uC8FC\uCC28\uB97C \uD588\uB2E4. \uB3C4\uB871 \uC8FC\uCC28\uC7A5\uC758 \uC8FC\uCC28 \uC694\uAE08\uC740 **\uC8FC\uAC04 \uC694\uAE08**\uACFC **\uC57C\uAC04 \uC694\uAE08**\uC73C\uB85C \uAD6C\uBD84\uB41C\uB2E4.\r\n\r\n7\uC2DC\uBD80\uD130 20\uC2DC\uAE4C\uC9C0\uB294 **\uC8FC\uAC04 \uC694\uAE08**\uC774 \uC801\uC6A9\uB418\uC5B4 \uC2DC\uAC04 \uB2F9 $1,500$\uC6D0\uC758 \uC694\uAE08\uC774 \uBD80\uACFC\uB41C\uB2E4.\r\n\uADF8 \uC678\uC758 \uC2DC\uAC04\uC740 **\uC57C\uAC04 \uC694\uAE08**\uC774 \uC801\uC6A9\uB418\uC5B4 \uC2DC\uAC04 \uB2F9 $2,000$\uC6D0\uC758 \uC694\uAE08\uC774 \uBD80\uACFC\uB41C\uB2E4.\r\n\r\n\uCD08\uB871\uC774\uB294 $E$\uC2DC\uC5D0 \uC8FC\uCC28\uC7A5\uC5D0 \uC785\uCC28\uD558\uC5EC $O$\uC2DC\uC5D0 \uCD9C\uCC28\uD588\uB2E4. \uCD08\uB871\uC774\uB294 \uC790\uC815\uC744 \uB118\uACA8 \uC8FC\uCC28\uD558\uC9C0 \uC54A\uC558\uB2E4. \uCD08\uB871\uC774\uAC00 \uC815\uC0B0\uD574\uC57C \uD560 \uC8FC\uCC28 \uC694\uAE08\uC744 \uACC4\uC0B0\uD574\uBCF4\uC790.",
+  "inputFormat": "\uCD08\uB871\uC774\uAC00 \uB3C4\uB871 \uC8FC\uC790\uCC3D\uC5D0 \uC785\uCC28\uD55C \uC2DC\uAC01 $E$\uC640 \uCD9C\uCC28\uD55C \uC2DC\uAC01 $O$\uAC00 \uACF5\uBC31\uC73C\uB85C \uAD6C\uBD84\uB418\uC5B4 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nE O\r\n\u0060\u0060\u0060",
+  "outputFormat": "\uCD08\uB871\uC774\uC758 \uC8FC\uCC28 \uC694\uAE08\uC744 \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "7 10",
+      "output": "4500"
+    },
+    {
+      "input": "6 8",
+      "output": "3500"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "3 22\r\n",
+      "output": "31500\r\n"
+    },
+    {
+      "input": "17 24\r\n",
+      "output": "12500\r\n"
+    },
+    {
+      "input": "10 23\r\n",
+      "output": "21000\r\n"
+    },
+    {
+      "input": "7 24\r\n",
+      "output": "27500\r\n"
+    },
+    {
+      "input": "8 18\r\n",
+      "output": "15000\r\n"
+    },
+    {
+      "input": "13 17\r\n",
+      "output": "6000\r\n"
+    },
+    {
+      "input": "8 16\r\n",
+      "output": "12000\r\n"
+    },
+    {
+      "input": "15 24\r\n",
+      "output": "15500\r\n"
+    },
+    {
+      "input": "16 20\r\n",
+      "output": "6000\r\n"
+    },
+    {
+      "input": "6 17\r\n",
+      "output": "17000\r\n"
+    },
+    {
+      "input": "18 23\r\n",
+      "output": "9000\r\n"
+    },
+    {
+      "input": "1 19\r\n",
+      "output": "30000\r\n"
+    },
+    {
+      "input": "19 23\r\n",
+      "output": "7500\r\n"
+    },
+    {
+      "input": "3 22\r\n",
+      "output": "31500\r\n"
+    },
+    {
+      "input": "7 19\r\n",
+      "output": "18000\r\n"
+    },
+    {
+      "input": "11 14\r\n",
+      "output": "4500\r\n"
+    },
+    {
+      "input": "10 13\r\n",
+      "output": "4500\r\n"
+    },
+    {
+      "input": "20 23\r\n",
+      "output": "6000\r\n"
+    },
+    {
+      "input": "16 20\r\n",
+      "output": "6000\r\n"
+    },
+    {
+      "input": "15 23\r\n",
+      "output": "13500\r\n"
+    }
+  ]
+}

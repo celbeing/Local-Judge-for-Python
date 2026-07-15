@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1032",
+  "title": "\uBB34\uC2A8 \uC694\uC77C",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC624\uB298\uC774 \uBB34\uC2A8 \uC694\uC77C\uC778\uC9C0 \uC54C\uACE0 \uC788\uC744 \uB54C $N$\uC77C \uD6C4\uAC00 \uBB34\uC2A8 \uC694\uC77C\uC778\uC9C0 \uC54C\uC544\uBCF4\uC790.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 **\uC6D4, \uD654, \uC218, \uBAA9, \uAE08, \uD1A0, \uC77C** \uC911 \uD558\uB098\uC758 \uAE00\uC790 $S$\uB85C \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 \uC624\uB298\uB85C\uBD80\uD130 \uBA70\uCE60 \uD6C4\uC778\uC9C0\uB97C \uB098\uD0C0\uB0B4\uB294 \uC22B\uC790 $N$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nS\r\nN\r\n\u0060\u0060\u0060",
+  "outputFormat": "\uC624\uB298\uB85C\uBD80\uD130 $N$\uC77C \uD6C4\uAC00 \uBB34\uC2A8 \uC694\uC77C\uC778\uC9C0 **\uC6D4, \uD654, \uC218, \uBAA9, \uAE08, \uD1A0, \uC77C** \uC911 \uD55C \uAE00\uC790\uB85C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "\uC6D4\r\n1",
+      "output": "\uD654"
+    },
+    {
+      "input": "\uBAA9\r\n5",
+      "output": "\uD654"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "\uC6D4\r\n1\r\n",
+      "output": "\uD654\r\n"
+    },
+    {
+      "input": "\uC218\r\n14\r\n",
+      "output": "\uC218\r\n"
+    },
+    {
+      "input": "\uBAA9\r\n30\r\n",
+      "output": "\uD1A0\r\n"
+    },
+    {
+      "input": "\uAE08\r\n31\r\n",
+      "output": "\uC6D4\r\n"
+    },
+    {
+      "input": "\uD1A0\r\n365\r\n",
+      "output": "\uC77C\r\n"
+    },
+    {
+      "input": "\uC77C\r\n366\r\n",
+      "output": "\uD654\r\n"
+    },
+    {
+      "input": "\uC6D4\r\n999\r\n",
+      "output": "\uD1A0\r\n"
+    },
+    {
+      "input": "\uD654\r\n1000\r\n",
+      "output": "\uC6D4\r\n"
+    },
+    {
+      "input": "\uC218\r\n997\r\n",
+      "output": "\uD1A0\r\n"
+    },
+    {
+      "input": "\uBAA9\r\n998\r\n",
+      "output": "\uC6D4\r\n"
+    },
+    {
+      "input": "\uAE08\r\n500\r\n",
+      "output": "\uC6D4\r\n"
+    },
+    {
+      "input": "\uD654\r\n2\r\n",
+      "output": "\uBAA9\r\n"
+    },
+    {
+      "input": "\uD1A0\r\n123\r\n",
+      "output": "\uC218\r\n"
+    },
+    {
+      "input": "\uC218\r\n3\r\n",
+      "output": "\uD1A0\r\n"
+    },
+    {
+      "input": "\uBAA9\r\n4\r\n",
+      "output": "\uC6D4\r\n"
+    },
+    {
+      "input": "\uAE08\r\n5\r\n",
+      "output": "\uC218\r\n"
+    },
+    {
+      "input": "\uD1A0\r\n6\r\n",
+      "output": "\uAE08\r\n"
+    },
+    {
+      "input": "\uC77C\r\n7\r\n",
+      "output": "\uC77C\r\n"
+    },
+    {
+      "input": "\uC6D4\r\n8\r\n",
+      "output": "\uD654\r\n"
+    },
+    {
+      "input": "\uD654\r\n13\r\n",
+      "output": "\uC6D4\r\n"
+    }
+  ]
+}

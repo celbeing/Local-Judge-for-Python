@@ -1,0 +1,110 @@
+{
+  "version": 4,
+  "id": "1030",
+  "title": "\uD56D\uACF5\uAD8C",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC5F4\uC2EC\uD788 \uC77C\uD55C \uCD08\uB871\uC774\uB294 \uD734\uAC00\uB97C \uC704\uD574 \uB3C4\uB871 \uC5D0\uC5B4\uB77C\uC778\uC758 \uD56D\uACF5\uAD8C\uC744 \uAD6C\uB9E4\uD558\uB824\uACE0 \uD55C\uB2E4.  \uCD08\uB871\uC774\uB294 \uD604\uC7AC $B$\uC6D0\uC744 \uAC16\uACE0 \uC788\uC73C\uBA70 \uADF8\uB3D9\uC548 \uB108\uBB34\uB098 \uC5F4\uC2EC\uD788 \uC77C\uD588\uAE30 \uB54C\uBB38\uC5D0 \uAD6C\uC785\uD560 \uC218 \uC788\uB294 \uCD5C\uACE0 \uB4F1\uAE09\uC758 \uD56D\uACF5\uAD8C\uC744 \uAD6C\uB9E4\uD560 \uC0DD\uAC01\uC774\uB2E4. \uD56D\uACF5\uAD8C\uC758 \uB4F1\uAE09\uC740 \uB2E4\uC74C\uACFC \uAC19\uB2E4.\r\n- Economy(\uC774\uCF54\uB178\uBBF8) \u003C Business(\uBE44\uC988\uB2C8\uC2A4) \u003C First(\uD37C\uC2A4\uD2B8)\r\n\r\n\uD56D\uACF5\uAD8C\uC740 \uAC01 \uB4F1\uAE09\uC5D0 \uB530\uB77C \uACE0\uC815\uB41C \uC694\uAE08  $C$\uAC00 \uC788\uB2E4. \uAC70\uAE30\uC5D0 \uC720\uB958\uD560\uC99D\uB8CC $M$\uB97C \uB354\uD558\uACE0 \uD0D1\uC2B9\uAC1D\uC774 \uAC00\uC9C4 \uC218\uD558\uBB3C\uC758 \uC911\uB7C9\uC5D0 \uB530\uB77C \uCD94\uAC00\uC694\uAE08\uC774 \uBD99\uB294\uB2E4.\r\n\r\n\uC218\uD558\uBB3C\uC740 \uCD5C\uB300 $L kg$\uAE4C\uC9C0\uB294 \uBB34\uB8CC\uB85C \uBD80\uCE60 \uC218 \uC788\uC73C\uB098 \uADF8 \uC774\uC0C1\uC758 \uC218\uD558\uBB3C\uC740 \uCD08\uACFC\uD55C \uBB34\uAC8C $K kg$\uB9C8\uB2E4 \uCD94\uAC00 \uC694\uAE08 $P$\uC6D0\uC774 \uBD80\uACFC\uB41C\uB2E4.\r\n\r\n\uCD08\uB871\uC774\uAC00 \uAD6C\uB9E4\uD560 \uC218 \uC788\uB294 \uD56D\uACF5\uAD8C\uC758 \uCD5C\uB300 \uB4F1\uAE09\uC744 \uCD9C\uB825\uD55C\uB2E4.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uCD08\uB871\uC774\uAC00 \uAC00\uC9C0\uACE0 \uC788\uB294 \uB3C8 $B$\uC640 \uAC00\uBC29\uC758 \uBB34\uAC8C $T$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uB450 \uBC88\uC9F8 \uC904\uC5D0 First, Business, Economy \uC21C\uC73C\uB85C \uD56D\uACF5\uAD8C\uC758 \uAC00\uACA9$C_1 , C_2 , C_3$\uC640 \uC720\uB958\uD560\uC99D\uB8CC $M$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\uC138 \uBC88\uC9F8 \uC904\uC5D0 \uC218\uD558\uBB3C\uC758 \uC81C\uD55C \uC911\uB7C9 $L$\uACFC \uCD08\uACFC \uBB34\uAC8C \uAE30\uC900 $K$, \uCD08\uACFC \uBB34\uAC8C \uB2F9 \uCD94\uAC00\uC694\uAE08 $P{$\uAC00 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n\u0060\u0060\u0060\r\nB T\r\nC_1 C_2 C_3 M\r\nL K P\r\n\u0060\u0060\u0060",
+  "outputFormat": "\uCD08\uB871\uC774\uAC00 \uAD6C\uB9E4\uD560 \uC218 \uC788\uB294 \uD56D\uACF5\uAD8C\uC758 \uCD5C\uB300 \uB4F1\uAE09\uC744 **First, Business, Economy** \uC911 \uD558\uB098\uB85C \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "926000 24\r\n1770000 760000 250000 32000\r\n35 3 13000",
+      "output": "Business"
+    },
+    {
+      "input": "1699000 38\r\n1630000 570000 230000 27000\r\n35 3 5000",
+      "output": "First"
+    },
+    {
+      "input": "491000 21\r\n1480000 900000 210000 43000\r\n40 5 5000",
+      "output": "Economy"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "1205000 50\r\n1110000 710000 280000 40000\r\n30 2 7000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "1350000 26\r\n1410000 750000 280000 50000\r\n35 5 14000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "2464000 49\r\n1870000 830000 290000 26000\r\n25 3 15000\r\n",
+      "output": "First\r\n"
+    },
+    {
+      "input": "2261000 21\r\n1180000 870000 300000 41000\r\n35 4 17000\r\n",
+      "output": "First\r\n"
+    },
+    {
+      "input": "1561000 26\r\n1380000 530000 300000 30000\r\n35 2 15000\r\n",
+      "output": "First\r\n"
+    },
+    {
+      "input": "301000 29\r\n1270000 580000 270000 18000\r\n35 2 7000\r\n",
+      "output": "Economy\r\n"
+    },
+    {
+      "input": "919000 44\r\n1560000 570000 250000 49000\r\n35 2 12000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "1253000 22\r\n1960000 780000 300000 28000\r\n35 3 11000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "695000 26\r\n1540000 670000 290000 41000\r\n35 5 9000\r\n",
+      "output": "Economy\r\n"
+    },
+    {
+      "input": "857000 50\r\n1710000 860000 290000 25000\r\n35 3 7000\r\n",
+      "output": "Economy\r\n"
+    },
+    {
+      "input": "847000 45\r\n1980000 790000 300000 47000\r\n35 5 5000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "510000 50\r\n1620000 840000 280000 27000\r\n30 5 19000\r\n",
+      "output": "Economy\r\n"
+    },
+    {
+      "input": "1492000 36\r\n1940000 660000 280000 38000\r\n30 4 13000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "364000 22\r\n1270000 890000 260000 32000\r\n35 4 15000\r\n",
+      "output": "Economy\r\n"
+    },
+    {
+      "input": "1058000 11\r\n1840000 670000 250000 30000\r\n25 2 18000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "654000 35\r\n1920000 510000 240000 36000\r\n40 2 12000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "407000 23\r\n1210000 550000 300000 31000\r\n40 2 18000\r\n",
+      "output": "Economy\r\n"
+    },
+    {
+      "input": "1878000 29\r\n1540000 560000 200000 30000\r\n35 3 9000\r\n",
+      "output": "First\r\n"
+    },
+    {
+      "input": "1362000 39\r\n1780000 550000 280000 34000\r\n40 3 19000\r\n",
+      "output": "Business\r\n"
+    },
+    {
+      "input": "676000 43\r\n1530000 820000 230000 46000\r\n35 3 17000\r\n",
+      "output": "Economy\r\n"
+    }
+  ]
+}

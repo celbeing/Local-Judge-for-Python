@@ -1,0 +1,110 @@
+{
+  "version": 4,
+  "id": "1043",
+  "title": "\uC6B0\uBC15\uC218",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC5B4\uB5A4 \uC218 $N$\uC774 \uC8FC\uC5B4\uC84C\uC744 \uB54C, \uB2E4\uC74C \uADDC\uCE59\uC5D0 \uB530\uB77C $N$\uC758 \uBCC0\uD654\uC2DC\uCF1C\uBCF4\uC790.\r\n1. $N$\uC774 \uC9DD\uC218\uB77C\uBA74 $N$\uC744 2\uB85C \uB098\uB208\uB2E4.\r\n2. \uADF8\uB807\uC9C0 \uC54A\uB2E4\uBA74 $N$\uC744 3\uBC30\uD55C \uB2E4\uC74C 1\uC744 \uB354\uD55C\uB2E4.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC790\uC5F0\uC218 $N$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $1 \\leq N \\leq 1,000,000,000$\r\n\u0060\u0060\u0060\r\nN\r\n\u0060\u0060\u0060",
+  "outputFormat": "$N$\uC758 \uCC98\uC74C \uC0C1\uD0DC\uBD80\uD130 1\uC774 \uB420 \uB54C\uAE4C\uC9C0 \uBCC0\uD654 \uACFC\uC815\uC744 \uD55C \uC904\uC5D0 \uD558\uB098\uC529 \uCD9C\uB825\uD55C\uB2E4.",
+  "assets": [],
+  "samples": [
+    {
+      "input": "10",
+      "output": "10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "1\r\n",
+      "output": "1\r\n"
+    },
+    {
+      "input": "13\r\n",
+      "output": "13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "16\r\n",
+      "output": "16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "7\r\n",
+      "output": "7\r\n22\r\n11\r\n34\r\n17\r\n52\r\n26\r\n13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "9\r\n",
+      "output": "9\r\n28\r\n14\r\n7\r\n22\r\n11\r\n34\r\n17\r\n52\r\n26\r\n13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "11\r\n",
+      "output": "11\r\n34\r\n17\r\n52\r\n26\r\n13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "14\r\n",
+      "output": "14\r\n7\r\n22\r\n11\r\n34\r\n17\r\n52\r\n26\r\n13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "15\r\n",
+      "output": "15\r\n46\r\n23\r\n70\r\n35\r\n106\r\n53\r\n160\r\n80\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "17\r\n",
+      "output": "17\r\n52\r\n26\r\n13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "18\r\n",
+      "output": "18\r\n9\r\n28\r\n14\r\n7\r\n22\r\n11\r\n34\r\n17\r\n52\r\n26\r\n13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "19\r\n",
+      "output": "19\r\n58\r\n29\r\n88\r\n44\r\n22\r\n11\r\n34\r\n17\r\n52\r\n26\r\n13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "2\r\n",
+      "output": "2\r\n1\r\n"
+    },
+    {
+      "input": "22\r\n",
+      "output": "22\r\n11\r\n34\r\n17\r\n52\r\n26\r\n13\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "23\r\n",
+      "output": "23\r\n70\r\n35\r\n106\r\n53\r\n160\r\n80\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "27\r\n",
+      "output": "27\r\n82\r\n41\r\n124\r\n62\r\n31\r\n94\r\n47\r\n142\r\n71\r\n214\r\n107\r\n322\r\n161\r\n484\r\n242\r\n121\r\n364\r\n182\r\n91\r\n274\r\n137\r\n412\r\n206\r\n103\r\n310\r\n155\r\n466\r\n233\r\n700\r\n350\r\n175\r\n526\r\n263\r\n790\r\n395\r\n1186\r\n593\r\n1780\r\n890\r\n445\r\n1336\r\n668\r\n334\r\n167\r\n502\r\n251\r\n754\r\n377\r\n1132\r\n566\r\n283\r\n850\r\n425\r\n1276\r\n638\r\n319\r\n958\r\n479\r\n1438\r\n719\r\n2158\r\n1079\r\n3238\r\n1619\r\n4858\r\n2429\r\n7288\r\n3644\r\n1822\r\n911\r\n2734\r\n1367\r\n4102\r\n2051\r\n6154\r\n3077\r\n9232\r\n4616\r\n2308\r\n1154\r\n577\r\n1732\r\n866\r\n433\r\n1300\r\n650\r\n325\r\n976\r\n488\r\n244\r\n122\r\n61\r\n184\r\n92\r\n46\r\n23\r\n70\r\n35\r\n106\r\n53\r\n160\r\n80\r\n40\r\n20\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "3\r\n",
+      "output": "3\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "4\r\n",
+      "output": "4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "5\r\n",
+      "output": "5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "6\r\n",
+      "output": "6\r\n3\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "8\r\n",
+      "output": "8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "10\r\n",
+      "output": "10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    },
+    {
+      "input": "12\r\n",
+      "output": "12\r\n6\r\n3\r\n10\r\n5\r\n16\r\n8\r\n4\r\n2\r\n1\r\n"
+    }
+  ]
+}
