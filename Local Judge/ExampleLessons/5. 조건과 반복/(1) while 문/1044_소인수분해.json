@@ -1,0 +1,106 @@
+{
+  "version": 4,
+  "id": "1044",
+  "title": "\uC18C\uC778\uC218\uBD84\uD574",
+  "authorName": "\uAE40\uBA85\uC11C \uC120\uC0DD\uB2D8",
+  "source": "\uD30C\uC774\uC36C \uBB38\uC81C\uD574\uACB0\uD504\uB85C\uADF8\uB798\uBC0D \uAE30\uCD08",
+  "timeLimitMs": 2000,
+  "memoryLimitMb": 128,
+  "statementFormat": "markdown-latex",
+  "description": "\uC5B4\uB5A4 \uC790\uC5F0\uC218 $N$\uC774 \uAC16\uACE0 \uC788\uB294 \uC57D\uC218 \uC911, \uC18C\uC218\uC778 \uAC83\uB4E4\uC744 \u0060\uC18C\uC778\uC218\u0060\uB77C\uACE0 \uD55C\uB2E4. $N$\uC774 \uC8FC\uC5B4\uC84C\uC744 \uB54C, N\uC744 \uC18C\uC778\uC218\uBD84\uD574\uD574\uBCF4\uC790.\r\n\r\n\uC790\uC5F0\uC218 $N$\uC5D0 \uB300\uD55C \uC18C\uC778\uC218\uBD84\uD574\uC758 \uACFC\uC815\uC744 \uAC04\uB2E8\uD788 \uD558\uBA74 \uB2E4\uC74C\uACFC \uAC19\uB2E4.\r\n1. $N$\uC744 \uB098\uB20C \uC218 \u0060div\u0060\uB97C 2\uB85C \uC815\uD55C\uB2E4.\r\n2. $N$\uC744 \u0060div\u0060\uB85C \uB098\uB20C \uC218 \uC788\uC744 \uB54C\uAE4C\uC9C0 \uB098\uB208\uB2E4.\r\n3. 2\uB97C \uD560 \uC218 \uC5C6\uB2E4\uBA74 \u0060div\u0060\uB97C 1 \uC99D\uAC00\uC2DC\uD0A8\uB2E4.\r\n4. \u0060div\u0060\uAC00 $N$\uBCF4\uB2E4 \uCEE4\uC9C0\uBA74 \uC791\uC5C5\uC744 \uB9C8\uCE5C\uB2E4.\r\n5. \uB9C8\uC9C0\uB9C9\uC73C\uB85C \uB0A8\uC740 $N$\uC774 1\uC774 \uC544\uB2C8\uB77C\uBA74 \uC18C\uC778\uC218\uC5D0 \uD3EC\uD568\uC2DC\uD0A8\uB2E4.",
+  "inputFormat": "\uCCAB \uBC88\uC9F8 \uC904\uC5D0 \uC790\uC5F0\uC218 $N$\uC774 \uC8FC\uC5B4\uC9C4\uB2E4.\r\n- $2 \\leq N \\leq 100,000$\r\n\u0060\u0060\u0060\r\nN\r\n\u0060\u0060\u0060",
+  "outputFormat": "$N$\uC744 \uC18C\uC778\uC218\uBD84\uD574\uD558\uC5EC \uAC00\uC7A5 \uC791\uC740 \uC18C\uC778\uC218\uBD80\uD130 \uC21C\uC11C\uB300\uB85C \uD55C \uC904\uC5D0 \uD558\uB098\uC529 \uCD9C\uB825\uD55C\uB2E4.\r\n**\uB9C8\uC9C0\uB9C9\uC73C\uB85C \uB0A8\uC740 $N$\uC774 1\uBCF4\uB2E4 \uD06C\uB2E4\uBA74 \uC18C\uC778\uC218\uC5D0 \uD3EC\uD568\uC2DC\uCF1C\uC57C \uD568\uC5D0 \uC720\uC758**",
+  "assets": [],
+  "samples": [
+    {
+      "input": "10",
+      "output": "2\r\n5"
+    },
+    {
+      "input": "24",
+      "output": "2\r\n2\r\n2\r\n3"
+    }
+  ],
+  "testCases": [
+    {
+      "input": "2\n",
+      "output": "2\n"
+    },
+    {
+      "input": "1024\n",
+      "output": "2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n"
+    },
+    {
+      "input": "32768\n",
+      "output": "2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n"
+    },
+    {
+      "input": "59049\n",
+      "output": "3\n3\n3\n3\n3\n3\n3\n3\n3\n3\n"
+    },
+    {
+      "input": "99991\n",
+      "output": "99991\n"
+    },
+    {
+      "input": "999983\n",
+      "output": "999983\n"
+    },
+    {
+      "input": "1000000\n",
+      "output": "2\n2\n2\n2\n2\n2\n5\n5\n5\n5\n5\n5\n"
+    },
+    {
+      "input": "999900\n",
+      "output": "2\n2\n3\n3\n5\n5\n11\n101\n"
+    },
+    {
+      "input": "30030\n",
+      "output": "2\n3\n5\n7\n11\n13\n"
+    },
+    {
+      "input": "720720\n",
+      "output": "2\n2\n2\n2\n3\n3\n5\n7\n11\n13\n"
+    },
+    {
+      "input": "524288\n",
+      "output": "2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n2\n"
+    },
+    {
+      "input": "3\n",
+      "output": "3\n"
+    },
+    {
+      "input": "782946\n",
+      "output": "2\n3\n3\n3\n3\n3\n3\n3\n179\n"
+    },
+    {
+      "input": "4\n",
+      "output": "2\n2\n"
+    },
+    {
+      "input": "6\n",
+      "output": "2\n3\n"
+    },
+    {
+      "input": "12\n",
+      "output": "2\n2\n3\n"
+    },
+    {
+      "input": "49\n",
+      "output": "7\n7\n"
+    },
+    {
+      "input": "72\n",
+      "output": "2\n2\n2\n3\n3\n"
+    },
+    {
+      "input": "97\n",
+      "output": "97\n"
+    },
+    {
+      "input": "360\n",
+      "output": "2\n2\n2\n3\n3\n5\n"
+    }
+  ]
+}
